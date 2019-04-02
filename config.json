@@ -1,0 +1,38 @@
+{
+    "isServer": false,
+    "isServer_comments": "запускать приложение как сервер (true), как клиент (false)",
+    "toConnectServerHTTPS": [{
+            "ip": "127.0.0.1",
+            "port": 13313,
+            "token": "eg773gg7dd26fe6ffd82y733a"
+        },
+        {
+            "ip": "192.168.13.3",
+            "port": 13999,
+            "token": "f3y8y7te7t278gf6f26f62fd6"
+        }
+    ],
+    "timeReconnect": 10,
+    "timeReconnect_comments": "актуально только в режиме isServer = false, тогда с заданным интервалом времени будут попытки соединения с адресом мастера",
+    "localServerHTTPS": {
+        "ip": "127.0.0.1",
+        "port": 13113,
+        "authenticationToken": "a60cb0aa61613d4983086c0a12207",
+        "authenticationToken_comments": "идентификационный токен",
+        "pathCertFile": "keys/isems_nih_slave.crt",
+        "pathCertFile_comments": "ОТНОСИТЕЛЬНЫЙ путь до файла с сертификатом",
+        "pathPrivateKeyFile": "keys/device.key",
+        "pathPrivateKeyFile_comments": "ОТНОСИТЕЛЬНЫЙ путь до файла с приватным ключем",
+        "pathRootCA": "keys/rootCA.pem"
+    },
+    "localServerHTTPS_comments": "подымается локальный HTTPS сервер и ожидаются подключения к нему",
+    "directoryStoringProcessedFiles": {
+        "raw": "/home/ISEMS_NIH_slave_RAW",
+        "object": "/home/ISEMS_NIH_slave_OBJECT"
+    },
+    "directoryStoringProcessedFiles_comments": "директории для хранения обработанных файлов",
+    "pathLogFiles": "/var/log",
+    "pathLogFiles_comments": "место расположение лог-файла приложения",
+    "refreshIntervalTelemetryInfo": 60,
+    "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации"
+}
