@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"ISEMS-NIH_slave/configure"
+	"ISEMS-NIH_slave/modulenetworkinteraction/handlers"
 	"ISEMS-NIH_slave/savemessageapp"
 )
 
@@ -23,6 +24,7 @@ func RouteWssConnect(
 	cwtResText chan<- configure.MsgWsTransmission,
 	cwtResBinary chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
+	smta *configure.StoreMemoryTasksApplication,
 	cwtReq <-chan configure.MsgWsTransmission) {
 
 	fmt.Println("START function 'RouteWssConnect'...")
@@ -43,6 +45,8 @@ func RouteWssConnect(
 		case "ping":
 			fmt.Println("--- resived message JSON 'PING', func 'RouteWssConnect'")
 			fmt.Printf("client ID %v\n", msg.ClientID)
+
+			go handlers.HandlerMessageTypePing(cwtResText, smta, msg.Data, msg.ClientID)
 
 		case "filtration":
 			fmt.Println("--- resived message JSON 'FILTRATION', func 'RouteWssConnect'")

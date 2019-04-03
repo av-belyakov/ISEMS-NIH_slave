@@ -35,8 +35,7 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 	<body><h1>Access denied. For additional information, please contact the webmaster.</h1></body>
 	</html>`)
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Content-Language", "en")
+	fmt.Printf("_____________ RESIVED HTTP REQUEST FROM IP:%v _______________\n %v\n", req.RemoteAddr, req.Header)
 
 	stringToken := ""
 	for headerName := range req.Header {
@@ -46,6 +45,9 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 			continue
 		}
 	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Language", "en")
 
 	if req.Method != "GET" {
 		http.Error(w, "Method not allowed", 405)
@@ -99,6 +101,10 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 		return
 	}
 
+	if req.Header.Get("Connection") != "Upgrade" {
+		return
+	}
+
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -111,22 +117,13 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 	c, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
-		c.Close()
+		if c != nil {
+			c.Close()
+		}
 
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-	defer func() {
-		//закрытие канала связи с источником
-		c.Close()
-
-		//изменяем состояние соединения для данного источника
-		_ = sws.InfoSourceList.ChangeSourceConnectionStatus(clientID)
-
-		//удаляем линк соединения
-		sws.InfoSourceList.DelLinkWebsocketConnection(remoteIP)
-
-		_ = saveMessageApp.LogMessage("info", "websocket disconnect whis ip "+remoteIP)
-	}()
+	defer connClose(c, sws.InfoSourceList, clientID, remoteIP)
 
 	//изменяем состояние соединения для данного источника
 	_ = sws.InfoSourceList.ChangeSourceConnectionStatus(clientID)
@@ -136,6 +133,10 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 	//обработчик запросов приходящих через websocket
 	for {
+		if c == nil {
+			break
+		}
+
 		_, message, err := c.ReadMessage()
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -175,8 +176,8 @@ func ServerNetworkInteraction(
 	http.HandleFunc("/", ss.HandlerRequest)
 	http.HandleFunc("/wss", sws.ServerWss)
 
-	err := http.ListenAndServeTLS(ss.IP+":"+ss.Port, appc.LocalServerHTTPS.PathCertFile, appc.LocalServerHTTPS.PathPrivateKeyFile, nil)
-
-	log.Println(err)
-	os.Exit(1)
+	if err := http.ListenAndServeTLS(ss.IP+":"+ss.Port, appc.LocalServerHTTPS.PathCertFile, appc.LocalServerHTTPS.PathPrivateKeyFile, nil); err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
 }

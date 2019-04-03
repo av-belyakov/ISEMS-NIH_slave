@@ -1,5 +1,5 @@
 {
-    "isServer": false,
+    "isServer": true,
     "isServer_comments": "запускать приложение как сервер (true), как клиент (false)",
     "toConnectServerHTTPS": [{
             "ip": "127.0.0.1",
@@ -16,8 +16,8 @@
     "timeReconnect_comments": "актуально только в режиме isServer = false, тогда с заданным интервалом времени будут попытки соединения с адресом мастера",
     "localServerHTTPS": {
         "ip": "127.0.0.1",
-        "port": 13113,
-        "authenticationToken": "a60cb0aa61613d4983086c0a12207",
+        "port": 13444,
+        "authenticationToken": "eg773gg7dd26fe6ffd82y733a",
         "authenticationToken_comments": "идентификационный токен",
         "pathCertFile": "keys/isems_nih_slave.crt",
         "pathCertFile_comments": "ОТНОСИТЕЛЬНЫЙ путь до файла с сертификатом",

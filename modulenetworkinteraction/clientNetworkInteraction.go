@@ -28,18 +28,6 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
-	//при разрыве соединения удаляет дескриптор соединения и изменяет статус клиента
-	connClose := func(c *websocket.Conn, cs clientSetting, id, ip string) {
-		fmt.Println("CLOSE WSS LINK")
-
-		c.Close()
-
-		//изменяем статус подключения клиента
-		_ = cs.InfoSourceList.ChangeSourceConnectionStatus(id)
-		//удаляем дескриптор соединения
-		cs.InfoSourceList.DelLinkWebsocketConnection(ip)
-	}
-
 	go func() {
 		header := http.Header{}
 		header.Add("Content-Type", "text/plain;charset=utf-8")
@@ -60,7 +48,7 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 			return
 		}
-		defer connClose(c, cs, cs.ID, cs.IP)
+		defer connClose(c, cs.InfoSourceList, cs.ID, cs.IP)
 
 		if res.StatusCode == 101 {
 			//изменяем статус подключения клиента
