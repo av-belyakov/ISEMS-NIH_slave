@@ -131,7 +131,7 @@ func init() {
 }
 
 func main() {
-	smta := configure.NewRepositorySMTA()
+	sma := configure.NewRepositorySMA()
 
-	modulenetworkinteraction.MainNetworkInteraction(&appConfig, smta)
+	modulenetworkinteraction.MainNetworkInteraction(&appConfig, sma)
 }

@@ -71,11 +71,16 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 
 	//если токен валидный добавляем клиента в список и разрешаем ему дальнейшее соединение
 	clientID := createClientID(req.RemoteAddr + ":" + ss.Token)
-	ss.InfoSourceList.AddSourceSettings(clientID, configure.SourceSetting{
+	ss.StoreMemoryApplication.SetClientSetting(clientID, configure.ClientSettings{
 		IP:              remoteIP,
 		Port:            remotePort,
 		AccessIsAllowed: true,
 	})
+
+	fmt.Println("CLIENT IP:", remoteIP)
+	fmt.Println("CLIENT ID:", clientID)
+	sett, _ := ss.StoreMemoryApplication.GetClientSetting(clientID)
+	fmt.Println(sett)
 
 	http.Redirect(w, req, "https://"+ss.IP+":"+ss.Port+"/wss", 301)
 }
@@ -87,7 +92,7 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
 
-	clientID, idIsExist := sws.InfoSourceList.GetSourceIDOnIP(remoteIP)
+	clientID, idIsExist := sws.StoreMemoryApplication.GetClientIDOnIP(remoteIP)
 	if !idIsExist {
 		w.WriteHeader(401)
 		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+remoteIP+" is prohibited")
@@ -95,7 +100,7 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	}
 
 	//проверяем разрешено ли данному ip соединение с сервером wss
-	if !sws.InfoSourceList.GetAccessIsAllowed(remoteIP) {
+	if !sws.StoreMemoryApplication.GetAccessIsAllowed(remoteIP) {
 		w.WriteHeader(401)
 		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+remoteIP+" is prohibited")
 		return
@@ -123,13 +128,13 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-	defer connClose(c, sws.InfoSourceList, clientID, remoteIP)
+	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP)
 
 	//изменяем состояние соединения для данного источника
-	_ = sws.InfoSourceList.ChangeSourceConnectionStatus(clientID)
+	_ = sws.StoreMemoryApplication.ChangeSourceConnectionStatus(clientID)
 
 	//добавляем линк соединения по websocket
-	sws.InfoSourceList.AddLinkWebsocketConnect(remoteIP, c)
+	sws.StoreMemoryApplication.AddLinkWebsocketConnect(remoteIP, c)
 
 	//обработчик запросов приходящих через websocket
 	for {
@@ -155,22 +160,22 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 func ServerNetworkInteraction(
 	cwtReq chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
-	isl *configure.InformationSourcesList) {
+	sma *configure.StoreMemoryApplication) {
 
 	fmt.Println("START function 'ServerNetworkInteraction'...")
 
 	log.Printf("START application ISEMS-NIH_slave version %q, the application is running as a \"SERVER\"\n", appc.VersionApp)
 
 	ss := serverSetting{
-		IP:             appc.LocalServerHTTPS.IP,
-		Port:           strconv.Itoa(appc.LocalServerHTTPS.Port),
-		Token:          appc.LocalServerHTTPS.AuthenticationToken,
-		InfoSourceList: isl,
+		IP:                     appc.LocalServerHTTPS.IP,
+		Port:                   strconv.Itoa(appc.LocalServerHTTPS.Port),
+		Token:                  appc.LocalServerHTTPS.AuthenticationToken,
+		StoreMemoryApplication: sma,
 	}
 
 	sws := serverWebsocketSetting{
-		InfoSourceList: isl,
-		Cwt:            cwtReq,
+		StoreMemoryApplication: sma,
+		Cwt:                    cwtReq,
 	}
 
 	http.HandleFunc("/", ss.HandlerRequest)

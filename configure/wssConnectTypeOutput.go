@@ -4,14 +4,15 @@ package configure
 * Типы JSON сообщений принимаемых от клиента
 * */
 
-//DetailInfoMsgPingPong подробная информация
-type DetailInfoMsgPingPong struct {
-	MaxCountProcessFiltration int8 `json:"maxCountProcessFiltration"`
-	EnableTelemetry           bool `json:"enableTelemetry"`
+//DetailInfoMsgPing подробная информация
+type DetailInfoMsgPing struct {
+	MaxCountProcessFiltration int8     `json:"maxCountProcessFiltration"`
+	EnableTelemetry           bool     `json:"enableTelemetry"`
+	StorageFolders            []string `json:"storageFolders"`
 }
 
-//MsgTypePingPong сообщение типа ping
-type MsgTypePingPong struct {
-	MsgType string                `json:"messageType"`
-	Info    DetailInfoMsgPingPong `json:"info"`
+//MsgTypePing сообщение типа ping
+type MsgTypePing struct {
+	MsgType string            `json:"messageType"`
+	Info    DetailInfoMsgPing `json:"info"`
 }

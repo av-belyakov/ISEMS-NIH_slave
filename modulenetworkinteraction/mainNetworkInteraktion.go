@@ -21,22 +21,23 @@ import (
 
 	"ISEMS-NIH_slave/configure"
 	"ISEMS-NIH_slave/savemessageapp"
+	"ISEMS-NIH_slave/telemetry"
 )
 
 type serverSetting struct {
-	IP, Port, Token string
-	InfoSourceList  *configure.InformationSourcesList
+	IP, Port, Token        string
+	StoreMemoryApplication *configure.StoreMemoryApplication
 }
 
 type serverWebsocketSetting struct {
-	InfoSourceList *configure.InformationSourcesList
-	Cwt            chan<- configure.MsgWsTransmission
+	StoreMemoryApplication *configure.StoreMemoryApplication
+	Cwt                    chan<- configure.MsgWsTransmission
 }
 
 type clientSetting struct {
-	ID, IP, Port   string
-	InfoSourceList *configure.InformationSourcesList
-	Cwt            chan<- configure.MsgWsTransmission
+	ID, IP, Port           string
+	StoreMemoryApplication *configure.StoreMemoryApplication
+	Cwt                    chan<- configure.MsgWsTransmission
 }
 
 func createClientID(str string) string {
@@ -47,7 +48,7 @@ func createClientID(str string) string {
 }
 
 //при разрыве соединения удаляет дескриптор соединения и изменяет статус клиента
-func connClose(c *websocket.Conn, isl *configure.InformationSourcesList, id, ip string) {
+func connClose(c *websocket.Conn, sma *configure.StoreMemoryApplication, id, ip string) {
 	fmt.Println("CLOSE WSS LINK")
 
 	if c != nil {
@@ -55,18 +56,15 @@ func connClose(c *websocket.Conn, isl *configure.InformationSourcesList, id, ip 
 	}
 
 	//изменяем статус подключения клиента
-	_ = isl.ChangeSourceConnectionStatus(id)
+	_ = sma.ChangeSourceConnectionStatus(id)
 	//удаляем дескриптор соединения
-	isl.DelLinkWebsocketConnection(ip)
+	sma.DelLinkWebsocketConnection(ip)
 }
 
 //MainNetworkInteraction модуль сетевого взаимодействия
-func MainNetworkInteraction(appc *configure.AppConfig, smta *configure.StoreMemoryTasksApplication) {
+func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemoryApplication) {
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
-
-	//инициализируем хранилище подключений клиентов
-	isl := configure.NewRepositoryISL()
 
 	//читаем сертификат CA для того что бы клиент доверял сертификату переданному сервером
 	rootCA, err := ioutil.ReadFile(appc.LocalServerHTTPS.PathRootCA)
@@ -97,13 +95,13 @@ func MainNetworkInteraction(appc *configure.AppConfig, smta *configure.StoreMemo
 	//через канал cwtRes
 	go func() {
 		getConnLink := func(msg configure.MsgWsTransmission) (*configure.WssConnection, error) {
-			s, ok := isl.GetSourceSetting(msg.ClientID)
+			s, ok := sma.GetClientSetting(msg.ClientID)
 			if !ok {
 				return nil, errors.New("the ip address cannot be found by the given client ID " + msg.ClientID)
 			}
 
 			//получаем линк websocket соединения
-			c, ok := isl.GetLinkWebsocketConnect(s.IP)
+			c, ok := sma.GetLinkWebsocketConnect(s.IP)
 			if !ok {
 				return nil, errors.New("no connection found at websocket link ip address " + s.IP)
 			}
@@ -114,6 +112,9 @@ func MainNetworkInteraction(appc *configure.AppConfig, smta *configure.StoreMemo
 		for {
 			select {
 			case msgText := <-cwtResText:
+
+				fmt.Println(msgText.ClientID)
+
 				c, err := getConnLink(msgText)
 				if err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -139,15 +140,18 @@ func MainNetworkInteraction(appc *configure.AppConfig, smta *configure.StoreMemo
 	}()
 
 	//обработка запросов поступающих в приложение снаружи
-	go RouteWssConnect(cwtResText, cwtResBinary, appc, smta, cwtReq)
+	go RouteWssConnect(cwtResText, cwtResBinary, appc, sma, cwtReq)
+
+	//запуск телеметрии
+	go telemetry.TransmissionTelemetry(cwtResText, appc, sma)
 
 	/* запуск приложения в режиме 'СЕРВЕР' */
 	if appc.IsServer {
-		ServerNetworkInteraction(cwtReq, appc, isl)
+		ServerNetworkInteraction(cwtReq, appc, sma)
 
 		return
 	}
 
 	/* запуск приложения в режиме 'КЛИЕНТА' */
-	ClientNetworkInteraction(cwtReq, appc, isl, conf)
+	ClientNetworkInteraction(cwtReq, appc, sma, conf)
 }

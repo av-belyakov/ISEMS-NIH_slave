@@ -1,5 +1,5 @@
 {
-    "isServer": true,
+    "isServer": false,
     "isServer_comments": "запускать приложение как сервер (true), как клиент (false)",
     "toConnectServerHTTPS": [{
             "ip": "127.0.0.1",
@@ -33,6 +33,6 @@
     "directoryStoringProcessedFiles_comments": "директории для хранения обработанных файлов",
     "pathLogFiles": "/var/log",
     "pathLogFiles_comments": "место расположение лог-файла приложения",
-    "refreshIntervalTelemetryInfo": 60,
+    "refreshIntervalTelemetryInfo": 15,
     "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации"
 }

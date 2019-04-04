@@ -24,7 +24,7 @@ func RouteWssConnect(
 	cwtResText chan<- configure.MsgWsTransmission,
 	cwtResBinary chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
-	smta *configure.StoreMemoryTasksApplication,
+	sma *configure.StoreMemoryApplication,
 	cwtReq <-chan configure.MsgWsTransmission) {
 
 	fmt.Println("START function 'RouteWssConnect'...")
@@ -35,7 +35,7 @@ func RouteWssConnect(
 	var mtJSON msgTypeJSON
 
 	for msg := range cwtReq {
-		fmt.Printf("Client ID:%v, request data count: %v\n", msg.ClientID, msg.Data)
+		//		fmt.Printf("Client ID:%v, request data count: %v\n", msg.ClientID, msg.Data)
 
 		if err := json.Unmarshal(*msg.Data, &mtJSON); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -46,7 +46,7 @@ func RouteWssConnect(
 			fmt.Println("--- resived message JSON 'PING', func 'RouteWssConnect'")
 			fmt.Printf("client ID %v\n", msg.ClientID)
 
-			go handlers.HandlerMessageTypePing(cwtResText, smta, msg.Data, msg.ClientID)
+			go handlers.HandlerMessageTypePing(cwtResText, sma, msg.Data, msg.ClientID)
 
 		case "filtration":
 			fmt.Println("--- resived message JSON 'FILTRATION', func 'RouteWssConnect'")

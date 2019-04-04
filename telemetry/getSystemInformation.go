@@ -69,17 +69,8 @@ DONE:
 		}
 	}
 
-	//получаем локальный ip
-	var localAddr string
-	links := sma.GetClientsListConnection()
-	for _, l := range links {
-		localAddr = l.Link.LocalAddr().String()
-		return
-	}
-
-	sysInfo.Info.IPAddress = localAddr
 	sysInfo.Info.CurrentDateTime = time.Now().Unix() * 1000
-	sysInfo.MessageType = "information"
+	sysInfo.MessageType = "telemetry"
 
 	resjson, err := json.Marshal(sysInfo)
 	if err != nil {

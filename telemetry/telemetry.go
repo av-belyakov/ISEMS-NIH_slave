@@ -25,6 +25,8 @@ func TransmissionTelemetry(
 	for range ticker.C {
 		settingsAllClient := sma.GetAllClientSettings()
 
+		fmt.Printf("ALL LIST CLIENTS: %v\n", settingsAllClient)
+
 		count := len(settingsAllClient)
 		if count == 0 {
 			continue
@@ -32,10 +34,15 @@ func TransmissionTelemetry(
 
 		cl := make([]string, 0, count)
 		for clientID, s := range settingsAllClient {
+
+			fmt.Printf("clientID %v, telemetry: %v\n", clientID, s.SendsTelemetry)
+
 			if s.SendsTelemetry {
 				cl = append(cl, clientID)
 			}
 		}
+
+		fmt.Printf("CLIENT LIST send telemetry %v\n", cl)
 
 		if len(cl) == 0 {
 			continue

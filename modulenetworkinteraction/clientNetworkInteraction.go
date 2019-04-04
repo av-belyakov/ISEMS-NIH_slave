@@ -48,14 +48,14 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 			return
 		}
-		defer connClose(c, cs.InfoSourceList, cs.ID, cs.IP)
+		defer connClose(c, cs.StoreMemoryApplication, cs.ID, cs.IP)
 
 		if res.StatusCode == 101 {
 			//изменяем статус подключения клиента
-			_ = cs.InfoSourceList.ChangeSourceConnectionStatus(cs.ID)
+			_ = cs.StoreMemoryApplication.ChangeSourceConnectionStatus(cs.ID)
 
 			//добавляем линк соединения
-			cs.InfoSourceList.AddLinkWebsocketConnect(cs.IP, c)
+			cs.StoreMemoryApplication.AddLinkWebsocketConnect(cs.IP, c)
 
 			//обработчик запросов приходящих через websocket
 			for {
@@ -82,7 +82,7 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 func ClientNetworkInteraction(
 	cwtReq chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
-	isl *configure.InformationSourcesList,
+	sma *configure.StoreMemoryApplication,
 	conf *tls.Config) {
 
 	log.Printf("START application ISEMS-NIH_slave version %q, the application is running as a \"CLIENT\"\n", appc.VersionApp)
@@ -94,7 +94,7 @@ func ClientNetworkInteraction(
 	for _, c := range appc.ToConnectServerHTTPS {
 		clientID := createClientID(c.IP + ":" + strconv.Itoa(c.Port) + ":" + c.Token)
 
-		isl.AddSourceSettings(clientID, configure.SourceSetting{
+		sma.SetClientSetting(clientID, configure.ClientSettings{
 			IP:    c.IP,
 			Port:  strconv.Itoa(c.Port),
 			Token: c.Token,
@@ -113,16 +113,16 @@ func ClientNetworkInteraction(
 	//цикличные попытки установления соединения в режиме клиент
 	ticker := time.NewTicker(time.Duration(appc.TimeReconnect) * time.Second)
 	for range ticker.C {
-		for id, s := range *isl.GetSourceList() {
+		for id, s := range sma.GetAllClientSettings() {
 			if !s.ConnectionStatus {
 				fmt.Printf("connection attempt with client IP: %v, ID %v\n", s.IP, id)
 
 				cs := clientSetting{
-					ID:             id,
-					IP:             s.IP,
-					Port:           s.Port,
-					InfoSourceList: isl,
-					Cwt:            cwtReq,
+					ID:                     id,
+					IP:                     s.IP,
+					Port:                   s.Port,
+					StoreMemoryApplication: sma,
+					Cwt:                    cwtReq,
 				}
 				client.CheckRedirect = cs.redirectPolicyFunc
 
@@ -141,6 +141,9 @@ func ClientNetworkInteraction(
 				_, err = client.Do(req)
 				if err != nil {
 					strErr := fmt.Sprint(err)
+
+					fmt.Println(strErr)
+
 					if !strings.Contains(strErr, "stop redirect") {
 						_ = saveMessageApp.LogMessage("error", strErr)
 					}

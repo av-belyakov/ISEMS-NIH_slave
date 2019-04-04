@@ -6,12 +6,6 @@ package configure
 * Версия 0.1, дата релиза 28.03.2019
 * */
 
-import (
-	"time"
-
-	"github.com/gorilla/websocket"
-)
-
 //SourceSetting параметры источника
 type SourceSetting struct {
 	ConnectionStatus  bool
@@ -25,10 +19,10 @@ type SourceSetting struct {
 }
 
 //WssConnection дескриптор соединения по протоколу websocket
-type WssConnection struct {
+/*type WssConnection struct {
 	Link *websocket.Conn
 	//mu   sync.Mutex
-}
+}*/
 
 //sourcesListSetting настройки источников, ключ ID источника
 type sourcesListSetting map[string]SourceSetting
@@ -102,7 +96,7 @@ func (isl *InformationSourcesList) GetSourceList() *map[string]SourceSetting {
 }
 
 //ChangeSourceConnectionStatus изменить состояние источника
-func (isl *InformationSourcesList) ChangeSourceConnectionStatus(id string) bool {
+/*func (isl *InformationSourcesList) ChangeSourceConnectionStatus(id string) bool {
 	if s, ok := isl.sourcesListSetting[id]; ok {
 		s.ConnectionStatus = !s.ConnectionStatus
 
@@ -117,10 +111,10 @@ func (isl *InformationSourcesList) ChangeSourceConnectionStatus(id string) bool 
 	}
 
 	return false
-}
+}*/
 
 //GetAccessIsAllowed возвращает значение подтверждающее или отклоняющее права доступа источника
-func (isl *InformationSourcesList) GetAccessIsAllowed(ip string) bool {
+/*func (isl *InformationSourcesList) GetAccessIsAllowed(ip string) bool {
 	for _, s := range isl.sourcesListSetting {
 		if s.IP == ip {
 			return s.AccessIsAllowed
@@ -128,7 +122,7 @@ func (isl *InformationSourcesList) GetAccessIsAllowed(ip string) bool {
 	}
 
 	return false
-}
+}*/
 
 //SetAccessIsAllowed устанавливает статус позволяющий продолжать wss соединение
 func (isl *InformationSourcesList) SetAccessIsAllowed(id string) {
@@ -183,11 +177,12 @@ func (isl InformationSourcesList) GetListTasksPerformedSourceByType(id string, t
 	return taskList
 }
 
+/*
 //SendWsMessage используется для отправки сообщений через протокол websocket (применяется Mutex)
 func (wssc *WssConnection) SendWsMessage(t int, v []byte) error {
 	/*wssc.mu.Lock()
 	defer wssc.mu.Unlock()*/
-
+/*
 	return wssc.Link.WriteMessage(t, v)
 }
 
@@ -211,7 +206,7 @@ func (isl *InformationSourcesList) DelLinkWebsocketConnection(host string) {
 			Link: nil,
 		}
 	}*/
-}
+/*}
 
 //GetLinkWebsocketConnect получить линк соединения по websocket
 func (isl *InformationSourcesList) GetLinkWebsocketConnect(host string) (*WssConnection, bool) {
@@ -221,3 +216,4 @@ func (isl *InformationSourcesList) GetLinkWebsocketConnect(host string) (*WssCon
 
 	return nil, false
 }
+*/
