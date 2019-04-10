@@ -95,6 +95,11 @@ func (sma StoreMemoryApplication) GetClientSetting(clientID string) (ClientSetti
 	return cs, ok
 }
 
+//DeleteClientSetting удаляет параметры клиента
+func (sma *StoreMemoryApplication) DeleteClientSetting(clientID string) {
+	delete(sma.clientSettings, clientID)
+}
+
 //GetAllClientSettings возвращает параметры по всем клиентам
 func (sma StoreMemoryApplication) GetAllClientSettings() map[string]ClientSettings {
 	return sma.clientSettings
@@ -122,7 +127,7 @@ func (sma StoreMemoryApplication) GetAccessIsAllowed(clientIP string) bool {
 	return false
 }
 
-//ChangeSourceConnectionStatus изменить состояние источника
+//ChangeSourceConnectionStatus изменить состояние клиента
 func (sma *StoreMemoryApplication) ChangeSourceConnectionStatus(clientID string) bool {
 	if s, ok := sma.clientSettings[clientID]; ok {
 		s.ConnectionStatus = !s.ConnectionStatus

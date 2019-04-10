@@ -55,8 +55,8 @@ func connClose(c *websocket.Conn, sma *configure.StoreMemoryApplication, id, ip 
 		c.Close()
 	}
 
-	//изменяем статус подключения клиента
-	_ = sma.ChangeSourceConnectionStatus(id)
+	//удаляем параметры подключения клиента
+	sma.DeleteClientSetting(id)
 	//удаляем дескриптор соединения
 	sma.DelLinkWebsocketConnection(ip)
 }

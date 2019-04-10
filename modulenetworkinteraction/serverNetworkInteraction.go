@@ -130,6 +130,8 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	}
 	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP)
 
+	fmt.Printf("connection success established, client ID %v, client IP %v\n", clientID, remoteIP)
+
 	//изменяем состояние соединения для данного источника
 	_ = sws.StoreMemoryApplication.ChangeSourceConnectionStatus(clientID)
 
@@ -164,7 +166,7 @@ func ServerNetworkInteraction(
 
 	fmt.Println("START function 'ServerNetworkInteraction'...")
 
-	log.Printf("START application ISEMS-NIH_slave version %q, the application is running as a \"SERVER\"\n", appc.VersionApp)
+	log.Printf("START application ISEMS-NIH_slave version %q, the application is running as a \"SERVER\", ip %v, port %v\n", appc.VersionApp, appc.LocalServerHTTPS.IP, appc.LocalServerHTTPS.Port)
 
 	ss := serverSetting{
 		IP:                     appc.LocalServerHTTPS.IP,
