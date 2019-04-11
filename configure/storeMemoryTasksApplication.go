@@ -69,7 +69,7 @@ func NewRepositorySMA() *StoreMemoryApplication {
 }
 
 /* параметры приложения */
-/*-------------------------------*/
+/*----------------------*/
 
 //SetApplicationSetting устанавливает параметры приложения
 func (sma *StoreMemoryApplication) SetApplicationSetting(as ApplicationSettings) {
@@ -82,25 +82,20 @@ func (sma StoreMemoryApplication) GetApplicationSetting() ApplicationSettings {
 }
 
 /* параметры клиента */
-/*-------------------------------*/
+/*--------------------*/
 
 //SetClientSetting устанавливает параметры клиента
 func (sma *StoreMemoryApplication) SetClientSetting(clientID string, settings ClientSettings) {
 	sma.clientSettings[clientID] = settings
 }
 
-//GetClientSetting возвращает параметры клиента
+//GetClientSetting передает параметры клиента
 func (sma StoreMemoryApplication) GetClientSetting(clientID string) (ClientSettings, bool) {
 	cs, ok := sma.clientSettings[clientID]
 	return cs, ok
 }
 
-//DeleteClientSetting удаляет параметры клиента
-func (sma *StoreMemoryApplication) DeleteClientSetting(clientID string) {
-	delete(sma.clientSettings, clientID)
-}
-
-//GetAllClientSettings возвращает параметры по всем клиентам
+//GetAllClientSettings передает параметры по всем клиентам
 func (sma StoreMemoryApplication) GetAllClientSettings() map[string]ClientSettings {
 	return sma.clientSettings
 }
@@ -116,7 +111,7 @@ func (sma StoreMemoryApplication) GetClientIDOnIP(clientIP string) (string, bool
 	return "", false
 }
 
-//GetAccessIsAllowed возвращает значение подтверждающее или отклоняющее права доступа источника
+//GetAccessIsAllowed передает значение подтверждающее или отклоняющее права доступа источника
 func (sma StoreMemoryApplication) GetAccessIsAllowed(clientIP string) bool {
 	for _, s := range sma.clientSettings {
 		if s.IP == clientIP {
@@ -127,12 +122,17 @@ func (sma StoreMemoryApplication) GetAccessIsAllowed(clientIP string) bool {
 	return false
 }
 
-//ChangeSourceConnectionStatus изменить состояние клиента
-func (sma *StoreMemoryApplication) ChangeSourceConnectionStatus(clientID string) bool {
-	if s, ok := sma.clientSettings[clientID]; ok {
-		s.ConnectionStatus = !s.ConnectionStatus
+//DeleteClientSetting удаляет параметры клиента
+func (sma *StoreMemoryApplication) DeleteClientSetting(clientID string) {
+	delete(sma.clientSettings, clientID)
+}
 
-		if s.ConnectionStatus {
+//ChangeSourceConnectionStatus изменить состояние клиента
+func (sma *StoreMemoryApplication) ChangeSourceConnectionStatus(clientID string, status bool) bool {
+	if s, ok := sma.clientSettings[clientID]; ok {
+		s.ConnectionStatus = status
+
+		if status {
 			s.DateLastConnected = time.Now().Unix()
 		} else {
 			s.AccessIsAllowed = false

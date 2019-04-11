@@ -44,18 +44,23 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 		c, res, err := d.Dial("wss://"+cs.IP+":"+cs.Port+"/wss", header)
 		if err != nil {
+
+			fmt.Printf("!!!!! ERROR WSS connect with IP %v\n", cs.IP)
+
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 			return
 		}
-		defer connClose(c, cs.StoreMemoryApplication, cs.ID, cs.IP)
+		defer connClose(c, cs.StoreMemoryApplication, cs.ID, cs.IP, "client")
 
 		if res.StatusCode == 101 {
 			//изменяем статус подключения клиента
-			_ = cs.StoreMemoryApplication.ChangeSourceConnectionStatus(cs.ID)
+			_ = cs.StoreMemoryApplication.ChangeSourceConnectionStatus(cs.ID, true)
 
 			//добавляем линк соединения
 			cs.StoreMemoryApplication.AddLinkWebsocketConnect(cs.IP, c)
+
+			fmt.Printf("+++ CONNECTION WITH SOURCE IP %v SUCCESS ESTABLISHED\n", cs.IP)
 
 			//обработчик запросов приходящих через websocket
 			for {

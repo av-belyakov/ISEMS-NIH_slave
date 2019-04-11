@@ -128,12 +128,12 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP)
+	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP, "server")
 
 	fmt.Printf("connection success established, client ID %v, client IP %v\n", clientID, remoteIP)
 
 	//изменяем состояние соединения для данного источника
-	_ = sws.StoreMemoryApplication.ChangeSourceConnectionStatus(clientID)
+	_ = sws.StoreMemoryApplication.ChangeSourceConnectionStatus(clientID, true)
 
 	//добавляем линк соединения по websocket
 	sws.StoreMemoryApplication.AddLinkWebsocketConnect(remoteIP, c)

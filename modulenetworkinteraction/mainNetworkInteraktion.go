@@ -48,15 +48,20 @@ func createClientID(str string) string {
 }
 
 //при разрыве соединения удаляет дескриптор соединения и изменяет статус клиента
-func connClose(c *websocket.Conn, sma *configure.StoreMemoryApplication, id, ip string) {
-	fmt.Println("CLOSE WSS LINK")
+func connClose(c *websocket.Conn, sma *configure.StoreMemoryApplication, id, ip, requester string) {
+	fmt.Printf("________ CLOSE WSS LINK _________ IP %v\n", ip)
 
 	if c != nil {
 		c.Close()
 	}
 
-	//удаляем параметры подключения клиента
-	sma.DeleteClientSetting(id)
+	sma.ChangeSourceConnectionStatus(id, false)
+
+	if requester == "server" {
+		//удаляем параметры подключения клиента
+		sma.DeleteClientSetting(id)
+	}
+
 	//удаляем дескриптор соединения
 	sma.DelLinkWebsocketConnection(ip)
 }
