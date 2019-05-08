@@ -51,7 +51,20 @@ type WssConnection struct {
 }
 
 //FiltrationTasks описание параметров задач по фильтрации
-type FiltrationTasks struct{}
+// dateTimeStart, dateTimeEnd - временной интервал для фильтрации
+// protocol - тип протокола транспортного уровня (TCP, UDP)
+// filters - параметры фильтрации
+// useIndex - используется ли индекс
+// countIndexFiles - количество найденных по индексам файлов
+// listFiles - список файлов найденных в результате поиска по индексам
+type FiltrationTasks struct {
+	dateTimeStart, dateTimeEnd int64
+	protocol                   string
+	filters                    FiltrationControlParametersNetworkFilters
+	useIndex                   bool
+	countIndexFiles            int
+	listFiles                  map[string][]string
+}
 
 //DownloadTasks описание параметров задач по выгрузке файлов
 type DownloadTasks struct{}
@@ -89,7 +102,7 @@ func (sma *StoreMemoryApplication) SetClientSetting(clientID string, settings Cl
 	sma.clientSettings[clientID] = settings
 }
 
-//GetClientSetting передает параметры клиента
+//GetClientSetting передает параметры клиента		return map[string]*FiltrationTasks{}, false
 func (sma StoreMemoryApplication) GetClientSetting(clientID string) (ClientSettings, bool) {
 	cs, ok := sma.clientSettings[clientID]
 	return cs, ok
@@ -183,5 +196,27 @@ func (sma *StoreMemoryApplication) GetLinkWebsocketConnect(clientIP string) (*Ws
 /* параметры выполняемых задач */
 /*-----------------------------*/
 
-//AddTask добавить задачу
-func (sma *StoreMemoryApplication) AddTask(taskType string) {}
+//AddTaskFiltration добавить задачу
+func (sma *StoreMemoryApplication) AddTaskFiltration(clientID, taskID string, ft *FiltrationTasks) {
+	_, ok := sma.clientTasks[clientID]
+	if !ok {
+		sma.clientTasks[clientID] = TasksList{}
+	}
+
+	sma.clientTasks[clientID].filtrationTasks[taskID] = ft
+}
+
+//GetListTasksFiltration получить список задач по фильтрации выполняемых данным пользователем
+func (sma *StoreMemoryApplication) GetListTasksFiltration(clientID string) (map[string]*FiltrationTasks, bool) {
+	tasks, ok := sma.clientTasks[clientID]
+	if !ok {
+		return map[string]*FiltrationTasks{}, false
+	}
+
+	return tasks.filtrationTasks, true
+}
+
+//AddTaskDownload добавить задачу
+func (sma *StoreMemoryApplication) AddTaskDownload(clientID, taskID string) {
+
+}

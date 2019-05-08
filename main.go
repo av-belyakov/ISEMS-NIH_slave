@@ -28,16 +28,6 @@ type SettingsLocalServerHTTPS struct {
 
 var appConfig configure.AppConfig
 
-/*var acc configure.AccessClientsConfigure
-var listAccessIPAddress ListAccessIPAddress
-
-//здесь хранится информация о всех задачах по фильтрации
-var ift configure.InformationFilteringTask
-
-//здесь хранится информация о всех задачах по выгрузке сет. трафика
-var dfi configure.DownloadFilesInformation
-*/
-
 //ReadConfig читает конфигурационный файл и сохраняет данные в appConfig
 func readConfigApp(fileName string, appc *configure.AppConfig) error {
 	var err error
@@ -131,6 +121,7 @@ func init() {
 }
 
 func main() {
+	//создаем новый репозиторий для хранения информации, в том числе о задачах
 	sma := configure.NewRepositorySMA()
 
 	modulenetworkinteraction.MainNetworkInteraction(&appConfig, sma)

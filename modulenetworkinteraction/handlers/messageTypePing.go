@@ -14,7 +14,7 @@ import (
 	"ISEMS-NIH_slave/savemessageapp"
 )
 
-//HandlerMessageTypePing обработчик сообщений типа
+//HandlerMessageTypePing обработчик сообщений типа 'Ping'
 func HandlerMessageTypePing(
 	cwtResText chan<- configure.MsgWsTransmission,
 	sma *configure.StoreMemoryApplication,
@@ -31,9 +31,9 @@ func HandlerMessageTypePing(
 		return
 	}
 
-	mcpf := reqjson.Info.MaxCountProcessFiltration
-	if mcpf == 0 {
-		mcpf = 3
+	var mcpf int8 = 3
+	if mcpf > 0 {
+		mcpf = reqjson.Info.MaxCountProcessFiltration
 	}
 
 	sma.SetApplicationSetting(configure.ApplicationSettings{

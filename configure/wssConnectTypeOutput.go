@@ -1,18 +1,30 @@
 package configure
 
 /*
-* Типы JSON сообщений принимаемых от клиента
+* Типы JSON сообщений отправляемых клиенту
 * */
 
-//DetailInfoMsgPing подробная информация
-type DetailInfoMsgPing struct {
-	MaxCountProcessFiltration int8     `json:"maxCountProcessFiltration"`
-	EnableTelemetry           bool     `json:"enableTelemetry"`
-	StorageFolders            []string `json:"storageFolders"`
+//MsgTypeFiltration сообщение типа ping
+type MsgTypeFiltration struct {
+	MsgType string                  `json:"messageType"`
+	Info    DetailInfoMsgFiltration `json:"info"`
 }
 
-//MsgTypePing сообщение типа ping
-type MsgTypePing struct {
-	MsgType string            `json:"messageType"`
-	Info    DetailInfoMsgPing `json:"info"`
+//DetailInfoMsgFiltration подробная информация
+type DetailInfoMsgFiltration struct{}
+
+//MsgTypeError сообщение отправляемое при возникновении ошибки
+type MsgTypeError struct {
+	MsgType string             `json:"messageType"`
+	Info    DetailInfoMsgError `json:"info"`
+}
+
+//DetailInfoMsgError детальное описание ошибки
+// TaskID - id задачи
+// ErrorName - наименование ошибки
+// ErrorDescription - детальное описание ошибки
+type DetailInfoMsgError struct {
+	TaskID           string `json:"tid"`
+	ErrorName        string `json:"en"`
+	ErrorDescription string `json:"ed"`
 }
