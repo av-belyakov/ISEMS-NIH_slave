@@ -19,4 +19,19 @@ func ProcessingFiltration(
 	clientID, taskID string) {
 
 	fmt.Println("START function 'ProcessingFiltration'...")
+
+	info, err := sma.GetInfoTaskFiltration(clientID, taskID)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Printf("Параметры задачи по фильтрации:\n%v\n", info)
+
+	/*
+		отправка сообщений в канал, для дольнейшей передачи ISEMS-NIH_master
+		cwtResText <- configure.MsgWsTransmission{
+					ClientID: clientID,
+					Data:     &msgJSON,
+				}
+	*/
 }

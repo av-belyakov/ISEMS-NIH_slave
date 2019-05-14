@@ -57,7 +57,7 @@ func RouteWssConnect(
 				теперь его нужно собирать если он состоит из нескольких частей
 				(собирать как в moth_go) и обрабатывать
 			*/
-			go handlers.HandlerMessageTypeFiltration(cwtResText, sma, msg.Data, msg.ClientID)
+			handlers.HandlerMessageTypeFiltration(cwtResText, sma, msg.Data, msg.ClientID)
 
 		case "download files":
 			fmt.Println("--- resived message JSON 'DOWNLOAD FILES', func 'RouteWssConnect'")

@@ -1,6 +1,7 @@
 package configure
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -14,6 +15,7 @@ import (
 * */
 
 //StoreMemoryApplication параметры и задачи приложения
+// map[string] = clientID
 type StoreMemoryApplication struct {
 	applicationSettings ApplicationSettings
 	clientSettings      map[string]ClientSettings
@@ -39,6 +41,7 @@ type ClientSettings struct {
 }
 
 //TasksList список задач
+// map[string] = taskID
 type TasksList struct {
 	filtrationTasks map[string]*FiltrationTasks
 	downloadTasks   map[string]*DownloadTasks
@@ -58,12 +61,12 @@ type WssConnection struct {
 // countIndexFiles - количество найденных по индексам файлов
 // listFiles - список файлов найденных в результате поиска по индексам
 type FiltrationTasks struct {
-	dateTimeStart, dateTimeEnd int64
-	protocol                   string
-	filters                    FiltrationControlParametersNetworkFilters
-	useIndex                   bool
-	countIndexFiles            int
-	listFiles                  map[string][]string
+	DateTimeStart, DateTimeEnd int64
+	Protocol                   string
+	Filters                    FiltrationControlParametersNetworkFilters
+	UseIndex                   bool
+	CountIndexFiles            int
+	ListFiles                  map[string][]string
 }
 
 //DownloadTasks описание параметров задач по выгрузке файлов
@@ -198,9 +201,10 @@ func (sma *StoreMemoryApplication) GetLinkWebsocketConnect(clientIP string) (*Ws
 
 //AddTaskFiltration добавить задачу
 func (sma *StoreMemoryApplication) AddTaskFiltration(clientID, taskID string, ft *FiltrationTasks) {
-	_, ok := sma.clientTasks[clientID]
-	if !ok {
-		sma.clientTasks[clientID] = TasksList{}
+	if _, ok := sma.clientTasks[clientID]; !ok {
+		sma.clientTasks[clientID] = TasksList{
+			filtrationTasks: make(map[string]*FiltrationTasks),
+			downloadTasks:   make(map[string]*DownloadTasks)}
 	}
 
 	sma.clientTasks[clientID].filtrationTasks[taskID] = ft
@@ -214,6 +218,48 @@ func (sma *StoreMemoryApplication) GetListTasksFiltration(clientID string) (map[
 	}
 
 	return tasks.filtrationTasks, true
+}
+
+//GetInfoTaskFiltration получить всю информацию о задаче выполняемой пользователем
+func (sma *StoreMemoryApplication) GetInfoTaskFiltration(clientID, taskID string) (*FiltrationTasks, error) {
+	if _, ok := sma.clientTasks[clientID]; !ok {
+		return nil, fmt.Errorf("tasks for client with ID %v not found", clientID)
+	}
+
+	if _, ok := sma.clientTasks[clientID].filtrationTasks[taskID]; !ok {
+		return nil, fmt.Errorf("tasks with ID %v not found", taskID)
+	}
+
+	return sma.clientTasks[clientID].filtrationTasks[taskID], nil
+}
+
+//AddFileToListFilesFiltrationTask добавить в основной список часть списка найденных, по индексам, файлов
+func (sma *StoreMemoryApplication) AddFileToListFilesFiltrationTask(clientID, taskID string, fl map[string][]string) (int, error) {
+	var countIndexFiles int
+
+	if _, ok := sma.clientTasks[clientID]; !ok {
+		return countIndexFiles, fmt.Errorf("tasks for client with ID %v not found", clientID)
+	}
+
+	if _, ok := sma.clientTasks[clientID].filtrationTasks[taskID]; !ok {
+		return countIndexFiles, fmt.Errorf("tasks with ID %v not found", taskID)
+	}
+
+	list := sma.clientTasks[clientID].filtrationTasks[taskID].ListFiles
+
+	for k, v := range fl {
+		if _, ok := list[k]; !ok {
+			list[k] = make([]string, 0, 100)
+		}
+
+		list[k] = append(list[k], v...)
+
+		countIndexFiles += len(v)
+	}
+
+	sma.clientTasks[clientID].filtrationTasks[taskID].ListFiles = list
+
+	return countIndexFiles, nil
 }
 
 //AddTaskDownload добавить задачу

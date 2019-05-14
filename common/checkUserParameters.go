@@ -11,8 +11,6 @@ import (
 
 //CheckParametersFiltration проверяет параметры фильтрации
 func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParametersFiltration) (string, bool) {
-	fmt.Println("START function 'checkParametersFiltration'...")
-
 	//проверяем наличие ID источника
 	if fccpf.ID == 0 {
 		return "отсутствует идентификатор источника", false
