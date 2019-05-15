@@ -13,13 +13,13 @@ import (
 func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParametersFiltration) (string, bool) {
 	//проверяем наличие ID источника
 	if fccpf.ID == 0 {
-		return "отсутствует идентификатор источника", false
+		return "Отсутствует идентификатор источника", false
 	}
 
 	//проверяем временной интервал
 	isZero := ((fccpf.DateTime.Start == 0) || (fccpf.DateTime.End == 0))
 	if isZero || (fccpf.DateTime.Start > fccpf.DateTime.End) {
-		return "задан неверный временной интервал", false
+		return "Задан неверный временной интервал", false
 	}
 
 	//проверяем тип протокола
@@ -32,7 +32,7 @@ func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParameter
 	isProtoANY := strings.EqualFold(fccpf.Protocol, "any")
 
 	if !isProtoTCP && !isProtoUDP && !isProtoANY {
-		return "задан неверный идентификатор транспортного протокола", false
+		return "Задан неверный идентификатор транспортного протокола", false
 	}
 
 	isEmpty := true
@@ -100,17 +100,17 @@ func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParameter
 		switch paramType {
 		case "IP":
 			if ok := iteration(param, changeIP); !ok {
-				return errors.New("неверные параметры фильтрации, один или более переданных пользователем IP адресов имеет некорректное значение")
+				return errors.New("Неверные параметры фильтрации, один или более переданных пользователем IP адресов имеет некорректное значение")
 			}
 
 		case "Port":
 			if ok := iteration(param, changePort); !ok {
-				return errors.New("неверные параметры фильтрации, один или более из заданных пользователем портов имеет некорректное значение")
+				return errors.New("Неверные параметры фильтрации, один или более из заданных пользователем портов имеет некорректное значение")
 			}
 
 		case "Network":
 			if ok := iteration(param, changeNetwork); !ok {
-				return errors.New("неверные параметры фильтрации, некорректное значение маски подсети заданное пользователем")
+				return errors.New("Неверные параметры фильтрации, некорректное значение маски подсети заданное пользователем")
 			}
 
 		}
@@ -143,7 +143,7 @@ func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParameter
 
 	//проверяем параметры свойства 'Filters' на пустоту
 	if isEmpty {
-		return "невозможно начать фильтрацию, необходимо указать хотябы один искомый ip адрес, порт или подсеть", false
+		return "Невозможно начать фильтрацию, необходимо указать хотябы один искомый ip адрес, порт или подсеть", false
 	}
 
 	return "", true

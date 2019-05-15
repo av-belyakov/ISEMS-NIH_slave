@@ -27,8 +27,8 @@
     },
     "localServerHTTPS_comments": "подымается локальный HTTPS сервер и ожидаются подключения к нему",
     "directoryStoringProcessedFiles": {
-        "raw": "/home/ISEMS_NIH_slave_RAW",
-        "object": "/home/ISEMS_NIH_slave_OBJECT"
+        "raw": "/home/ISEMS_NIH_slave/ISEMS_NIH_slave_RAW",
+        "object": "/home/ISEMS_NIH_slave/ISEMS_NIH_slave_OBJECT"
     },
     "directoryStoringProcessedFiles_comments": "директории для хранения обработанных файлов",
     "pathLogFiles": "/var/log",

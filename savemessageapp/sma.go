@@ -20,8 +20,8 @@ type PathDirLocationLogFiles struct {
 	pathLogFiles string
 }
 
-//mothPathConfig путь до директории с лог-файлами
-type mothPathConfig struct {
+//pathConfig путь до директории с лог-файлами
+type pathConfig struct {
 	PathLogFiles string `json:"pathLogFiles"`
 }
 
@@ -32,30 +32,30 @@ func New() *PathDirLocationLogFiles {
 		log.Fatal(err)
 	}
 
-	var mpc mothPathConfig
+	var pc pathConfig
 
 	//читаем основной конфигурационный файл в формате JSON
-	err = readMainConfig(dir+"/config.json", &mpc)
+	err = readMainConfig(dir+"/config.json", &pc)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	var pathDirLocationLogFiles PathDirLocationLogFiles
-	pathDirLocationLogFiles.pathLogFiles = mpc.PathLogFiles
+	pathDirLocationLogFiles.pathLogFiles = pc.PathLogFiles
 
 	return &pathDirLocationLogFiles
 }
 
-//ReadMainConfig читает основной конфигурационный файл и сохраняет данные в MothConfig
-func readMainConfig(fileName string, mpc *mothPathConfig) error {
+//readMainConfig читает основной конфигурационный файл и сохраняет в pathConfig
+func readMainConfig(fileName string, pc *pathConfig) error {
 	var err error
 	row, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(row, &mpc)
+	err = json.Unmarshal(row, &pc)
 	if err != nil {
 		return err
 	}

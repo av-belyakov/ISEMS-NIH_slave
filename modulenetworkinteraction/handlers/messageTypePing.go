@@ -24,8 +24,8 @@ func HandlerMessageTypePing(
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
-	reqjson := configure.MsgTypePing{}
-	if err := json.Unmarshal(*req, &reqjson); err != nil {
+	reqJSON := configure.MsgTypePing{}
+	if err := json.Unmarshal(*req, &reqJSON); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 		return
@@ -33,26 +33,26 @@ func HandlerMessageTypePing(
 
 	var mcpf int8 = 3
 	if mcpf > 0 {
-		mcpf = reqjson.Info.MaxCountProcessFiltration
+		mcpf = reqJSON.Info.MaxCountProcessFiltration
 	}
 
 	sma.SetApplicationSetting(configure.ApplicationSettings{
-		StorageFolders: reqjson.Info.StorageFolders,
+		StorageFolders: reqJSON.Info.StorageFolders,
 	})
 
 	cs, ok := sma.GetClientSetting(clientID)
 	if !ok {
-		_ = saveMessageApp.LogMessage("error", "unable to send message of type 'pong' client with ID "+clientID+" does not exist")
+		_ = saveMessageApp.LogMessage("error", fmt.Sprintf("unable to send message of type 'pong' client with ID %v does not exist", clientID))
 
 		return
 	}
 
 	cs.MaxCountProcessFiltration = mcpf
-	cs.SendsTelemetry = reqjson.Info.EnableTelemetry
+	cs.SendsTelemetry = reqJSON.Info.EnableTelemetry
 
 	sma.SetClientSetting(clientID, cs)
 
-	resjson, err := json.Marshal(configure.MsgTypePing{
+	resJSON, err := json.Marshal(configure.MsgTypePing{
 		MsgType: "pong",
 		Info:    configure.DetailInfoMsgPing{},
 	})
@@ -64,6 +64,6 @@ func HandlerMessageTypePing(
 
 	cwtResText <- configure.MsgWsTransmission{
 		ClientID: clientID,
-		Data:     &resjson,
+		Data:     &resJSON,
 	}
 }

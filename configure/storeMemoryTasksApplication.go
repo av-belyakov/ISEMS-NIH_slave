@@ -54,18 +54,24 @@ type WssConnection struct {
 }
 
 //FiltrationTasks описание параметров задач по фильтрации
-// dateTimeStart, dateTimeEnd - временной интервал для фильтрации
-// protocol - тип протокола транспортного уровня (TCP, UDP)
-// filters - параметры фильтрации
-// useIndex - используется ли индекс
-// countIndexFiles - количество найденных по индексам файлов
-// listFiles - список файлов найденных в результате поиска по индексам
+// DateTimeStart, DateTimeEnd - временной интервал для фильтрации
+// Protocol - тип протокола транспортного уровня (TCP, UDP)
+// Filters - параметры фильтрации
+// UseIndex - используется ли индекс
+// CountIndexFiles - количество найденных по индексам файлов (или просто найденных файлов, если не используется индекс)
+// CountProcessedFiles - количество обработанных файлов
+// CountNotFoundIndexFiles - количество файлов, из перечня ListFiles, которые не были найдены по указанным путям
+// ChanStopFiltration - канал информирующий об остановке фильтрации
+// ListFiles - список файлов найденных в результате поиска по индексам
 type FiltrationTasks struct {
 	DateTimeStart, DateTimeEnd int64
 	Protocol                   string
 	Filters                    FiltrationControlParametersNetworkFilters
 	UseIndex                   bool
 	CountIndexFiles            int
+	CountProcessedFiles        int
+	CountNotFoundIndexFiles    int
+	ChanStopFiltration         chan struct{}
 	ListFiles                  map[string][]string
 }
 
@@ -103,9 +109,16 @@ func (sma StoreMemoryApplication) GetApplicationSetting() ApplicationSettings {
 //SetClientSetting устанавливает параметры клиента
 func (sma *StoreMemoryApplication) SetClientSetting(clientID string, settings ClientSettings) {
 	sma.clientSettings[clientID] = settings
+
+	if _, ok := sma.clientTasks[clientID]; !ok {
+		sma.clientTasks[clientID] = TasksList{
+			filtrationTasks: map[string]*FiltrationTasks{},
+			downloadTasks:   map[string]*DownloadTasks{},
+		}
+	}
 }
 
-//GetClientSetting передает параметры клиента		return map[string]*FiltrationTasks{}, false
+//GetClientSetting передает параметры клиента
 func (sma StoreMemoryApplication) GetClientSetting(clientID string) (ClientSettings, bool) {
 	cs, ok := sma.clientSettings[clientID]
 	return cs, ok
@@ -201,12 +214,6 @@ func (sma *StoreMemoryApplication) GetLinkWebsocketConnect(clientIP string) (*Ws
 
 //AddTaskFiltration добавить задачу
 func (sma *StoreMemoryApplication) AddTaskFiltration(clientID, taskID string, ft *FiltrationTasks) {
-	if _, ok := sma.clientTasks[clientID]; !ok {
-		sma.clientTasks[clientID] = TasksList{
-			filtrationTasks: make(map[string]*FiltrationTasks),
-			downloadTasks:   make(map[string]*DownloadTasks)}
-	}
-
 	sma.clientTasks[clientID].filtrationTasks[taskID] = ft
 }
 
@@ -214,7 +221,7 @@ func (sma *StoreMemoryApplication) AddTaskFiltration(clientID, taskID string, ft
 func (sma *StoreMemoryApplication) GetListTasksFiltration(clientID string) (map[string]*FiltrationTasks, bool) {
 	tasks, ok := sma.clientTasks[clientID]
 	if !ok {
-		return map[string]*FiltrationTasks{}, false
+		return nil, false
 	}
 
 	return tasks.filtrationTasks, true
@@ -222,6 +229,8 @@ func (sma *StoreMemoryApplication) GetListTasksFiltration(clientID string) (map[
 
 //GetInfoTaskFiltration получить всю информацию о задаче выполняемой пользователем
 func (sma *StoreMemoryApplication) GetInfoTaskFiltration(clientID, taskID string) (*FiltrationTasks, error) {
+	fmt.Println(sma.clientTasks)
+
 	if _, ok := sma.clientTasks[clientID]; !ok {
 		return nil, fmt.Errorf("tasks for client with ID %v not found", clientID)
 	}
@@ -246,6 +255,9 @@ func (sma *StoreMemoryApplication) AddFileToListFilesFiltrationTask(clientID, ta
 	}
 
 	list := sma.clientTasks[clientID].filtrationTasks[taskID].ListFiles
+	if len(list) == 0 {
+		list = map[string][]string{}
+	}
 
 	for k, v := range fl {
 		if _, ok := list[k]; !ok {

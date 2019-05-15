@@ -2,6 +2,7 @@ package common
 
 import (
 	"errors"
+	"fmt"
 
 	"ISEMS-NIH_slave/configure"
 )
@@ -11,52 +12,24 @@ import (
 func MergingFileListForTaskFiltration(
 	sma *configure.StoreMemoryApplication,
 	mtf *configure.MsgTypeFiltrationControl,
-	clientID, taskID string) (bool, error) {
+	clientID string) (bool, error) {
 
 	if !mtf.Info.IndexIsFound {
 		return true, errors.New("task filtering not index")
 	}
 
-	/*if mtf.Info.Settings.CountPartsIndexFiles[0] == 0 {
-		ift.TaskID[mtf.Info.TaskIndex].TotalNumberFilesFilter = mtf.Info.Settings.TotalNumberFilesFilter
-		ift.TaskID[mtf.Info.TaskIndex].UseIndexes = true
-
-		ift.TaskID[mtf.Info.TaskIndex].NumberPleasantMessages++
-
-		return false, nil
-	}
-
-	var countFiles, fullCountFiles int
-	for dir, files := range mtf.Info.Settings.ListFilesFilter {
-		ift.TaskID[mtf.Info.TaskIndex].ListFilesFilter[dir] = append(ift.TaskID[mtf.Info.TaskIndex].ListFilesFilter[dir], files...)
-
-		countFiles += len(files)
-		fullCountFiles += len(ift.TaskID[mtf.Info.TaskIndex].ListFilesFilter[dir])
-	}
-
-	if mtf.Info.Settings.CountPartsIndexFiles[0] == mtf.Info.Settings.CountPartsIndexFiles[1] {
-		return true, nil
-	}
-	*/
+	taskID := mtf.Info.TaskID
 
 	//добавляем часть списка в осовной файл
-	if _, err := sma.AddFileToListFilesFiltrationTask(clientID, taskID, mtf.Info.ListFilesReceivedIndex); err != nil {
-		return false, err
-	}
-
-	//получаем параметры задачи
-	taskInfo, err := sma.GetInfoTaskFiltration(clientID, taskID)
+	_, err := sma.AddFileToListFilesFiltrationTask(clientID, taskID, mtf.Info.ListFilesReceivedIndex)
 	if err != nil {
+
+		fmt.Printf("Function MergingFileListForTaskFiltration, ERROR: %v\n", err)
+
 		return false, err
 	}
 
-	var fullCountFiles int
-	//считаем общее количество файлов в списке
-	for _, v := range taskInfo.ListFiles {
-		fullCountFiles += len(v)
-	}
-
-	if (mtf.Info.NumberMessagesFrom[0] == mtf.Info.NumberMessagesFrom[1]) && (taskInfo.CountIndexFiles == fullCountFiles) {
+	if mtf.Info.NumberMessagesFrom[0] == mtf.Info.NumberMessagesFrom[1] {
 		return true, nil
 	}
 

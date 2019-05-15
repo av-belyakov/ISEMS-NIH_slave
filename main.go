@@ -73,6 +73,59 @@ func getVersionApp(appc *configure.AppConfig) error {
 	return nil
 }
 
+func createStoreDirectory(dirPath string) error {
+	mkDirectory := func(rootDir, createDir string) error {
+		if rootDir == "" {
+			return nil
+		}
+
+		files, err := ioutil.ReadDir(rootDir)
+		if err != nil {
+			return err
+		}
+
+		for _, fl := range files {
+			if fl.Name() == createDir {
+				return nil
+			}
+		}
+
+		pathDir := fmt.Sprintf("/%v/%v", rootDir, createDir)
+		if rootDir == "/" {
+			pathDir = fmt.Sprintf("%v", createDir)
+		}
+
+		err = os.Mkdir(pathDir, 0777)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if strings.Count(dirPath, "/") == 1 {
+		if err := mkDirectory("/", dirPath); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	list := strings.Split(dirPath, "/")
+	for i := 0; i < len(list)-1; i++ {
+		rd := list[i]
+		if i != 0 {
+			rd = strings.Join(list[:i+1], "/")
+		}
+
+		if err := mkDirectory(rd, list[i+1]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func init() {
 	var err error
 
@@ -112,6 +165,16 @@ func init() {
 	//для сервера обеспечивающего подключение
 	appConfig.LocalServerHTTPS.PathCertFile = appConfig.RootDir + appConfig.LocalServerHTTPS.PathCertFile
 	appConfig.LocalServerHTTPS.PathPrivateKeyFile = appConfig.RootDir + appConfig.LocalServerHTTPS.PathPrivateKeyFile
+
+	//создаем основную директорию куда будут сохраняться обработанные файлы (при фильтрации)
+	if err = createStoreDirectory(appConfig.DirectoryStoringProcessedFiles.Raw); err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}
+
+	//создаем основную директорию куда будут сохраняться обработанные файлы (при выделении объектов)
+	if err = createStoreDirectory(appConfig.DirectoryStoringProcessedFiles.Object); err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}
 
 	//получаем номер версии приложения
 	if err = getVersionApp(&appConfig); err != nil {

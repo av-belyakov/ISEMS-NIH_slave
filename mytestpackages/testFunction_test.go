@@ -17,7 +17,12 @@ var _ = Describe("Function Test", func() {
 
 	//генерируем хеш для clientID и taskID
 	clientID := common.GetUniqIDFormatMD5("client id")
-	taskID := common.GetUniqIDFormatMD5("task id")
+	sma.SetClientSetting(clientID, configure.ClientSettings{
+		ConnectionStatus: true,
+		IP:               "36.100.0.71",
+		Port:             "145",
+		Token:            "ds9929jd99h923h9h39h9hf3f",
+	})
 
 	Context("Тест 1: Проверяем наличие выполняемых задач", func() {
 		It("Количество выполняемых задач должно быть равно 0", func() {
@@ -28,6 +33,8 @@ var _ = Describe("Function Test", func() {
 
 	Context("Тест 2: Добавляем задачу для нового пользователя", func() {
 		It("Количество выполняемых задач должно быть равно 1", func() {
+			taskID := common.GetUniqIDFormatMD5("task id")
+
 			sma.AddTaskFiltration(clientID, taskID, &configure.FiltrationTasks{
 				DateTimeStart: 1557846213,
 				DateTimeEnd:   1557848619,
@@ -129,34 +136,96 @@ var _ = Describe("Function Test", func() {
 		})
 	})
 
-	Context("Тест 6: Склейка списка файлов найденных в результате поиска по индексам", func() {
-		It("При успешном завершении объединении списков файлов получаем 'TRUE'", func() {
-			var countFiles int
-			for i := 1; i <= countParts; i++ {
-				list := common.GetChunkListFiles(i, sizeChunk, countParts, lf)
+	//генерируем хеш для clientID и taskID
+	cID := common.GetUniqIDFormatMD5("client id1")
+	tID := common.GetUniqIDFormatMD5("task id1")
 
-				fmt.Printf("List: %v\n", list)
+	Context("Тест 6: Установка параметров клиента", func() {
+		sma.SetClientSetting(cID, configure.ClientSettings{
+			ConnectionStatus: true,
+			IP:               "142.36.9.78",
+			Port:             "13145",
+			Token:            "ds9929jd99h923h9h39h9hf3f",
+		})
 
-				for _, v := range list {
-					countFiles += len(v)
-				}
+		It("Возвращает 'TRUE' если клиент с указанным ID существует", func() {
+			_, ok := sma.GetClientSetting(cID)
 
-				layoutListCompleted, err := common.MergingFileListForTaskFiltration(sma, &configure.MsgTypeFiltrationControl{
-					MsgType: "filtration",
-					Info: configure.SettingsFiltrationControl{
-						TaskID: taskID,
-						Command: "start",
-						IndexIsFound: true,
-						CountIndexFiles: 51,
-						NumberMessagesFrom: [2]{i, countParts},
-						/*
-						ДОДЕЛАТЬ ТЕСТ СО СКЛЕЙКОЙ СПИСКА ФАЙЛОВ
-						*/
-					},
-				}, clientID, taskID)
-			}
-
-			fmt.Printf("Test 6, ALL COUNT FILES = %v\n", countFiles)
+			Expect(ok).To(Equal(true))
 		})
 	})
+
+	Context("Тест 7: Склейка списка файлов найденных в результате поиска по индексам", func() {
+		var countFiles int
+		var e error
+
+		sma.AddTaskFiltration(cID, tID, &configure.FiltrationTasks{
+			DateTimeStart: 1557856213,
+			DateTimeEnd:   1557858619,
+			Protocol:      "tcp",
+		})
+
+		for i := 1; i <= countParts; i++ {
+			list := common.GetChunkListFiles(i, sizeChunk, countParts, lf)
+
+			fmt.Printf("List: %v\n", list)
+
+			for _, v := range list {
+				countFiles += len(v)
+			}
+
+			_, err := common.MergingFileListForTaskFiltration(sma, &configure.MsgTypeFiltrationControl{
+				MsgType: "filtration",
+				Info: configure.SettingsFiltrationControl{
+					TaskID:                 tID,
+					Command:                "start",
+					IndexIsFound:           true,
+					CountIndexFiles:        51,
+					NumberMessagesFrom:     [2]int{i, countParts},
+					ListFilesReceivedIndex: list,
+				},
+			}, cID)
+
+			if err == nil {
+				e = nil
+			}
+		}
+
+		It("Ошибки при склейке быть не должно", func() {
+			Expect(e).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("Тест 8: Вывести список переданных файлов, найденных в результате поиска по индексам", func() {
+		ti, err := sma.GetInfoTaskFiltration(cID, tID)
+
+		It("Ошибки при запросе информации о задаче быть не должно", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Должен получится список состоящий из 51 файла", func() {
+			var num int
+			for _, v := range ti.ListFiles {
+				num += len(v)
+			}
+
+			Expect(num).To(Equal(51))
+		})
+	})
+
+	/*
+			!!! ВНИМАНИЕ !!!
+
+		Для того что бы данные тесты были успешные необходимо добавить в
+		функцию AddTaskFiltration файла storeMemoryTaskApplication
+		код:
+
+		if _, ok := sma.clientTasks[clientID]; !ok {
+				sma.clientTasks[clientID] = TasksList{
+					filtrationTasks: map[string]*FiltrationTasks{},
+					downloadTasks:   map[string]*DownloadTasks{},
+				}
+			}
+
+	*/
 })
