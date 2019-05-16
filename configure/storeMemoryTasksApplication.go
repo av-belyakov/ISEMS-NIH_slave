@@ -1,6 +1,7 @@
 package configure
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -61,6 +62,7 @@ type WssConnection struct {
 // CountIndexFiles - количество найденных по индексам файлов (или просто найденных файлов, если не используется индекс)
 // CountProcessedFiles - количество обработанных файлов
 // CountNotFoundIndexFiles - количество файлов, из перечня ListFiles, которые не были найдены по указанным путям
+// FileStorageDirectory - директория для хранения файлов
 // ChanStopFiltration - канал информирующий об остановке фильтрации
 // ListFiles - список файлов найденных в результате поиска по индексам
 type FiltrationTasks struct {
@@ -71,6 +73,7 @@ type FiltrationTasks struct {
 	CountIndexFiles            int
 	CountProcessedFiles        int
 	CountNotFoundIndexFiles    int
+	FileStorageDirectory       string
 	ChanStopFiltration         chan struct{}
 	ListFiles                  map[string][]string
 }
@@ -88,6 +91,19 @@ func NewRepositorySMA() *StoreMemoryApplication {
 	sma.clientLink = map[string]WssConnection{}
 
 	return &sma
+}
+
+//checkTaskExist проверяет существование задачи
+func (sma *StoreMemoryApplication) checkTaskExist(clientID, taskID string) error {
+	if _, ok := sma.clientTasks[clientID]; !ok {
+		return fmt.Errorf("tasks for client with ID %v not found", clientID)
+	}
+
+	if _, ok := sma.clientTasks[clientID].filtrationTasks[taskID]; !ok {
+		return fmt.Errorf("tasks with ID %v not found", taskID)
+	}
+
+	return nil
 }
 
 /* параметры приложения */
@@ -229,17 +245,69 @@ func (sma *StoreMemoryApplication) GetListTasksFiltration(clientID string) (map[
 
 //GetInfoTaskFiltration получить всю информацию о задаче выполняемой пользователем
 func (sma *StoreMemoryApplication) GetInfoTaskFiltration(clientID, taskID string) (*FiltrationTasks, error) {
-	fmt.Println(sma.clientTasks)
-
-	if _, ok := sma.clientTasks[clientID]; !ok {
-		return nil, fmt.Errorf("tasks for client with ID %v not found", clientID)
-	}
-
-	if _, ok := sma.clientTasks[clientID].filtrationTasks[taskID]; !ok {
-		return nil, fmt.Errorf("tasks with ID %v not found", taskID)
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return nil, err
 	}
 
 	return sma.clientTasks[clientID].filtrationTasks[taskID], nil
+}
+
+//SetInfoTaskFiltration устанавливает новое значение некоторых параметров
+func (sma *StoreMemoryApplication) SetInfoTaskFiltration(clientID, taskID string, settings map[string]interface{}) error {
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return err
+	}
+
+	for k, v := range settings {
+		switch k {
+		case "FileStorageDirectory":
+			if fsd, ok := v.(string); ok {
+				sma.clientTasks[clientID].filtrationTasks[taskID].FileStorageDirectory = fsd
+			}
+
+		case "CountIndexFiles", "CountProcessedFiles", "CountNotFoundIndexFiles":
+			if count, ok := v.(int); ok {
+				if k == "CountIndexFiles" {
+					sma.clientTasks[clientID].filtrationTasks[taskID].CountIndexFiles = count
+				}
+				if k == "CountProcessedFiles" {
+					sma.clientTasks[clientID].filtrationTasks[taskID].CountProcessedFiles = count
+				}
+				if k == "CountNotFoundIndexFiles" {
+					sma.clientTasks[clientID].filtrationTasks[taskID].CountNotFoundIndexFiles = count
+				}
+			}
+
+		default:
+			return errors.New("you cannot change the value, undefined passed parameter")
+		}
+	}
+
+	return nil
+}
+
+//IncrementNumProcessedFiles увеличение количества обработанных файлов
+func (sma *StoreMemoryApplication) IncrementNumProcessedFiles(clientID, taskID string) (int, error) {
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return 0, err
+	}
+
+	num := sma.clientTasks[clientID].filtrationTasks[taskID].CountProcessedFiles + 1
+	sma.clientTasks[clientID].filtrationTasks[taskID].CountProcessedFiles = num
+
+	return num, nil
+}
+
+//IncrementNumNotFoundIndexFiles увеличение количества не найденных, в результате поиска, файлов
+func (sma *StoreMemoryApplication) IncrementNumNotFoundIndexFiles(clientID, taskID string) (int, error) {
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return 0, err
+	}
+
+	num := sma.clientTasks[clientID].filtrationTasks[taskID].CountNotFoundIndexFiles + 1
+	sma.clientTasks[clientID].filtrationTasks[taskID].CountNotFoundIndexFiles = num
+
+	return num, nil
 }
 
 //AddFileToListFilesFiltrationTask добавить в основной список часть списка найденных, по индексам, файлов

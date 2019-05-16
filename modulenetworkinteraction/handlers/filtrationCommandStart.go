@@ -21,7 +21,7 @@ func StartFiltration(
 	cwtResText chan<- configure.MsgWsTransmission,
 	sma *configure.StoreMemoryApplication,
 	mtfcJSON *configure.MsgTypeFiltrationControl,
-	clientID, directoryStoringProcessedFiles string) {
+	clientID, rootDirStoringFiles string) {
 
 	saveMessageApp := savemessageapp.New()
 
@@ -101,7 +101,7 @@ func StartFiltration(
 	}
 
 	if !mtfcJSON.Info.IndexIsFound {
-		modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, directoryStoringProcessedFiles)
+		modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, rootDirStoringFiles)
 
 		return
 	}
@@ -132,5 +132,5 @@ func StartFiltration(
 		return
 	}
 
-	modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, directoryStoringProcessedFiles)
+	modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, rootDirStoringFiles)
 }

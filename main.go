@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -90,7 +91,7 @@ func createStoreDirectory(dirPath string) error {
 			}
 		}
 
-		pathDir := fmt.Sprintf("/%v/%v", rootDir, createDir)
+		pathDir := path.Join(rootDir, createDir)
 		if rootDir == "/" {
 			pathDir = fmt.Sprintf("%v", createDir)
 		}

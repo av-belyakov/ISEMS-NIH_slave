@@ -1,14 +1,12 @@
 package mytestpackages_test
 
 import (
+	"ISEMS-NIH_slave/common"
+	"ISEMS-NIH_slave/configure"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"ISEMS-NIH_slave/common"
-	"ISEMS-NIH_slave/configure"
-	//. "ISEMS-NIH_master/mytestpackages"
 )
 
 var _ = Describe("Function Test", func() {
@@ -51,7 +49,6 @@ var _ = Describe("Function Test", func() {
 			for i := 0; i < 3; i++ {
 				num := int64(i + 1*100)
 
-				//генерируем хеш для clientID и taskID
 				taskID := common.GetUniqIDFormatMD5("task id" + string(i))
 
 				sma.AddTaskFiltration(clientID, taskID, &configure.FiltrationTasks{
@@ -212,20 +209,4 @@ var _ = Describe("Function Test", func() {
 			Expect(num).To(Equal(51))
 		})
 	})
-
-	/*
-			!!! ВНИМАНИЕ !!!
-
-		Для того что бы данные тесты были успешные необходимо добавить в
-		функцию AddTaskFiltration файла storeMemoryTaskApplication
-		код:
-
-		if _, ok := sma.clientTasks[clientID]; !ok {
-				sma.clientTasks[clientID] = TasksList{
-					filtrationTasks: map[string]*FiltrationTasks{},
-					downloadTasks:   map[string]*DownloadTasks{},
-				}
-			}
-
-	*/
 })
