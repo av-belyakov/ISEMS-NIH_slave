@@ -34,7 +34,7 @@ func createDirectory(listDir []string) error {
 			}
 		}
 
-		pathDir := path.Join(rootDir, createDir) //fmt.Sprintf("/%v/%v", rootDir, createDir)
+		pathDir := path.Join(rootDir, createDir)
 		if rootDir == "/" {
 			pathDir = fmt.Sprintf("%v", createDir)
 		}
@@ -167,7 +167,7 @@ func createFileReadme(sma *configure.StoreMemoryApplication, clientID, taskID st
 		return err
 	}
 
-	fmt.Printf("storageDir: %v, README.xml", task.FileStorageDirectory)
+	//fmt.Printf("storageDir: %v, README.xml", task.FileStorageDirectory)
 
 	f, err := os.OpenFile(path.Join(task.FileStorageDirectory, "README.xml"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -250,7 +250,6 @@ var _ = Describe("Test Create Directory", func() {
 		})
 
 		It("Запись информации о выполняемой задаче должна быть успешной", func() {
-
 			_, err := sma.GetInfoTaskFiltration(clientID, taskID)
 
 			Expect(err).NotTo(HaveOccurred())

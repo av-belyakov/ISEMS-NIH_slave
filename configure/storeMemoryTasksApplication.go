@@ -60,17 +60,19 @@ type WssConnection struct {
 // Filters - параметры фильтрации
 // UseIndex - используется ли индекс
 // CountIndexFiles - количество найденных по индексам файлов (или просто найденных файлов, если не используется индекс)
+// SizeIndexFiles - общий размер всех найденных по индексам файлов
 // CountProcessedFiles - количество обработанных файлов
 // CountNotFoundIndexFiles - количество файлов, из перечня ListFiles, которые не были найдены по указанным путям
 // FileStorageDirectory - директория для хранения файлов
 // ChanStopFiltration - канал информирующий об остановке фильтрации
 // ListFiles - список файлов найденных в результате поиска по индексам
 type FiltrationTasks struct {
-	DateTimeStart, DateTimeEnd int64
+	DateTimeStart, DateTimeEnd uint64
 	Protocol                   string
 	Filters                    FiltrationControlParametersNetworkFilters
 	UseIndex                   bool
 	CountIndexFiles            int
+	SizeIndexFiles             int64
 	CountProcessedFiles        int
 	CountNotFoundIndexFiles    int
 	FileStorageDirectory       string
@@ -278,6 +280,11 @@ func (sma *StoreMemoryApplication) SetInfoTaskFiltration(clientID, taskID string
 				}
 			}
 
+		case "SizeIndexFiles":
+			if size, ok := v.(int64); ok {
+				sma.clientTasks[clientID].filtrationTasks[taskID].SizeIndexFiles = size
+			}
+
 		default:
 			return errors.New("you cannot change the value, undefined passed parameter")
 		}
@@ -324,7 +331,7 @@ func (sma *StoreMemoryApplication) AddFileToListFilesFiltrationTask(clientID, ta
 
 	list := sma.clientTasks[clientID].filtrationTasks[taskID].ListFiles
 	if len(list) == 0 {
-		list = map[string][]string{}
+		list = make(map[string][]string, len(list))
 	}
 
 	for k, v := range fl {

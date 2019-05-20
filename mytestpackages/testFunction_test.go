@@ -3,7 +3,6 @@ package mytestpackages_test
 import (
 	"ISEMS-NIH_slave/common"
 	"ISEMS-NIH_slave/configure"
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -47,7 +46,7 @@ var _ = Describe("Function Test", func() {
 	Context("Тест 3: Добавляем еще 3 задачи", func() {
 		It("Так как количество задач превышает лимит в 3 задачи, вывести сообщение об ошибке", func() {
 			for i := 0; i < 3; i++ {
-				num := int64(i + 1*100)
+				num := uint64(i + 1*100)
 
 				taskID := common.GetUniqIDFormatMD5("task id" + string(i))
 
@@ -71,7 +70,7 @@ var _ = Describe("Function Test", func() {
 
 	Context("Тест 4: Проверка параметорв фильтрации", func() {
 		It("Должно выернуть 'TRUE' если все параметры фильтрации валидны", func() {
-			msg, ok := common.CheckParametersFiltration(&configure.FiltrationControlCommonParametersFiltration{
+			_, ok := common.CheckParametersFiltration(&configure.FiltrationControlCommonParametersFiltration{
 				ID: 11000,
 				DateTime: configure.DateTimeParameters{
 					Start: 1557867813,
@@ -91,7 +90,7 @@ var _ = Describe("Function Test", func() {
 				},
 			})
 
-			fmt.Printf("***** Error message: %v****\n", msg)
+			//fmt.Printf("***** Error message: %v****\n", msg)
 
 			Expect(ok).Should(Equal(true))
 		})
@@ -120,14 +119,14 @@ var _ = Describe("Function Test", func() {
 			for i := 1; i <= countParts; i++ {
 				list := common.GetChunkListFiles(i, sizeChunk, countParts, lf)
 
-				fmt.Printf("List: %v\n", list)
+				//fmt.Printf("List: %v\n", list)
 
 				for _, v := range list {
 					countFiles += len(v)
 				}
 			}
 
-			fmt.Printf("Test 5, ALL COUNT FILES = %v\n", countFiles)
+			//fmt.Printf("Test 5, ALL COUNT FILES = %v\n", countFiles)
 
 			Expect(countFiles).Should(Equal(51))
 		})
@@ -165,7 +164,7 @@ var _ = Describe("Function Test", func() {
 		for i := 1; i <= countParts; i++ {
 			list := common.GetChunkListFiles(i, sizeChunk, countParts, lf)
 
-			fmt.Printf("List: %v\n", list)
+			//fmt.Printf("List: %v\n", list)
 
 			for _, v := range list {
 				countFiles += len(v)

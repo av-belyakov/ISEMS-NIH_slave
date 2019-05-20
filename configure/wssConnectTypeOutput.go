@@ -28,3 +28,14 @@ type DetailInfoMsgError struct {
 	ErrorName        string `json:"en"`
 	ErrorDescription string `json:"ed"`
 }
+
+//MsgTypeInformation информационное сообщение
+type MsgTypeInformation struct {
+	MsgType string             `json:"messageType"`
+	Info    InformationMessage `json:"info"`
+}
+
+//InformationMessage информационное сообщение, подробная информация
+type InformationMessage struct {
+	TaskID string
+}
