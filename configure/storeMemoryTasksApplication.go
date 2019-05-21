@@ -67,7 +67,7 @@ type WssConnection struct {
 // ChanStopFiltration - канал информирующий об остановке фильтрации
 // ListFiles - список файлов найденных в результате поиска по индексам
 type FiltrationTasks struct {
-	DateTimeStart, DateTimeEnd uint64
+	DateTimeStart, DateTimeEnd int64
 	Protocol                   string
 	Filters                    FiltrationControlParametersNetworkFilters
 	UseIndex                   bool
@@ -347,6 +347,15 @@ func (sma *StoreMemoryApplication) AddFileToListFilesFiltrationTask(clientID, ta
 	sma.clientTasks[clientID].filtrationTasks[taskID].ListFiles = list
 
 	return countIndexFiles, nil
+}
+
+//DelTaskFiltration удаление выбранной задачи
+func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) {
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return
+	}
+
+	delete(sma.clientTasks[clientID].filtrationTasks, taskID)
 }
 
 //AddTaskDownload добавить задачу

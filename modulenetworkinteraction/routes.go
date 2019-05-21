@@ -52,11 +52,6 @@ func RouteWssConnect(
 			fmt.Println("--- resived message JSON 'FILTRATION', func 'RouteWssConnect'")
 			fmt.Printf("client ID %v\n", msg.ClientID)
 
-			/*
-				запрос на фильтрацию доходит,
-				теперь его нужно собирать если он состоит из нескольких частей
-				(собирать как в moth_go) и обрабатывать
-			*/
 			handlers.HandlerMessageTypeFiltration(cwtResText, sma, msg.Data, msg.ClientID, appc.DirectoryStoringProcessedFiles.Raw)
 
 		case "download files":

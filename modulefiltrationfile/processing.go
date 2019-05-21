@@ -3,7 +3,7 @@ package modulefiltrationfile
 /*
 * Модуль выполняющий фильтрацию файлов сетевого трафика
 *
-* Версия 0.1, дата релиза 16.05.2019
+* Версия 0.2, дата релиза 21.05.2019
 * */
 
 import (
@@ -20,6 +20,59 @@ import (
 	"ISEMS-NIH_slave/savemessageapp"
 )
 
+type msgParameters struct {
+	ClientID, TaskID string
+	ChanRes          chan<- configure.MsgWsTransmission
+}
+
+func (mp *msgParameters) sendErrMsg(errName, errDesc string) error {
+	msg := configure.MsgTypeError{
+		MsgType: "error",
+		Info: configure.DetailInfoMsgError{
+			TaskID:           mp.TaskID,
+			ErrorName:        errName,
+			ErrorDescription: errDesc,
+		},
+	}
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	mp.ChanRes <- configure.MsgWsTransmission{
+		ClientID: mp.ClientID,
+		Data:     &msgJSON,
+	}
+
+	return nil
+}
+
+func (mp *msgParameters) sendMsgNotify(notifyType, notifyDesc, typeActionPerform string) error {
+	msg := configure.MsgTypeNotification{
+		MsgType: "notification",
+		Info: configure.DetailInfoMsgNotification{
+			TaskID:              mp.TaskID,
+			Section:             "filtration control",
+			TypeActionPerformed: typeActionPerform,
+			CriticalityMessage:  notifyType,
+			Description:         notifyDesc,
+		},
+	}
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	mp.ChanRes <- configure.MsgWsTransmission{
+		ClientID: mp.ClientID,
+		Data:     &msgJSON,
+	}
+
+	return nil
+}
+
 //ProcessingFiltration выполняет фильтрацию сет. трафика
 func ProcessingFiltration(
 	cwtResText chan<- configure.MsgWsTransmission,
@@ -29,54 +82,86 @@ func ProcessingFiltration(
 	fmt.Println("START function 'ProcessingFiltration'...")
 
 	saveMessageApp := savemessageapp.New()
-	errMsg := configure.MsgTypeError{
-		MsgType: "error",
-		Info: configure.DetailInfoMsgError{
-			TaskID: taskID,
-		},
+
+	mp := msgParameters{
+		ClientID: clientID,
+		TaskID:   taskID,
+		ChanRes:  cwtResText,
 	}
 
-	info, err := sma.GetInfoTaskFiltration(clientID, taskID)
-	if err != nil {
-		errMsg.Info.ErrorName = "invalid value received"
-		errMsg.Info.ErrorDescription = "Невозможно начать выполнение фильтрации, принят некорректный идентификатор клиента или задачи"
+	//информируем клиента о начале создания списка файлов удовлетворяющих параметрам фильтрации
+	d := "Инициализирована задача по фильтрации сетевого трафика, идет поиск файлов удовлетворяющих параметрам фильтрации"
+	if err := mp.sendMsgNotify("info", d, "start"); err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}
 
-		msgJSON, err := json.Marshal(errMsg)
-		if err != nil {
+	//строим список файлов удовлетворяющих параметрам фильтрации
+	if err := getListFilesForFiltering(sma, clientID, taskID); err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+		en := "cannot create a list of files"
+		ed := "Ошибка, невозможно создать список файлов удовлетворяющий параметрам фильтрации"
+
+		if err := mp.sendErrMsg(en, ed); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 			return
 		}
 
-		cwtResText <- configure.MsgWsTransmission{
-			ClientID: clientID,
-			Data:     &msgJSON,
-		}
+		return
+	}
 
+	info, err := sma.GetInfoTaskFiltration(clientID, taskID)
+	if err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprintf("incorrect parameters for filtering (client ID: %v, task ID: %v)", clientID, taskID))
+
+		en := "invalid value received"
+		ed := "Невозможно начать выполнение фильтрации, принят некорректный идентификатор клиента или задачи"
+
+		if err := mp.sendErrMsg(en, ed); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+			return
+		}
 
 		return
 	}
 
-	fmt.Printf("Параметры задачи по фильтрации:\n%v\n", info)
+	//проверяем количество файлов которые не были найдены при поиске их по индексам
+	if info.CountNotFoundIndexFiles > 0 {
+		d := "Внимание, фильтрация выполняется по файлам полученным при поиске по индексам. Однако, на диске были найдены не все файлы перечисленные в индексах"
+		if err := mp.sendMsgNotify("warning", d, "start"); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+	}
+
+	//поверяем количество файлов по которым необходимо выполнить фильтрацию
+	if info.CountIndexFiles == 0 {
+		en := "no files matching configured interval"
+		ed := "Внимание, фильтрация остановлена так как не найдены файлы удовлетворяющие параметрам фильтрации"
+		if err := mp.sendErrMsg(en, ed); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+			return
+		}
+
+		//удаляем задачу
+		sma.DelTaskFiltration(clientID, taskID)
+
+		return
+	}
 
 	//создаем директорию для хранения отфильтрованных файлов
 	if err := createDirectoryForFiltering(sma, clientID, taskID, rootDirStoringFiles); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		errMsg.Info.ErrorName = "unable to create directory"
-		errMsg.Info.ErrorDescription = "Ошибка при создании директории для хранения отфильтрованных файлов"
+		en := "unable to create directory"
+		ed := "Ошибка при создании директории для хранения отфильтрованных файлов"
 
-		msgJSON, err := json.Marshal(errMsg)
-		if err != nil {
+		if err := mp.sendErrMsg(en, ed); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 			return
-		}
-
-		cwtResText <- configure.MsgWsTransmission{
-			ClientID: clientID,
-			Data:     &msgJSON,
 		}
 
 		return
@@ -86,53 +171,32 @@ func ProcessingFiltration(
 	if err := createFileReadme(sma, clientID, taskID); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		errMsg.Info.ErrorName = "unable to create directory"
-		errMsg.Info.ErrorDescription = "Ошибка при создании директории для хранения отфильтрованных файлов"
+		en := "cannot create a file README.txt"
+		ed := "Невозможно создать файл с информацией о параметрах фильтрации"
 
-		msgJSON, err := json.Marshal(errMsg)
-		if err != nil {
+		if err := mp.sendErrMsg(en, ed); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 			return
-		}
-
-		cwtResText <- configure.MsgWsTransmission{
-			ClientID: clientID,
-			Data:     &msgJSON,
-		}
-
-		return
-	}
-
-	//инициализируем выполнение фильтрации
-	if err := executeFiltration(cwtResText, sma, clientID, taskID); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-		errMsg.Info.ErrorName = "unable to create directory"
-		errMsg.Info.ErrorDescription = "Ошибка при создании директории для хранения отфильтрованных файлов"
-
-		msgJSON, err := json.Marshal(errMsg)
-		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			return
-		}
-
-		cwtResText <- configure.MsgWsTransmission{
-			ClientID: clientID,
-			Data:     &msgJSON,
 		}
 
 		return
 	}
 
 	/*
-		отправка сообщений в канал, для дальнейшей передачи ISEMS-NIH_master
-		cwtResText <- configure.MsgWsTransmission{
-					ClientID: clientID,
-					Data:     &msgJSON,
-				}
+
+	   Будем передовать список, найденных в результате фильтрации файлов,
+	   при завершении задачи по фильтрации (статус задачи 'complete' или 'stop')
+
+	   НЕ ОБРАЩАТЬ ВНИМАНИЕ что moth_go отправляет в начале, они всеравно не использутся
+	   видимо у меня были какие т мысли по поводу этого, но я так их и не реализовал
+
 	*/
+
+	//запуск фильтрации для каждой директории
+	executeFiltration()
+
+	//обработка информации о завершении фильтрации для каждой директории
 }
 
 func createDirectoryForFiltering(sma *configure.StoreMemoryApplication, clientID, taskID, dspf string) error {
@@ -287,7 +351,7 @@ func searchFiles(result chan<- currentListFilesFilteration, disk string, current
 	for _, file := range files {
 		fileIsUnixDate := file.ModTime().Unix()
 
-		if (uint64(fileIsUnixDate) > currentTask.DateTimeStart) && (uint64(fileIsUnixDate) < currentTask.DateTimeEnd) {
+		if (int64(fileIsUnixDate) > currentTask.DateTimeStart) && (int64(fileIsUnixDate) < currentTask.DateTimeEnd) {
 			clff.Files = append(clff.Files, file.Name())
 			clff.SizeFiles += file.Size()
 			clff.CountFiles++
@@ -362,46 +426,110 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 	return nil
 }
 
-//выполнение фильтрации
-func executeFiltration(
-	cwtResText chan<- configure.MsgWsTransmission,
-	sma *configure.StoreMemoryApplication,
-	clientID, taskID string) error {
+//формируем шаблон для фильтрации
+/*func patternBashScript(ppf PatternParametersFiltering, mtf *configure.MessageTypeFilter) string {
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
 
-	if err := getListFilesForFiltering(sma, clientID, taskID); err != nil {
-		return err
-	}
-
-	info, err := sma.GetInfoTaskFiltration(clientID, taskID)
-	if err != nil {
-		return err
-	}
-
-	//проверяем количество файлов которые не были найдены при поиске их по индексам
-	if info.CountNotFoundIndexFiles > 0 {
-
-		//ОТПРАВИТЬ ИНФОРМАЦИИОННОЕ СООБЩЕНИЕ О НЕ ВСЕХ ФАЙЛАХ найденных по индексам
-		infoMsg := configure.MsgTypeInformation{
-			MsgType: "error",
-			Info: configure.InformationMessage{
-				TaskID: taskID,
-				/*
-					Дописать тип информационного сообщения
-				*/
-			},
+	getPatternNetwork := func(network string) (string, error) {
+		networkTmp := strings.Split(network, "/")
+		if len(networkTmp) < 2 {
+			return "", errors.New("incorrect network mask value")
 		}
 
-		/*cwtResText <- configure.MsgWsTransmission{
-			ClientID: clientID,
-			Data:     &msgJSON,
-		}*/
+		maskInt, err := strconv.ParseInt(networkTmp[1], 10, 64)
+		if err != nil {
+			return "", err
+		}
+
+		if maskInt < 0 || maskInt > 32 {
+			return "", errors.New("the value of 'mask' should be in the range from 0 to 32")
+		}
+
+		ipv4Addr := net.ParseIP(networkTmp[0])
+		ipv4Mask := net.CIDRMask(24, 32)
+		newNetwork := ipv4Addr.Mask(ipv4Mask).String()
+
+		return newNetwork + "/" + networkTmp[1], nil
 	}
 
-	return nil
+	getIPAddressString := func(ipaddreses []string) (searchHosts string) {
+		if len(ipaddreses) != 0 {
+			if len(ipaddreses) == 1 {
+				searchHosts = "'(host " + ipaddreses[0] + " || (vlan && host " + ipaddreses[0] + "))'"
+			} else {
+				var hosts string
+				for key, ip := range ipaddreses {
+					if key == 0 {
+						hosts += "(host " + ip
+					} else if key == (len(ipaddreses) - 1) {
+						hosts += " || " + ip + ")"
+					} else {
+						hosts += " || " + ip
+					}
+				}
 
-	/*
-	   !!! ВНИМАНИЕ !!!
-	   Сделать создание списка файлов удовлетворяющих заданным условиям
-	   И оттестировать эту функцию
-	*/
+				searchHosts = "'" + hosts + " || (vlan && " + hosts + ")'"
+			}
+		}
+		return searchHosts
+	}
+
+	getNetworksString := func(networks []string) (searchNetworks string) {
+		if len(networks) != 0 {
+			if len(networks) == 1 {
+				networkPattern, err := getPatternNetwork(networks[0])
+				if err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+
+				searchNetworks += "'(net " + networkPattern + " || (vlan && net " + networkPattern + "))'"
+			} else {
+				var network string
+				for key, net := range networks {
+					networkPattern, err := getPatternNetwork(net)
+					if err != nil {
+						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					}
+
+					if key == 0 {
+						network += "(net " + networkPattern
+					} else if key == (len(networks) - 1) {
+						network += " || " + networkPattern + ")"
+					} else {
+						network += " || " + networkPattern
+					}
+				}
+				searchNetworks = "'" + network + " || (vlan && " + network + ")'"
+			}
+		}
+		return searchNetworks
+	}
+
+	bind := " "
+	//формируем строку для поиска хостов
+	searchHosts := getIPAddressString(mtf.Info.Settings.IPAddress)
+
+	//формируем строку для поиска сетей
+	searchNetwork := getNetworksString(mtf.Info.Settings.Network)
+
+	if len(mtf.Info.Settings.IPAddress) > 0 && len(mtf.Info.Settings.Network) > 0 {
+		bind = " or "
+	}
+
+	listTypeArea := map[int]string{
+		1: " ",
+		2: " '(pppoes && ip)' and ",
+	}
+
+	pattern := " tcpdump -r " + ppf.DirectoryName + "/$files"
+	pattern += listTypeArea[ppf.TypeAreaNetwork] + searchHosts + bind + searchNetwork
+	pattern += " -w " + ppf.PathStorageFilterFiles + "/$files;"
+
+	return pattern
+}*/
+
+//выполнение фильтрации
+func executeFiltration() {
+
 }

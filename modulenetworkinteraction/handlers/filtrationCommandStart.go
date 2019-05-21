@@ -101,7 +101,7 @@ func StartFiltration(
 	}
 
 	if !mtfcJSON.Info.IndexIsFound {
-		modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, rootDirStoringFiles)
+		go modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, rootDirStoringFiles)
 
 		return
 	}
@@ -132,5 +132,5 @@ func StartFiltration(
 		return
 	}
 
-	modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, rootDirStoringFiles)
+	go modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, rootDirStoringFiles)
 }

@@ -46,7 +46,7 @@ var _ = Describe("Function Test", func() {
 	Context("Тест 3: Добавляем еще 3 задачи", func() {
 		It("Так как количество задач превышает лимит в 3 задачи, вывести сообщение об ошибке", func() {
 			for i := 0; i < 3; i++ {
-				num := uint64(i + 1*100)
+				num := int64(i + 1*100)
 
 				taskID := common.GetUniqIDFormatMD5("task id" + string(i))
 

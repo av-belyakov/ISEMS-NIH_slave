@@ -11,7 +11,9 @@ type MsgTypeFiltration struct {
 }
 
 //DetailInfoMsgFiltration подробная информация
-type DetailInfoMsgFiltration struct{}
+type DetailInfoMsgFiltration struct {
+	TaskID string `json:"tid"`
+}
 
 //MsgTypeError сообщение отправляемое при возникновении ошибки
 type MsgTypeError struct {
@@ -29,13 +31,22 @@ type DetailInfoMsgError struct {
 	ErrorDescription string `json:"ed"`
 }
 
-//MsgTypeInformation информационное сообщение
-type MsgTypeInformation struct {
-	MsgType string             `json:"messageType"`
-	Info    InformationMessage `json:"info"`
+//MsgTypeNotification информационное сообщение
+type MsgTypeNotification struct {
+	MsgType string                    `json:"messageType"`
+	Info    DetailInfoMsgNotification `json:"info"`
 }
 
-//InformationMessage информационное сообщение, подробная информация
-type InformationMessage struct {
-	TaskID string
+//DetailInfoMsgNotification информационное сообщение, подробная информация
+// TaskID - id задачи
+// Section - раздел обработки заданий
+// TypeActionPerformed - тип выполняемого действия при обработке задания
+// CriticalityMessage - тип сообщения ('info'/'success'/'warning'/'danger')
+// Description - описание сообщения
+type DetailInfoMsgNotification struct {
+	TaskID              string `json:"tid"`
+	Section             string `json:"s"`
+	TypeActionPerformed string `json:"tap"`
+	CriticalityMessage  string `json:"cm"`
+	Description         string `json:"d"`
 }
