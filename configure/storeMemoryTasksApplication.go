@@ -12,7 +12,7 @@ import (
 * Описание типа в котором хранятся параметры и выполняемые задачи
 * приложения
 *
-* Версия 0.1, дата релиза 03.04.2019
+* Версия 0.3, дата релиза 27.05.2019
 * */
 
 //StoreMemoryApplication параметры и задачи приложения
@@ -317,7 +317,7 @@ func (sma *StoreMemoryApplication) IncrementNumNotFoundIndexFiles(clientID, task
 	return num, nil
 }
 
-//AddFileToListFilesFiltrationTask добавить в основной список часть списка найденных, по индексам, файлов
+//AddFileToListFilesFiltrationTask добавить в основной список часть списка найденных, в том числе и по индексам, файлов
 func (sma *StoreMemoryApplication) AddFileToListFilesFiltrationTask(clientID, taskID string, fl map[string][]string) (int, error) {
 	var countIndexFiles int
 

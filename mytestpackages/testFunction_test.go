@@ -12,7 +12,7 @@ var _ = Describe("Function Test", func() {
 	//создаем новый репозиторий для хранения информации, в том числе о задачах
 	sma := configure.NewRepositorySMA()
 
-	//генерируем хеш для clientID и taskID
+	//генерируем хеш для clientID
 	clientID := common.GetUniqIDFormatMD5("client id")
 	sma.SetClientSetting(clientID, configure.ClientSettings{
 		ConnectionStatus: true,

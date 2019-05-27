@@ -11,8 +11,37 @@ type MsgTypeFiltration struct {
 }
 
 //DetailInfoMsgFiltration подробная информация
+// TaskID - ID задачи
+// TaskStatus - статус выполняемой задачи
+// NumberFilesToBeFiltered - количество файлов подходящих под параметры фильтрации
+// SizeFilesToBeFiltered — общий размер файлов подходящих под параметры фильтрации
+// CountDirectoryFiltartion — количество директорий по которым выполняется фильт.
+// NumberFilesProcessed — количество обработанных файлов
+// NumberFilesFound — количество найденных файлов
+// SizeFilesFound — общий размер найденных файлов
+// PathStorageSource — путь до директории в которой сохраняются файлы при
+// FoundFileName - имя файла, найденного в результате фильтрации сет. трафика
+// FoundSizeFile - размер файла, найденного в результате фильтрации сет. трафика
+// FoundFilesInformation - информация о файлах, ключ - имя файла
 type DetailInfoMsgFiltration struct {
-	TaskID string `json:"tid"`
+	TaskID                   string                            `json:"tid"`
+	TaskStatus               string                            `json:"ts"`
+	NumberFilesToBeFiltered  int                               `json:"nfbef"`
+	SizeFilesToBeFiltered    uint64                            `json:"sfbef"`
+	CountDirectoryFiltartion int                               `json:"cdf"`
+	NumberFilesProcessed     int                               `json:"nfp"`
+	NumberFilesFound         int                               `json:"nff"`
+	SizeFilesFound           uint64                            `json:"sff"`
+	PathStorageSource        string                            `json:"pss"`
+	FoundFilesInformation    map[string]*FoundFilesInformation `json:"ffi"`
+}
+
+//FoundFilesInformation подробная информация о файлах
+// Size - размер файла
+// Hex - хеш сумма файла
+type FoundFilesInformation struct {
+	Size uint64 `json:"s"`
+	Hex  string `json:"h"`
 }
 
 //MsgTypeError сообщение отправляемое при возникновении ошибки

@@ -3,7 +3,7 @@ package modulefiltrationfile
 /*
 * Модуль выполняющий фильтрацию файлов сетевого трафика
 *
-* Версия 0.2, дата релиза 21.05.2019
+* Версия 0.3, дата релиза 27.05.2019
 * */
 
 import (
@@ -183,18 +183,35 @@ func ProcessingFiltration(
 		return
 	}
 
+	//формируем шаблон фильтрации
+	patternScript, err := createPatternScript(info)
+	if err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+		en := "it is impossible to form a pattern of filter parameters"
+		ed := "Невозможно сформировать шаблон из параметров фильтрации"
+
+		if err := mp.sendErrMsg(en, ed); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+			return
+		}
+
+		return
+	}
+
 	/*
 
 	   Будем передовать список, найденных в результате фильтрации файлов,
 	   при завершении задачи по фильтрации (статус задачи 'complete' или 'stop')
 
-	   НЕ ОБРАЩАТЬ ВНИМАНИЕ что moth_go отправляет в начале, они всеравно не использутся
+	   НЕ ОБРАЩАТЬ ВНИМАНИЕ что moth_go отправляет в начале, они все равно не использутся
 	   видимо у меня были какие т мысли по поводу этого, но я так их и не реализовал
 
 	*/
 
 	//запуск фильтрации для каждой директории
-	executeFiltration()
+	executeFiltration(info, patternScript)
 
 	//обработка информации о завершении фильтрации для каждой директории
 }
@@ -426,6 +443,25 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 	return nil
 }
 
+func createPatternScript(filtrationParameters *configure.FiltrationTasks) (string, error) {
+	//err := it is impossible to form a pattern of filter parameters
+	var pattern string
+
+	return pattern, nil
+}
+
+/*
+tcpdump -r 1496732553_2017_06_06____10_02_33_992898.tdp
+'((host 37.147.110.67 || 31.13.21.122) || ((src 42.118.143.87 || 2.1.1.2) && (dst 80.245.123.60 || 3.1.1.2)))
+|| (vlan && ((host 37.147.110.67 || 31.13.21.122) && (src 42.118.143.87 || 2.1.1.2) && (dst 80.245.123.60 || 3.1.1.2)))'
+
+
+tcpdump -r 1496732553_2017_06_06____10_02_33_992898.tdp
+'((host 37.147.110.67 || 31.13.21.122) && (src 42.118.143.87 || 2.1.1.2) && (dst 80.245.123.60 || 3.1.1.2))
+&& ((port 80 || 45) && (dport 80)) || (vlan && ((host 37.147.110.67 || 31.13.21.122)
+&& (src 42.118.143.87 || 2.1.1.2) && (dst 80.245.123.60 || 3.1.1.2))))'
+*/
+
 //формируем шаблон для фильтрации
 /*func patternBashScript(ppf PatternParametersFiltering, mtf *configure.MessageTypeFilter) string {
 	//инициализируем функцию конструктор для записи лог-файлов
@@ -530,6 +566,6 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 }*/
 
 //выполнение фильтрации
-func executeFiltration() {
+func executeFiltration(ft *configure.FiltrationTasks, patternScript string) {
 
 }
