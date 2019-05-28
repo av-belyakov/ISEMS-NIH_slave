@@ -13,33 +13,31 @@ type MsgTypeFiltration struct {
 //DetailInfoMsgFiltration подробная информация
 // TaskID - ID задачи
 // TaskStatus - статус выполняемой задачи
-// NumberFilesToBeFiltered - количество файлов подходящих под параметры фильтрации
-// SizeFilesToBeFiltered — общий размер файлов подходящих под параметры фильтрации
-// CountDirectoryFiltartion — количество директорий по которым выполняется фильт.
-// NumberFilesProcessed — количество обработанных файлов
-// NumberFilesFound — количество найденных файлов
-// SizeFilesFound — общий размер найденных файлов
+// NumberFilesMeetFilterParameters - кол-во файлов удовлетворяющих параметрам фильтрации
+// NumberProcessedFiles - кол-во обработанных файлов
+// NumberFilesFoundResultFiltering - кол-во найденных, в результате фильтрации, файлов
+// NumberDirectoryFiltartion - кол-во директорий по которым выполняется фильтрация
+// SizeFilesMeetFilterParameters - общий размер файлов (в байтах) удовлетворяющих параметрам фильтрации
+// SizeFilesFoundResultFiltering - общий размер найденных, в результате фильтрации, файлов (в байтах)
 // PathStorageSource — путь до директории в которой сохраняются файлы при
-// FoundFileName - имя файла, найденного в результате фильтрации сет. трафика
-// FoundSizeFile - размер файла, найденного в результате фильтрации сет. трафика
 // FoundFilesInformation - информация о файлах, ключ - имя файла
 type DetailInfoMsgFiltration struct {
-	TaskID                   string                            `json:"tid"`
-	TaskStatus               string                            `json:"ts"`
-	NumberFilesToBeFiltered  int                               `json:"nfbef"`
-	SizeFilesToBeFiltered    uint64                            `json:"sfbef"`
-	CountDirectoryFiltartion int                               `json:"cdf"`
-	NumberFilesProcessed     int                               `json:"nfp"`
-	NumberFilesFound         int                               `json:"nff"`
-	SizeFilesFound           uint64                            `json:"sff"`
-	PathStorageSource        string                            `json:"pss"`
-	FoundFilesInformation    map[string]*FoundFilesInformation `json:"ffi"`
+	TaskID                          string                            `json:"tid"`
+	TaskStatus                      string                            `json:"ts"`
+	NumberFilesMeetFilterParameters int                               `json:"nfmfp"`
+	NumberProcessedFiles            int                               `json:"npf"`
+	NumberFilesFoundResultFiltering int                               `json:"nffrf"`
+	NumberDirectoryFiltartion       int                               `json:"ndf"`
+	SizeFilesMeetFilterParameters   int64                             `json:"sfmfp"`
+	SizeFilesFoundResultFiltering   int64                             `json:"sffrf"`
+	PathStorageSource               string                            `json:"pss"`
+	FoundFilesInformation           map[string]*InputFilesInformation `json:"ffi"`
 }
 
-//FoundFilesInformation подробная информация о файлах
+//InputFilesInformation подробная информация о файлах
 // Size - размер файла
 // Hex - хеш сумма файла
-type FoundFilesInformation struct {
+type InputFilesInformation struct {
 	Size uint64 `json:"s"`
 	Hex  string `json:"h"`
 }

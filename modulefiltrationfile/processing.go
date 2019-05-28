@@ -207,14 +207,8 @@ func ProcessingFiltration(
 		}
 
 		//запуск фильтрации для каждой директории
-		go executeFiltration(done, info, sma, clientID, taskID, dirName, patternScript)
+		go executeFiltration(done, info, sma, mp, dirName, patternScript)
 	}
-
-	/*formingMessageFilterComplete := FormingMessageFilterComplete{
-		taskIndex:      taskIndex,
-		remoteIP:       prf.RemoteIP,
-		countDirectory: infoTaskFilter.CountDirectoryFiltering,
-	}*/
 
 	_ = saveMessageApp.LogMessage("info", fmt.Sprintf("start of a task to filter with the ID %v", taskID))
 
@@ -592,7 +586,7 @@ func getFileParameters(filePath string) (int64, string, error) {
 }
 
 //выполнение фильтрации
-func executeFiltration(done chan<- chanDone, ft *configure.FiltrationTasks, sma *configure.StoreMemoryApplication, clientID, taskID, dirName, patternScript string) {
+func executeFiltration(done chan<- chanDone, ft *configure.FiltrationTasks, sma *configure.StoreMemoryApplication, mp msgParameters, dirName, patternScript string) {
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
@@ -614,7 +608,7 @@ DONE:
 				_ = saveMessageApp.LogMessage("error", fmt.Sprintf("%v\t%v, file: %v\n", err, dirName, file))
 
 				//если ошибка увеличиваем количество обработанных с ошибкой файлов
-				if _, err := sma.IncrementNumNotFoundIndexFiles(clientID, taskID); err != nil {
+				if _, err := sma.IncrementNumNotFoundIndexFiles(mp.ClientID, mp.TaskID); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
 
@@ -624,7 +618,7 @@ DONE:
 			}
 
 			//увеличиваем кол-во обработанных файлов
-			if _, err := sma.IncrementNumProcessedFiles(clientID, taskID); err != nil {
+			if _, err := sma.IncrementNumProcessedFiles(mp.ClientID, mp.TaskID); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprintf("%v\t%v, file: %v\n", err, dirName, file))
 			}
 
@@ -634,28 +628,113 @@ DONE:
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 			if fileSize > int64(24) {
-				if _, err := sma.IncrementNumFoundFiles(clientID, taskID, fileSize); err != nil {
+				if _, err := sma.IncrementNumFoundFiles(mp.ClientID, mp.TaskID, fileSize); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
 			}
 
-			//формируем канал для передачи информации о фильтрации
-			prf.AccessClientsConfigure.ChanInfoFilterTask <- configure.ChanInfoFilterTask{
-				TaskIndex:           ppf.TaskIndex,
-				RemoteIP:            prf.RemoteIP,
-				TypeProcessing:      "execute",
-				DirectoryName:       ppf.DirectoryName,
-				ProcessingFileName:  file,
-				CountFilesFound:     countFiles,
-				CountFoundFilesSize: fullSizeFiles,
-				StatusProcessedFile: statusProcessedFile,
+taskInfo, err := sma.GetInfoTaskFiltration(mp.ClientID, mp.TaskID)
+if err != nil {
+	_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+	break Done
+}
+
+msgRes := configure.MsgTypeFiltration{
+	MsgType: "filtration",
+	Info: configure.DetailInfoMsgFiltration{
+TaskID: mp.TaskID,
+TaskStatus: "execute",
+NumberFilesMeetFilterParameters: ,
+	NumberProcessedFiles: ,
+	NumberFilesFoundResultFiltering: ,
+	NumberDirectoryFiltartion: ,
+	SizeFilesMeetFilterParameters: ,
+	SizeFilesFoundResultFiltering: ,
+	PathStorageSource: ,
+	FoundFilesInformation:           map[string]*configure.InputFilesInformation{
+		Size:
+	}
+	},
+}
+
+			//сообщение о ходе процесса фильтрации
+			mp.ChanRes <- configure.MsgWsTransmission{
+				ClientID: mp.ClientID,
+				Data:     &resJSON,
 			}
+
+			//формируем канал для передачи информации о фильтрации
+			/*			prf.AccessClientsConfigure.ChanInfoFilterTask <- configure.ChanInfoFilterTask{
+						TaskIndex:           ppf.TaskIndex,
+						RemoteIP:            prf.RemoteIP,
+						TypeProcessing:      "execute",
+						DirectoryName:       ppf.DirectoryName,
+						ProcessingFileName:  file,
+						CountFilesFound:     countFiles,
+						CountFoundFilesSize: fullSizeFiles,
+						StatusProcessedFile: statusProcessedFile,
+					}*/
+
+			/*
+							!!!!!!!!
+				Пример функции для отправки уведомления об окончании фильтрации после возобновления соединения
+				!!!!!!!
+
+							func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
+					//инициализируем функцию конструктор для записи лог-файлов
+					saveMessageApp := savemessageapp.New()
+
+					for taskIndex, task := range ift.TaskID {
+						if task.RemoteIP == remoteIP {
+							if _, ok := acc.Addresses[task.RemoteIP]; ok {
+								switch task.TypeProcessing {
+								case "execute":
+									mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
+										MessageType: "filtering",
+										Info: configure.MessageTypeFilteringExecuteOrUnexecuteInfo{
+											configure.FilterInfoPattern{
+												IPAddress:  task.RemoteIP,
+												TaskIndex:  taskIndex,
+												Processing: task.TypeProcessing,
+											},
+											configure.FilterCountPattern{
+												CountFilesProcessed:   task.CountFilesProcessed,
+												CountFilesUnprocessed: task.CountFilesUnprocessed,
+												CountCycleComplete:    task.CountCycleComplete,
+												CountFilesFound:       task.CountFilesFound,
+												CountFoundFilesSize:   task.CountFoundFilesSize,
+											},
+											configure.InfoProcessingFile{
+												FileName:          task.ProcessingFileName,
+												DirectoryLocation: task.DirectoryFiltering,
+												StatusProcessed:   task.StatusProcessedFile,
+											},
+										},
+									}
+
+									formatJSON, err := json.Marshal(&mtfeou)
+									if err != nil {
+										_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+									}
+
+									if _, ok := acc.Addresses[task.RemoteIP]; ok {
+										acc.ChanWebsocketTranssmition <- formatJSON
+									}
+								case "complete":
+									processingwebsocketrequest.SendMsgFilteringComplite(acc, ift, taskIndex, task)
+								}
+							}
+						}
+					}
+				}
+			*/
 		}
 	}
 
 	done <- chanDone{
-		ClientID:       clientID,
-		TaskID:         taskID,
+		ClientID:       mp.ClientID,
+		TaskID:         mp.TaskID,
 		DirectoryName:  dirName,
 		TypeProcessing: "complete",
 	}
