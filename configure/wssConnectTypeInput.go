@@ -9,6 +9,7 @@ type DetailInfoMsgPing struct {
 	MaxCountProcessFiltration int8     `json:"maxCountProcessFiltration"`
 	EnableTelemetry           bool     `json:"enableTelemetry"`
 	StorageFolders            []string `json:"storageFolders"`
+	TypeAreaNetwork           string   `json:"typeAreaNetwork"`
 }
 
 //MsgTypePing сообщение типа ping

@@ -17,6 +17,7 @@ type AppConfig struct {
 	PathLogFiles                   string
 	RefreshIntervalTelemetryInfo   int
 	TimeReconnect                  int
+	TypeAreaNetwork                int
 }
 
 //settingsToConnectServerHTTPS настройки сервера с которым устанавливается подключение в режиме клиента

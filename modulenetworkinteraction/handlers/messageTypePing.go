@@ -9,6 +9,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"ISEMS-NIH_slave/configure"
 	"ISEMS-NIH_slave/savemessageapp"
@@ -36,8 +37,14 @@ func HandlerMessageTypePing(
 		mcpf = reqJSON.Info.MaxCountProcessFiltration
 	}
 
+	typeAreaNetwork := "ip"
+	if strings.ToLower(reqJSON.Info.TypeAreaNetwork) == "pppoe" {
+		typeAreaNetwork = "pppoe"
+	}
+
 	sma.SetApplicationSetting(configure.ApplicationSettings{
-		StorageFolders: reqJSON.Info.StorageFolders,
+		TypeAreaNetwork: typeAreaNetwork,
+		StorageFolders:  reqJSON.Info.StorageFolders,
 	})
 
 	cs, ok := sma.GetClientSetting(clientID)

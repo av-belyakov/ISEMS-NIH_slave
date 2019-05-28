@@ -7,13 +7,19 @@ package modulefiltrationfile
 * */
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
 	"os"
+	"os/exec"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"ISEMS-NIH_slave/configure"
@@ -23,6 +29,11 @@ import (
 type msgParameters struct {
 	ClientID, TaskID string
 	ChanRes          chan<- configure.MsgWsTransmission
+}
+
+//ChanDone содержит информацию о завершенной задаче
+type chanDone struct {
+	ClientID, TaskID, DirectoryName, TypeProcessing string
 }
 
 func (mp *msgParameters) sendErrMsg(errName, errDesc string) error {
@@ -183,37 +194,32 @@ func ProcessingFiltration(
 		return
 	}
 
+	as := sma.GetApplicationSetting()
+
 	//формируем шаблон фильтрации
-	patternScript, err := createPatternScript(info)
-	if err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	patternScript := createPatternScript(info, as.TypeAreaNetwork)
 
-		en := "it is impossible to form a pattern of filter parameters"
-		ed := "Невозможно сформировать шаблон из параметров фильтрации"
+	done := make(chan chanDone, len(info.ListFiles))
 
-		if err := mp.sendErrMsg(en, ed); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			return
+	for dirName := range info.ListFiles {
+		if len(info.ListFiles[dirName]) == 0 {
+			continue
 		}
 
-		return
+		//запуск фильтрации для каждой директории
+		go executeFiltration(done, info, sma, clientID, taskID, dirName, patternScript)
 	}
 
-	/*
+	/*formingMessageFilterComplete := FormingMessageFilterComplete{
+		taskIndex:      taskIndex,
+		remoteIP:       prf.RemoteIP,
+		countDirectory: infoTaskFilter.CountDirectoryFiltering,
+	}*/
 
-	   Будем передовать список, найденных в результате фильтрации файлов,
-	   при завершении задачи по фильтрации (статус задачи 'complete' или 'stop')
-
-	   НЕ ОБРАЩАТЬ ВНИМАНИЕ что moth_go отправляет в начале, они все равно не использутся
-	   видимо у меня были какие т мысли по поводу этого, но я так их и не реализовал
-
-	*/
-
-	//запуск фильтрации для каждой директории
-	executeFiltration(info, patternScript)
+	_ = saveMessageApp.LogMessage("info", fmt.Sprintf("start of a task to filter with the ID %v", taskID))
 
 	//обработка информации о завершении фильтрации для каждой директории
+	go filteringComplete(done) //, &formingMessageFilterComplete, prf, ift)
 }
 
 func createDirectoryForFiltering(sma *configure.StoreMemoryApplication, clientID, taskID, dspf string) error {
@@ -443,129 +449,219 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 	return nil
 }
 
-func createPatternScript(filtrationParameters *configure.FiltrationTasks) (string, error) {
-	//err := it is impossible to form a pattern of filter parameters
-	var pattern string
+//createPatternScript подготовка шаблона для фильтрации
+// Логика работы: сетевой протокол '&&' (набор IP '||' набор Network) '&&' набор портов,
+// (ANY '||' (SRC '&&' DST))
+func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeArea string) string {
+	var pAnd, patterns string
 
-	return pattern, nil
+	rangeFunc := func(s []string, pattern string) string {
+		countAny := len(s)
+		if countAny == 0 {
+			return ""
+		}
+
+		num := 0
+		for _, v := range s {
+			pEnd := " ||"
+			if num == countAny-1 {
+				pEnd = ")"
+			}
+
+			pattern += " " + v + pEnd
+			num++
+		}
+
+		return pattern
+	}
+
+	patternTypeProtocol := func(proto string) string {
+		if proto == "any" || proto == "" {
+			return ""
+		}
+
+		return fmt.Sprintf("((ip && %v) || (vlan && %v)) && ", proto, proto)
+
+	}
+
+	formingPatterns := func(p *configure.FiltrationControlIPorNetorPortParameters, a, s, d string) string {
+		numAny := len(p.Any)
+		numSrc := len(p.Src)
+		numDst := len(p.Dst)
+
+		var pOr, pAnd string
+
+		if (numAny == 0) && (numSrc == 0) && (numDst == 0) {
+			return ""
+		}
+
+		pAny := rangeFunc(p.Any, a)
+		pSrc := rangeFunc(p.Src, s)
+		pDst := rangeFunc(p.Dst, d)
+
+		if (numAny > 0) && ((numSrc > 0) || (numDst > 0)) {
+			pOr = " || "
+		}
+
+		if (numSrc > 0) && (numDst > 0) {
+			pAnd = " && "
+
+			return fmt.Sprintf("(%v%v(%v%v%v))", pAny, pOr, pSrc, pAnd, pDst)
+		}
+
+		return fmt.Sprintf("(%v%v%v%v%v)", pAny, pOr, pSrc, pAnd, pDst)
+	}
+
+	patternIPAddress := func(ip *configure.FiltrationControlIPorNetorPortParameters) string {
+		return formingPatterns(ip, "(host", "(src", "(dst")
+	}
+
+	patternPort := func(port *configure.FiltrationControlIPorNetorPortParameters) string {
+		return formingPatterns(port, "(port", "(src port", "(dst port")
+	}
+
+	patternNetwork := func(network *configure.FiltrationControlIPorNetorPortParameters) string {
+		//приводим значение сетей к валидным сетевым маскам
+		forEachFunc := func(list []string) []string {
+			newList := make([]string, 0, len(list))
+
+			for _, v := range list {
+				t := strings.Split(v, "/")
+
+				mask, _ := strconv.Atoi(t[1])
+
+				ipv4Addr := net.ParseIP(t[0])
+				ipv4Mask := net.CIDRMask(mask, 32)
+
+				newList = append(newList, fmt.Sprintf("%v/%v", ipv4Addr.Mask(ipv4Mask).String(), t[1]))
+			}
+
+			return newList
+		}
+
+		return formingPatterns(&configure.FiltrationControlIPorNetorPortParameters{
+			Any: forEachFunc(network.Any),
+			Src: forEachFunc(network.Src),
+			Dst: forEachFunc(network.Dst),
+		}, "(net", "(src net", "(dst net")
+	}
+
+	//формируем шаблон для фильтрации по протоколам сетевого уровня
+	pProto := patternTypeProtocol(filtrationParameters.Protocol)
+
+	//формируем шаблон для фильтрации по ip адресам
+	pIP := patternIPAddress(&filtrationParameters.Filters.IP)
+
+	//формируем шаблон для фильтрации по сетевым портам
+	pPort := patternPort(&filtrationParameters.Filters.Port)
+
+	//формируем шаблон для фильтрации по сетям
+	pNetwork := patternNetwork(&filtrationParameters.Filters.Network)
+
+	if len(pPort) > 0 && (len(pIP) > 0 || len(pNetwork) > 0) {
+		pAnd = " && "
+	}
+
+	if len(pIP) > 0 && len(pNetwork) > 0 {
+		patterns = fmt.Sprintf(" (%v || %v)%v%v", pIP, pNetwork, pAnd, pPort)
+	} else {
+		patterns = fmt.Sprintf("%v%v%v%v", pIP, pNetwork, pAnd, pPort)
+	}
+
+	return fmt.Sprintf("tcpdump -r $path_file_name '%v%v%v || (vlan && %v)' -w %v", typeArea, pProto, patterns, patterns, filtrationParameters.FileStorageDirectory)
 }
 
-/*
-tcpdump -r 1496732553_2017_06_06____10_02_33_992898.tdp
-'((host 37.147.110.67 || 31.13.21.122) || ((src 42.118.143.87 || 2.1.1.2) && (dst 80.245.123.60 || 3.1.1.2)))
-|| (vlan && ((host 37.147.110.67 || 31.13.21.122) && (src 42.118.143.87 || 2.1.1.2) && (dst 80.245.123.60 || 3.1.1.2)))'
+func getFileParameters(filePath string) (int64, string, error) {
+	fd, err := os.Open(filePath)
+	if err != nil {
+		return 0, "", err
+	}
+	defer fd.Close()
 
+	fileInfo, err := fd.Stat()
+	if err != nil {
+		return 0, "", err
+	}
 
-tcpdump -r 1496732553_2017_06_06____10_02_33_992898.tdp
-'((host 37.147.110.67 || 31.13.21.122) && (src 42.118.143.87 || 2.1.1.2) && (dst 80.245.123.60 || 3.1.1.2))
-&& ((port 80 || 45) && (dport 80)) || (vlan && ((host 37.147.110.67 || 31.13.21.122)
-&& (src 42.118.143.87 || 2.1.1.2) && (dst 80.245.123.60 || 3.1.1.2))))'
-*/
+	h := md5.New()
+	if _, err := io.Copy(h, fd); err != nil {
+		return 0, "", err
+	}
 
-//формируем шаблон для фильтрации
-/*func patternBashScript(ppf PatternParametersFiltering, mtf *configure.MessageTypeFilter) string {
+	return fileInfo.Size(), hex.EncodeToString(h.Sum(nil)), nil
+}
+
+//выполнение фильтрации
+func executeFiltration(done chan<- chanDone, ft *configure.FiltrationTasks, sma *configure.StoreMemoryApplication, clientID, taskID, dirName, patternScript string) {
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
-	getPatternNetwork := func(network string) (string, error) {
-		networkTmp := strings.Split(network, "/")
-		if len(networkTmp) < 2 {
-			return "", errors.New("incorrect network mask value")
-		}
+	var statusProcessedFile bool
 
-		maskInt, err := strconv.ParseInt(networkTmp[1], 10, 64)
-		if err != nil {
-			return "", err
-		}
+DONE:
+	for _, file := range ft.ListFiles[dirName] {
+		select {
+		//выполнится если в канал придет запрос на останов фильтрации
+		case <-ft.ChanStopFiltration:
+			break DONE
 
-		if maskInt < 0 || maskInt > 32 {
-			return "", errors.New("the value of 'mask' should be in the range from 0 to 32")
-		}
+		default:
+			pathAndFileName := path.Join(dirName, file)
 
-		ipv4Addr := net.ParseIP(networkTmp[0])
-		ipv4Mask := net.CIDRMask(24, 32)
-		newNetwork := ipv4Addr.Mask(ipv4Mask).String()
+			patternScript = strings.Replace(patternScript, "$path_file_name", pathAndFileName, -1)
 
-		return newNetwork + "/" + networkTmp[1], nil
-	}
+			if err := exec.Command("sh", "-c", patternScript).Run(); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprintf("%v\t%v, file: %v\n", err, dirName, file))
 
-	getIPAddressString := func(ipaddreses []string) (searchHosts string) {
-		if len(ipaddreses) != 0 {
-			if len(ipaddreses) == 1 {
-				searchHosts = "'(host " + ipaddreses[0] + " || (vlan && host " + ipaddreses[0] + "))'"
-			} else {
-				var hosts string
-				for key, ip := range ipaddreses {
-					if key == 0 {
-						hosts += "(host " + ip
-					} else if key == (len(ipaddreses) - 1) {
-						hosts += " || " + ip + ")"
-					} else {
-						hosts += " || " + ip
-					}
-				}
-
-				searchHosts = "'" + hosts + " || (vlan && " + hosts + ")'"
-			}
-		}
-		return searchHosts
-	}
-
-	getNetworksString := func(networks []string) (searchNetworks string) {
-		if len(networks) != 0 {
-			if len(networks) == 1 {
-				networkPattern, err := getPatternNetwork(networks[0])
-				if err != nil {
+				//если ошибка увеличиваем количество обработанных с ошибкой файлов
+				if _, err := sma.IncrementNumNotFoundIndexFiles(clientID, taskID); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
 
-				searchNetworks += "'(net " + networkPattern + " || (vlan && net " + networkPattern + "))'"
+				statusProcessedFile = false
 			} else {
-				var network string
-				for key, net := range networks {
-					networkPattern, err := getPatternNetwork(net)
-					if err != nil {
-						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-					}
+				statusProcessedFile = true
+			}
 
-					if key == 0 {
-						network += "(net " + networkPattern
-					} else if key == (len(networks) - 1) {
-						network += " || " + networkPattern + ")"
-					} else {
-						network += " || " + networkPattern
-					}
+			//увеличиваем кол-во обработанных файлов
+			if _, err := sma.IncrementNumProcessedFiles(clientID, taskID); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprintf("%v\t%v, file: %v\n", err, dirName, file))
+			}
+
+			//если файл имеет размер больше 24 байта прибавляем его к найденным и складываем общий размер найденных файлов
+			fileSize, fileHex, err := getFileParameters(pathAndFileName)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+			if fileSize > int64(24) {
+				if _, err := sma.IncrementNumFoundFiles(clientID, taskID, fileSize); err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
-				searchNetworks = "'" + network + " || (vlan && " + network + ")'"
+			}
+
+			//формируем канал для передачи информации о фильтрации
+			prf.AccessClientsConfigure.ChanInfoFilterTask <- configure.ChanInfoFilterTask{
+				TaskIndex:           ppf.TaskIndex,
+				RemoteIP:            prf.RemoteIP,
+				TypeProcessing:      "execute",
+				DirectoryName:       ppf.DirectoryName,
+				ProcessingFileName:  file,
+				CountFilesFound:     countFiles,
+				CountFoundFilesSize: fullSizeFiles,
+				StatusProcessedFile: statusProcessedFile,
 			}
 		}
-		return searchNetworks
 	}
 
-	bind := " "
-	//формируем строку для поиска хостов
-	searchHosts := getIPAddressString(mtf.Info.Settings.IPAddress)
-
-	//формируем строку для поиска сетей
-	searchNetwork := getNetworksString(mtf.Info.Settings.Network)
-
-	if len(mtf.Info.Settings.IPAddress) > 0 && len(mtf.Info.Settings.Network) > 0 {
-		bind = " or "
+	done <- chanDone{
+		ClientID:       clientID,
+		TaskID:         taskID,
+		DirectoryName:  dirName,
+		TypeProcessing: "complete",
 	}
+}
 
-	listTypeArea := map[int]string{
-		1: " ",
-		2: " '(pppoes && ip)' and ",
-	}
-
-	pattern := " tcpdump -r " + ppf.DirectoryName + "/$files"
-	pattern += listTypeArea[ppf.TypeAreaNetwork] + searchHosts + bind + searchNetwork
-	pattern += " -w " + ppf.PathStorageFilterFiles + "/$files;"
-
-	return pattern
-}*/
-
-//выполнение фильтрации
-func executeFiltration(ft *configure.FiltrationTasks, patternScript string) {
+//завершение выполнения фильтрации
+func filteringComplete(done chan chanDone) {
 
 }

@@ -22,11 +22,13 @@ type StoreMemoryApplication struct {
 	clientSettings      map[string]ClientSettings
 	clientTasks         map[string]TasksList
 	clientLink          map[string]WssConnection
+	chanReqSettingsTask chan chanReqSettingsTask
 }
 
 //ApplicationSettings параметры приложения
 type ApplicationSettings struct {
-	StorageFolders []string
+	TypeAreaNetwork string
+	StorageFolders  []string
 }
 
 //ClientSettings настройки индивидуальные для клиента
@@ -62,6 +64,8 @@ type WssConnection struct {
 // CountIndexFiles - количество найденных по индексам файлов (или просто найденных файлов, если не используется индекс)
 // SizeIndexFiles - общий размер всех найденных по индексам файлов
 // CountProcessedFiles - количество обработанных файлов
+// CountFoundFiles - количество найденных в результате фильтрации файлов
+// CommonSizeFoundFiles - общий размер всех найденных файлов
 // CountNotFoundIndexFiles - количество файлов, из перечня ListFiles, которые не были найдены по указанным путям
 // FileStorageDirectory - директория для хранения файлов
 // ChanStopFiltration - канал информирующий об остановке фильтрации
@@ -73,6 +77,8 @@ type FiltrationTasks struct {
 	UseIndex                   bool
 	CountIndexFiles            int
 	SizeIndexFiles             int64
+	CountFoundFiles            int
+	CommonSizeFoundFiles       int64
 	CountProcessedFiles        int
 	CountNotFoundIndexFiles    int
 	FileStorageDirectory       string
@@ -83,6 +89,17 @@ type FiltrationTasks struct {
 //DownloadTasks описание параметров задач по выгрузке файлов
 type DownloadTasks struct{}
 
+type chanReqSettingsTask struct {
+	ClientID, TaskID, TaskType, ActionType string
+	ChanRespons                            chan chanResSettingsTask
+	Parameters                             interface{}
+}
+
+type chanResSettingsTask struct {
+	Error      error
+	Parameters interface{}
+}
+
 //NewRepositorySMA создание нового репозитория
 func NewRepositorySMA() *StoreMemoryApplication {
 	sma := StoreMemoryApplication{}
@@ -91,6 +108,63 @@ func NewRepositorySMA() *StoreMemoryApplication {
 	sma.clientSettings = map[string]ClientSettings{}
 	sma.clientTasks = map[string]TasksList{}
 	sma.clientLink = map[string]WssConnection{}
+
+	sma.chanReqSettingsTask = make(chan chanReqSettingsTask)
+
+	/*
+	   IncrementNumProcessedFiles
+	   IncrementNumNotFoundIndexFiles
+	   IncrementNumFoundFiles
+	*/
+
+	go func() {
+		for msg := range sma.chanReqSettingsTask {
+			switch msg.TaskType {
+			case "filtration":
+				switch msg.ActionType {
+				case "get task information":
+					taskInfo := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID]
+
+					msg.ChanRespons <- chanResSettingsTask{
+						Parameters: taskInfo,
+					}
+
+				case "inc num proc files":
+					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountProcessedFiles + 1
+					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountProcessedFiles = num
+
+					msg.ChanRespons <- chanResSettingsTask{
+						Parameters: num,
+					}
+
+				case "inc num not proc files":
+
+					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountNotFoundIndexFiles + 1
+					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountNotFoundIndexFiles = num
+
+					msg.ChanRespons <- chanResSettingsTask{
+						Parameters: num,
+					}
+
+				case "inc num found files":
+					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountFoundFiles + 1
+					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountFoundFiles = num
+
+					if fileSize, ok := msg.Parameters.(int64); ok {
+						size := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CommonSizeFoundFiles + fileSize
+						sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CommonSizeFoundFiles = size
+					}
+
+					msg.ChanRespons <- chanResSettingsTask{
+						Parameters: num,
+					}
+				}
+
+			case "download":
+
+			}
+		}
+	}()
 
 	return &sma
 }
@@ -251,7 +325,22 @@ func (sma *StoreMemoryApplication) GetInfoTaskFiltration(clientID, taskID string
 		return nil, err
 	}
 
-	return sma.clientTasks[clientID].filtrationTasks[taskID], nil
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "filtration",
+		ActionType:  "get task information",
+		ChanRespons: chanRes,
+	}
+
+	res := <-chanRes
+	if info, ok := res.Parameters.(*FiltrationTasks); ok {
+		return info, res.Error
+	}
+
+	return nil, res.Error
 }
 
 //SetInfoTaskFiltration устанавливает новое значение некоторых параметров
@@ -293,28 +382,77 @@ func (sma *StoreMemoryApplication) SetInfoTaskFiltration(clientID, taskID string
 	return nil
 }
 
-//IncrementNumProcessedFiles увеличение количества обработанных файлов
+//IncrementNumProcessedFiles увеличивает кол-во обработанных файлов
 func (sma *StoreMemoryApplication) IncrementNumProcessedFiles(clientID, taskID string) (int, error) {
 	if err := sma.checkTaskExist(clientID, taskID); err != nil {
 		return 0, err
 	}
 
-	num := sma.clientTasks[clientID].filtrationTasks[taskID].CountProcessedFiles + 1
-	sma.clientTasks[clientID].filtrationTasks[taskID].CountProcessedFiles = num
+	chanRes := make(chan chanResSettingsTask)
 
-	return num, nil
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "filtration",
+		ActionType:  "inc num proc files",
+		ChanRespons: chanRes,
+	}
+
+	res := <-chanRes
+	if num, ok := res.Parameters.(int); ok {
+		return num, res.Error
+	}
+
+	return 0, res.Error
 }
 
-//IncrementNumNotFoundIndexFiles увеличение количества не найденных, в результате поиска, файлов
+//IncrementNumNotFoundIndexFiles увеличивает кол-во не обработанных файлов
 func (sma *StoreMemoryApplication) IncrementNumNotFoundIndexFiles(clientID, taskID string) (int, error) {
 	if err := sma.checkTaskExist(clientID, taskID); err != nil {
 		return 0, err
 	}
 
-	num := sma.clientTasks[clientID].filtrationTasks[taskID].CountNotFoundIndexFiles + 1
-	sma.clientTasks[clientID].filtrationTasks[taskID].CountNotFoundIndexFiles = num
+	chanRes := make(chan chanResSettingsTask)
 
-	return num, nil
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "filtration",
+		ActionType:  "inc num found files",
+		ChanRespons: chanRes,
+	}
+
+	res := <-chanRes
+	if num, ok := res.Parameters.(int); ok {
+		return num, res.Error
+	}
+
+	return 0, res.Error
+}
+
+//IncrementNumFoundFiles увеличивает кол-во найденных, в результате фильтрации, файлов и их общий размер
+func (sma *StoreMemoryApplication) IncrementNumFoundFiles(clientID, taskID string, fileSize int64) (int, error) {
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return 0, err
+	}
+
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "filtration",
+		ActionType:  "inc num found files",
+		ChanRespons: chanRes,
+		Parameters:  fileSize,
+	}
+
+	res := <-chanRes
+	if num, ok := res.Parameters.(int); ok {
+		return num, res.Error
+	}
+
+	return 0, res.Error
 }
 
 //AddFileToListFilesFiltrationTask добавить в основной список часть списка найденных, в том числе и по индексам, файлов
