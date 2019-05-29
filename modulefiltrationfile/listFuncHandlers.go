@@ -3,10 +3,12 @@ package modulefiltrationfile
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"os"
 	"path"
@@ -14,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"ISEMS-NIH_slave/common"
 	"ISEMS-NIH_slave/configure"
 	"ISEMS-NIH_slave/savemessageapp"
 )
@@ -387,46 +390,138 @@ func getFileParameters(filePath string) (int64, string, error) {
 	return fileInfo.Size(), hex.EncodeToString(h.Sum(nil)), nil
 }
 
-//sendMessageFiltrationStop передача сообщений о завершении фильтрации
+//GetListFoundFiles получаем список файлов полученных в результате фильтрации
+func GetListFoundFiles(directoryResultFilter string) (map[string]*configure.InputFilesInformation, int64, error) {
+	files, err := ioutil.ReadDir(directoryResultFilter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var sizeFiles int64
+	newList := map[string]*configure.InputFilesInformation{}
+
+	for _, file := range files {
+		if (file.Name() != "README.xml") && (file.Size() > 24) {
+			checkSum, _ := common.GetChecksumFile(directoryResultFilter, file.Name())
+
+			newList[file.Name()] = &configure.InputFilesInformation{
+				Size: file.Size(),
+				Hex:  checkSum,
+			}
+
+			sizeFiles += file.Size()
+		}
+	}
+
+	return newList, sizeFiles, nil
+}
+
+func getCountPartsMessage(maxFiles, sizeChunk int) int {
+	newMaxFiles := float64(maxFiles)
+	newCountChunk := float64(sizeChunk)
+	x := math.Floor(newMaxFiles / newCountChunk)
+	y := newMaxFiles / newCountChunk
+
+	if (y - x) != 0 {
+		x++
+	}
+
+	return int(x)
+}
+
+//SendMessageFiltrationComplete передача сообщений о завершении фильтрации
 // при этом передается СПИСОК ВСЕХ найденных в результате фильтрации файлов
-func sendMessageFiltrationStop(
+func SendMessageFiltrationComplete(
 	cwtResText chan<- configure.MsgWsTransmission,
 	sma *configure.StoreMemoryApplication,
-	clientID, taskID string) {
-	/*
-		msgRes := configure.MsgTypeFiltration{
-			MsgType: "filtration",
-			Info: configure.DetailInfoMsgFiltration{
-				TaskID:                          mp.TaskID,
-				TaskStatus:                      "execute",
-				NumberFilesMeetFilterParameters: taskInfo.NumberFilesMeetFilterParameters,
-				NumberProcessedFiles:            taskInfo.NumberProcessedFiles,
-				NumberFilesFoundResultFiltering: taskInfo.NumberFilesFoundResultFiltering,
-				NumberDirectoryFiltartion:       len(taskInfo.ListFiles),
-				NumberErrorProcessedFiles:       taskInfo.NumberErrorProcessedFiles,
-				SizeFilesMeetFilterParameters:   taskInfo.SizeFilesMeetFilterParameters,
-				SizeFilesFoundResultFiltering:   taskInfo.SizeFilesFoundResultFiltering,
-				PathStorageSource:               taskInfo.FileStorageDirectory,
-				FoundFilesInformation: map[string]*configure.InputFilesInformation{
-					file: &configure.InputFilesInformation{
-						Size: fileSize,
-						Hex:  fileHex,
-					},
-				},
-			},
-		}
+	clientID, taskID string) error {
+
+	const sizeChunk = 100
+
+	taskInfo, err := sma.GetInfoTaskFiltration(clientID, taskID)
+	if err != nil {
+		return err
+	}
+
+	//получить список найденных, в результате фильтрации, файлов
+	listFiles, sizeFiles, err := GetListFoundFiles(taskInfo.FileStorageDirectory)
+	if err != nil {
+		return err
+	}
+
+	numFilesFound := len(listFiles)
+
+	msgRes := configure.MsgTypeFiltration{
+		MsgType: "filtration",
+		Info: configure.DetailInfoMsgFiltration{
+			TaskID:                          taskID,
+			TaskStatus:                      taskInfo.Status,
+			NumberFilesMeetFilterParameters: taskInfo.NumberFilesMeetFilterParameters,
+			NumberProcessedFiles:            taskInfo.NumberProcessedFiles,
+			NumberFilesFoundResultFiltering: numFilesFound,
+			NumberDirectoryFiltartion:       len(taskInfo.ListFiles),
+			NumberErrorProcessedFiles:       taskInfo.NumberErrorProcessedFiles,
+			SizeFilesMeetFilterParameters:   taskInfo.SizeFilesMeetFilterParameters,
+			SizeFilesFoundResultFiltering:   sizeFiles,
+			PathStorageSource:               taskInfo.FileStorageDirectory,
+		},
+	}
+
+	//если количество найденных файлов 0 или меньше чем константа sizeChunk
+	if (numFilesFound == 0) || (numFilesFound < sizeChunk) {
+		msgRes.Info.FoundFilesInformation = listFiles
 
 		resJSON, err := json.Marshal(msgRes)
 		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			break DONE
+			return err
 		}
 
-		//сообщение о ходе процесса фильтрации
-		mp.ChanRes <- configure.MsgWsTransmission{
-			ClientID: mp.ClientID,
+		//сообщение о завершении процесса фильтрации
+		cwtResText <- configure.MsgWsTransmission{
+			ClientID: clientID,
 			Data:     &resJSON,
 		}
+
+		return nil
+	}
+
+	/* отправляем множество частей одного и того же сообщения */
+
+	//получаем количество частей сообщений
+	countPartsMessage := getCountPartsMessage(numFilesFound, sizeChunk)
+
+	numberMessageParts := [2]int{0, countPartsMessage}
+
+	//отправляются последующие части сообщений содержащие списки имен файлов
+	for i := 1; i <= countPartsMessage; i++ {
+		chunkListFiles := common.GetChunkListFilesFound(listFiles, i, countPartsMessage, sizeChunk)
+
+		numberMessageParts[0] = i
+		msgRes.Info.NumberMessagesParts = numberMessageParts
+		msgRes.Info.FoundFilesInformation = chunkListFiles
+
+		resJSON, err := json.Marshal(msgRes)
+		if err != nil {
+			return err
+		}
+
+		//сообщение о завершении процесса фильтрации
+		cwtResText <- configure.MsgWsTransmission{
+			ClientID: clientID,
+			Data:     &resJSON,
+		}
+	}
+
+	/*
+	   	!!! ВНИМАНИЕ !!!
+	   Выполнить следующее:
+	   1. ОБЯЗАТЕЛЬНО протестировать функцию "GetChunkListFilesFound" она не проверялась
+	   2. Сделать запуск функции SendMessageFiltrationComplete при установлении соединения (возможно повторного). Если есть задачи
+	   по фильтрации которые не были удалены. Это функция RouteWssConnect, раздел "PING"
+	   3. Сделать удаление задачи по фильтрации если она была выполненна и вся информаия о ней была успешно передана. Это достигается
+	   за счет ответа от ISEMS-NIH_master MsgType: "filtration", Info.Command: "confirm complite"
+
 	*/
+
+	return nil
 }

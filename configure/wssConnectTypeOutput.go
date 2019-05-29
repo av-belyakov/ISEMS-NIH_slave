@@ -17,9 +17,11 @@ type MsgTypeFiltration struct {
 // NumberProcessedFiles - кол-во обработанных файлов
 // NumberFilesFoundResultFiltering - кол-во найденных, в результате фильтрации, файлов
 // NumberDirectoryFiltartion - кол-во директорий по которым выполняется фильтрация
+// NumberErrorProcessedFiles - кол-во не обработанных файлов или файлов обработанных с ошибками
 // SizeFilesMeetFilterParameters - общий размер файлов (в байтах) удовлетворяющих параметрам фильтрации
 // SizeFilesFoundResultFiltering - общий размер найденных, в результате фильтрации, файлов (в байтах)
 // PathStorageSource — путь до директории в которой сохраняются файлы при
+// NumberMessagesParts - порядковый номер и общее кол-во сообщений (используется ТОЛЬКО для сообщений со статусом задачи 'stop' или 'complete')
 // FoundFilesInformation - информация о файлах, ключ - имя файла
 type DetailInfoMsgFiltration struct {
 	TaskID                          string                            `json:"tid"`
@@ -28,9 +30,11 @@ type DetailInfoMsgFiltration struct {
 	NumberProcessedFiles            int                               `json:"npf"`
 	NumberFilesFoundResultFiltering int                               `json:"nffrf"`
 	NumberDirectoryFiltartion       int                               `json:"ndf"`
+	NumberErrorProcessedFiles       int                               `json:"nepf"`
 	SizeFilesMeetFilterParameters   int64                             `json:"sfmfp"`
 	SizeFilesFoundResultFiltering   int64                             `json:"sffrf"`
 	PathStorageSource               string                            `json:"pss"`
+	NumberMessagesParts             [2]int                            `json:"nmp"`
 	FoundFilesInformation           map[string]*InputFilesInformation `json:"ffi"`
 }
 
@@ -38,7 +42,7 @@ type DetailInfoMsgFiltration struct {
 // Size - размер файла
 // Hex - хеш сумма файла
 type InputFilesInformation struct {
-	Size uint64 `json:"s"`
+	Size int64  `json:"s"`
 	Hex  string `json:"h"`
 }
 

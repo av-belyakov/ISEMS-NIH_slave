@@ -121,22 +121,26 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 				fmt.Println(msgText.ClientID)
 
 				c, err := getConnLink(msgText)
+
 				if err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 					break
 				}
+
 				if err := c.SendWsMessage(1, *msgText.Data); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
 
 			case msgBinary := <-cwtResBinary:
 				c, err := getConnLink(msgBinary)
+
 				if err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 					break
 				}
+
 				if err := c.SendWsMessage(2, *msgBinary.Data); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}

@@ -5,8 +5,12 @@ import (
 	"encoding/hex"
 	"io"
 	"math"
+	"os"
+	"path"
 	"strconv"
 	"time"
+
+	"ISEMS-NIH_slave/configure"
 )
 
 //GetUniqIDFormatMD5 генерирует уникальный идентификатор в формате md5
@@ -85,5 +89,58 @@ func GetChunkListFiles(numPart, sizeChunk, countParts int, listFilesFilter map[s
 		}
 
 	}
+
 	return lff
+}
+
+//GetChunkListFilesFound делит отображение с информацией о файлах на отдельные части
+func GetChunkListFilesFound(lf map[string]*configure.InputFilesInformation, numPart, countParts, sizeChunk int) map[string]*configure.InputFilesInformation {
+	lnf := make([]string, 0, len(lf))
+	for fname := range lf {
+		lnf = append(lnf, fname)
+	}
+
+	chunk := make([]string, 0, len(lnf))
+	listFiles := map[string]*configure.InputFilesInformation{}
+
+	if numPart == 1 {
+		if len(lnf) < sizeChunk {
+			chunk = lnf[:]
+		} else {
+			chunk = lnf[:sizeChunk]
+		}
+	} else {
+
+		num := sizeChunk * (numPart - 1)
+		numEnd := num + sizeChunk
+
+		if (numPart == countParts) && (num < len(lf)) {
+			chunk = lnf[num:]
+		}
+		if (numPart < countParts) && (numEnd < len(lf)) {
+			chunk = lnf[num:numEnd]
+		}
+	}
+
+	for _, fname := range chunk {
+		listFiles[fname] = lf[fname]
+	}
+
+	return listFiles
+}
+
+//GetChecksumFile возвращает контрольную сумму файла
+func GetChecksumFile(pathFile, nameFile string) (string, error) {
+	f, err := os.Open(path.Join(pathFile, nameFile))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
 }

@@ -60,30 +60,32 @@ type WssConnection struct {
 // DateTimeStart, DateTimeEnd - временной интервал для фильтрации
 // Protocol - тип протокола транспортного уровня (TCP, UDP)
 // Filters - параметры фильтрации
+// Status - состояние задачи
 // UseIndex - используется ли индекс
-// CountIndexFiles - количество найденных по индексам файлов (или просто найденных файлов, если не используется индекс)
-// SizeIndexFiles - общий размер всех найденных по индексам файлов
-// CountProcessedFiles - количество обработанных файлов
-// CountFoundFiles - количество найденных в результате фильтрации файлов
-// CommonSizeFoundFiles - общий размер всех найденных файлов
-// CountNotFoundIndexFiles - количество файлов, из перечня ListFiles, которые не были найдены по указанным путям
+// NumberFilesMeetFilterParameters - количество найденных по индексам файлов (или просто найденных файлов, если не используется индекс)
+// NumberProcessedFiles - количество обработанных файлов
+// NumberFilesFoundResultFiltering - количество найденных в результате фильтрации файлов
+// NumberErrorProcessedFiles - количество файлов не обработанных при обработке которых возникли ошибки
+// SizeFilesMeetFilterParameters - общий размер всех найденных по индексам файлов
+// SizeFilesFoundResultFiltering - общий размер всех найденных файлов
 // FileStorageDirectory - директория для хранения файлов
 // ChanStopFiltration - канал информирующий об остановке фильтрации
 // ListFiles - список файлов найденных в результате поиска по индексам
 type FiltrationTasks struct {
-	DateTimeStart, DateTimeEnd int64
-	Protocol                   string
-	Filters                    FiltrationControlParametersNetworkFilters
-	UseIndex                   bool
-	CountIndexFiles            int
-	SizeIndexFiles             int64
-	CountFoundFiles            int
-	CommonSizeFoundFiles       int64
-	CountProcessedFiles        int
-	CountNotFoundIndexFiles    int
-	FileStorageDirectory       string
-	ChanStopFiltration         chan struct{}
-	ListFiles                  map[string][]string
+	DateTimeStart, DateTimeEnd      int64
+	Protocol                        string
+	Filters                         FiltrationControlParametersNetworkFilters
+	Status                          string
+	UseIndex                        bool
+	NumberFilesMeetFilterParameters int
+	NumberFilesFoundResultFiltering int
+	NumberProcessedFiles            int
+	NumberErrorProcessedFiles       int
+	SizeFilesMeetFilterParameters   int64
+	SizeFilesFoundResultFiltering   int64
+	FileStorageDirectory            string
+	ChanStopFiltration              chan struct{}
+	ListFiles                       map[string][]string
 }
 
 //DownloadTasks описание параметров задач по выгрузке файлов
@@ -111,15 +113,28 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 	sma.chanReqSettingsTask = make(chan chanReqSettingsTask)
 
-	/*
-	   IncrementNumProcessedFiles
-	   IncrementNumNotFoundIndexFiles
-	   IncrementNumFoundFiles
-	*/
-
 	go func() {
 		for msg := range sma.chanReqSettingsTask {
 			switch msg.TaskType {
+			case "check task exist":
+				if _, ok := sma.clientTasks[msg.ClientID]; !ok {
+					msg.ChanRespons <- chanResSettingsTask{
+						Error: fmt.Errorf("tasks for client with ID %v not found", msg.ClientID),
+					}
+
+					return
+				}
+
+				if _, ok := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID]; !ok {
+					msg.ChanRespons <- chanResSettingsTask{
+						Error: fmt.Errorf("tasks with ID %v not found", msg.TaskID),
+					}
+
+					return
+				}
+
+				msg.ChanRespons <- chanResSettingsTask{}
+
 			case "filtration":
 				switch msg.ActionType {
 				case "get task information":
@@ -130,8 +145,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					}
 
 				case "inc num proc files":
-					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountProcessedFiles + 1
-					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountProcessedFiles = num
+					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberProcessedFiles + 1
+					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberProcessedFiles = num
 
 					msg.ChanRespons <- chanResSettingsTask{
 						Parameters: num,
@@ -139,25 +154,29 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 				case "inc num not proc files":
 
-					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountNotFoundIndexFiles + 1
-					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountNotFoundIndexFiles = num
+					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberErrorProcessedFiles + 1
+					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberErrorProcessedFiles = num
 
 					msg.ChanRespons <- chanResSettingsTask{
 						Parameters: num,
 					}
 
 				case "inc num found files":
-					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountFoundFiles + 1
-					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CountFoundFiles = num
+					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberFilesFoundResultFiltering + 1
+					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberFilesFoundResultFiltering = num
 
 					if fileSize, ok := msg.Parameters.(int64); ok {
-						size := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CommonSizeFoundFiles + fileSize
-						sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].CommonSizeFoundFiles = size
+						size := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].SizeFilesFoundResultFiltering + fileSize
+						sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].SizeFilesFoundResultFiltering = size
 					}
 
 					msg.ChanRespons <- chanResSettingsTask{
 						Parameters: num,
 					}
+
+				case "delete task":
+					delete(sma.clientTasks[msg.ClientID].filtrationTasks, msg.TaskID)
+
 				}
 
 			case "download":
@@ -171,7 +190,20 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 //checkTaskExist проверяет существование задачи
 func (sma *StoreMemoryApplication) checkTaskExist(clientID, taskID string) error {
-	if _, ok := sma.clientTasks[clientID]; !ok {
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "check task exist",
+		ChanRespons: chanRes,
+	}
+
+	res := <-chanRes
+
+	return res.Error
+
+	/*if _, ok := sma.clientTasks[clientID]; !ok {
 		return fmt.Errorf("tasks for client with ID %v not found", clientID)
 	}
 
@@ -179,7 +211,7 @@ func (sma *StoreMemoryApplication) checkTaskExist(clientID, taskID string) error
 		return fmt.Errorf("tasks with ID %v not found", taskID)
 	}
 
-	return nil
+	return nil*/
 }
 
 /* параметры приложения */
@@ -356,22 +388,27 @@ func (sma *StoreMemoryApplication) SetInfoTaskFiltration(clientID, taskID string
 				sma.clientTasks[clientID].filtrationTasks[taskID].FileStorageDirectory = fsd
 			}
 
-		case "CountIndexFiles", "CountProcessedFiles", "CountNotFoundIndexFiles":
+		case "NumberFilesMeetFilterParameters", "NumberProcessedFiles", "NumberErrorProcessedFiles":
 			if count, ok := v.(int); ok {
-				if k == "CountIndexFiles" {
-					sma.clientTasks[clientID].filtrationTasks[taskID].CountIndexFiles = count
+				if k == "NumberFilesMeetFilterParameters" {
+					sma.clientTasks[clientID].filtrationTasks[taskID].NumberFilesMeetFilterParameters = count
 				}
-				if k == "CountProcessedFiles" {
-					sma.clientTasks[clientID].filtrationTasks[taskID].CountProcessedFiles = count
+				if k == "NumberProcessedFiles" {
+					sma.clientTasks[clientID].filtrationTasks[taskID].NumberProcessedFiles = count
 				}
-				if k == "CountNotFoundIndexFiles" {
-					sma.clientTasks[clientID].filtrationTasks[taskID].CountNotFoundIndexFiles = count
+				if k == "NumberErrorProcessedFiles" {
+					sma.clientTasks[clientID].filtrationTasks[taskID].NumberErrorProcessedFiles = count
 				}
 			}
 
-		case "SizeIndexFiles":
+		case "SizeFilesMeetFilterParameters":
 			if size, ok := v.(int64); ok {
-				sma.clientTasks[clientID].filtrationTasks[taskID].SizeIndexFiles = size
+				sma.clientTasks[clientID].filtrationTasks[taskID].SizeFilesMeetFilterParameters = size
+			}
+
+		case "Status":
+			if status, ok := v.(string); ok {
+				sma.clientTasks[clientID].filtrationTasks[taskID].Status = status
 			}
 
 		default:
@@ -457,14 +494,14 @@ func (sma *StoreMemoryApplication) IncrementNumFoundFiles(clientID, taskID strin
 
 //AddFileToListFilesFiltrationTask добавить в основной список часть списка найденных, в том числе и по индексам, файлов
 func (sma *StoreMemoryApplication) AddFileToListFilesFiltrationTask(clientID, taskID string, fl map[string][]string) (int, error) {
-	var countIndexFiles int
+	var numberFilesMeetFilterParameters int
 
 	if _, ok := sma.clientTasks[clientID]; !ok {
-		return countIndexFiles, fmt.Errorf("tasks for client with ID %v not found", clientID)
+		return numberFilesMeetFilterParameters, fmt.Errorf("tasks for client with ID %v not found", clientID)
 	}
 
 	if _, ok := sma.clientTasks[clientID].filtrationTasks[taskID]; !ok {
-		return countIndexFiles, fmt.Errorf("tasks with ID %v not found", taskID)
+		return numberFilesMeetFilterParameters, fmt.Errorf("tasks with ID %v not found", taskID)
 	}
 
 	list := sma.clientTasks[clientID].filtrationTasks[taskID].ListFiles
@@ -479,21 +516,31 @@ func (sma *StoreMemoryApplication) AddFileToListFilesFiltrationTask(clientID, ta
 
 		list[k] = append(list[k], v...)
 
-		countIndexFiles += len(v)
+		numberFilesMeetFilterParameters += len(v)
 	}
 
 	sma.clientTasks[clientID].filtrationTasks[taskID].ListFiles = list
 
-	return countIndexFiles, nil
+	return numberFilesMeetFilterParameters, nil
 }
 
 //DelTaskFiltration удаление выбранной задачи
-func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) {
+func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) error {
 	if err := sma.checkTaskExist(clientID, taskID); err != nil {
-		return
+		return err
 	}
 
-	delete(sma.clientTasks[clientID].filtrationTasks, taskID)
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "filtration",
+		ActionType:  "delete task",
+		ChanRespons: chanRes,
+	}
+
+	return nil
 }
 
 //AddTaskDownload добавить задачу

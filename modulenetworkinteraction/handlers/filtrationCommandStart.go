@@ -8,7 +8,9 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 
 	"ISEMS-NIH_slave/common"
 	"ISEMS-NIH_slave/configure"
@@ -87,16 +89,45 @@ func StartFiltration(
 			return
 		}
 
+		as := sma.GetApplicationSetting()
+
+		//проверяем наличие директорий переданных с сообщением типа 'Ping'
+		newStorageFolders, err := checkExistDirectory(as.StorageFolders)
+		if err != nil {
+			errMsg.Info.ErrorName = "invalid storage folders"
+			errMsg.Info.ErrorDescription = "не было задано ни одной директории для фильтрации сетевого трафика или директории были заданы не верно"
+
+			msgJSON, err := json.Marshal(errMsg)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+				return
+			}
+
+			cwtResText <- configure.MsgWsTransmission{
+				ClientID: clientID,
+				Data:     &msgJSON,
+			}
+
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		//изменяем список директорий для фильтрации на реально существующие
+		sma.SetApplicationSetting(configure.ApplicationSettings{
+			TypeAreaNetwork: as.TypeAreaNetwork,
+			StorageFolders:  newStorageFolders,
+		})
+
 		//и если параметры верны создаем новую задачу
 		sma.AddTaskFiltration(clientID, taskID, &configure.FiltrationTasks{
-			DateTimeStart:      mtfcJSON.Info.Options.DateTime.Start,
-			DateTimeEnd:        mtfcJSON.Info.Options.DateTime.End,
-			Protocol:           mtfcJSON.Info.Options.Protocol,
-			UseIndex:           mtfcJSON.Info.IndexIsFound,
-			CountIndexFiles:    mtfcJSON.Info.CountIndexFiles,
-			Filters:            mtfcJSON.Info.Options.Filters,
-			ChanStopFiltration: make(chan struct{}),
-			ListFiles:          make(map[string][]string),
+			DateTimeStart:                   mtfcJSON.Info.Options.DateTime.Start,
+			DateTimeEnd:                     mtfcJSON.Info.Options.DateTime.End,
+			Protocol:                        mtfcJSON.Info.Options.Protocol,
+			UseIndex:                        mtfcJSON.Info.IndexIsFound,
+			NumberFilesMeetFilterParameters: mtfcJSON.Info.CountIndexFiles,
+			Filters:                         mtfcJSON.Info.Options.Filters,
+			ChanStopFiltration:              make(chan struct{}),
+			ListFiles:                       make(map[string][]string),
 		})
 	}
 
@@ -133,4 +164,29 @@ func StartFiltration(
 	}
 
 	go modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, rootDirStoringFiles)
+}
+
+func checkExistDirectory(lf []string) ([]string, error) {
+	newList := make([]string, 0, len(lf))
+
+	if len(lf) == 0 {
+		return newList, errors.New("was not asked a single directory for network traffic filtering")
+	}
+
+	numDIr := len(lf)
+	for _, d := range lf {
+		if _, err := os.Stat(d); os.IsNotExist(err) {
+			numDIr--
+
+			continue
+		}
+
+		newList = append(newList, d)
+	}
+
+	if numDIr == 0 {
+		return newList, errors.New("invalid directory names are defined for network traffic filtering")
+	}
+
+	return newList, nil
 }

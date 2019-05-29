@@ -86,4 +86,12 @@ func HandlerMessageTypeFiltration(
 		//отправляем запрос на останов задачи по фильтрации файлов
 		task.ChanStopFiltration <- struct{}{}
 	}
+
+	//при получении подтверждения о завершении фильтрации (не важно 'stop' или 'complite') удаляем задачу
+	if mtfcJSON.Info.Command == "confirm complite" {
+		if err := sma.DelTaskFiltration(clientID, mtfcJSON.Info.TaskID); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+	}
+
 }

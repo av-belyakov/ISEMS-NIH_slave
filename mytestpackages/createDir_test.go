@@ -120,10 +120,10 @@ func createFileReadme(sma *configure.StoreMemoryApplication, clientID, taskID st
 		XMLName            xml.Name `xml:"information"`
 		DateTimeCreateTask string   `xml:"date_time_create_task"`
 		FilterSettings
-		UseIndex                bool `xml:"use_index"`
-		CountIndexFiles         int  `xml:"count_index_files"`
-		CountProcessedFiles     int  `xml:"count_processed_files"`
-		CountNotFoundIndexFiles int  `xml:"count_not_found_index_files"`
+		UseIndex                        bool `xml:"use_index"`
+		NumberFilesMeetFilterParameters int  `xml:"number_files_meet_filter_parameters"`
+		NumberProcessedFiles            int  `xml:"number_processed_files"`
+		NumberErrorProcessedFiles       int  `xml:"number_error_processed_files"`
 	}
 
 	task, err := sma.GetInfoTaskFiltration(clientID, taskID)
@@ -135,11 +135,11 @@ func createFileReadme(sma *configure.StoreMemoryApplication, clientID, taskID st
 	dtct := strconv.Itoa(tct.Day()) + " " + tct.Month().String() + " " + strconv.Itoa(tct.Year()) + " " + strconv.Itoa(tct.Hour()) + ":" + strconv.Itoa(tct.Minute())
 
 	i := Information{
-		UseIndex:                task.UseIndex,
-		DateTimeCreateTask:      dtct,
-		CountIndexFiles:         task.CountIndexFiles,
-		CountProcessedFiles:     task.CountProcessedFiles,
-		CountNotFoundIndexFiles: task.CountNotFoundIndexFiles,
+		UseIndex:                        task.UseIndex,
+		DateTimeCreateTask:              dtct,
+		NumberFilesMeetFilterParameters: task.NumberFilesMeetFilterParameters,
+		NumberProcessedFiles:            task.NumberProcessedFiles,
+		NumberErrorProcessedFiles:       task.NumberErrorProcessedFiles,
 		FilterSettings: FilterSettings{
 			Protocol:      task.Protocol,
 			DateTimeStart: fmt.Sprint(time.Unix(int64(task.DateTimeStart), 0)),
