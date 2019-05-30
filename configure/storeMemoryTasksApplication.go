@@ -202,16 +202,6 @@ func (sma *StoreMemoryApplication) checkTaskExist(clientID, taskID string) error
 	res := <-chanRes
 
 	return res.Error
-
-	/*if _, ok := sma.clientTasks[clientID]; !ok {
-		return fmt.Errorf("tasks for client with ID %v not found", clientID)
-	}
-
-	if _, ok := sma.clientTasks[clientID].filtrationTasks[taskID]; !ok {
-		return fmt.Errorf("tasks with ID %v not found", taskID)
-	}
-
-	return nil*/
 }
 
 /* параметры приложения */

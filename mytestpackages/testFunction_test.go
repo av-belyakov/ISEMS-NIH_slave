@@ -1,11 +1,14 @@
 package mytestpackages_test
 
 import (
-	"ISEMS-NIH_slave/common"
-	"ISEMS-NIH_slave/configure"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"ISEMS-NIH_slave/common"
+	"ISEMS-NIH_slave/configure"
+	"ISEMS-NIH_slave/modulefiltrationfile"
 )
 
 var _ = Describe("Function Test", func() {
@@ -206,6 +209,39 @@ var _ = Describe("Function Test", func() {
 			}
 
 			Expect(num).To(Equal(51))
+		})
+	})
+
+	Context("Тест 9: Тестируем функцию 'GetChunkListFilesFound' которая делит отображение с информацией о файлах на сегменты", func() {
+		listFileInfo, sizeFiles, err := modulefiltrationfile.GetListFoundFiles("/TRAFFIC_FILTER")
+		numFiles := len(listFileInfo)
+		const chunkSize = 10
+
+		fmt.Printf("Num files: %v, common size all files = %v\n", numFiles, sizeFiles)
+
+		numParts := common.CountNumberParts(numFiles, chunkSize)
+		newList := make([]map[string]*configure.InputFilesInformation, 0, numParts)
+
+		It("При получении списка файлов не должно быть ошибок", func() {
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("Получить список файлов ввиде отображения, по количеству равному 53", func() {
+			Expect(numFiles).Should(Equal(53))
+		})
+
+		It("Получить количество частей сообщения равных 6", func() {
+			Expect(numParts).Should(Equal(6))
+		})
+
+		It("Должно получится новое отображение заданной длинны, содержащее информацию о файлах", func() {
+			for i := 1; i <= numParts; i++ {
+				chunkListFiles := common.GetChunkListFilesFound(listFileInfo, i, numParts, chunkSize)
+
+				newList = append(newList, chunkListFiles)
+			}
+
+			Expect(len(newList)).Should(Equal(6))
 		})
 	})
 })

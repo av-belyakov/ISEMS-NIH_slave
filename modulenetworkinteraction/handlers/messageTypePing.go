@@ -3,7 +3,7 @@ package handlers
 /*
 * Обработчик сообщений типа 'Ping'
 *
-* Версия 0.1, дата релиза 03.04.2019
+* Версия 0.2, дата релиза 30.05.2019
 * */
 
 import (
@@ -12,8 +12,14 @@ import (
 	"strings"
 
 	"ISEMS-NIH_slave/configure"
+	"ISEMS-NIH_slave/modulefiltrationfile"
 	"ISEMS-NIH_slave/savemessageapp"
 )
+
+type checkingTaskResult struct {
+	isComplite bool
+	Error      error
+}
 
 //HandlerMessageTypePing обработчик сообщений типа 'Ping'
 func HandlerMessageTypePing(
@@ -73,4 +79,58 @@ func HandlerMessageTypePing(
 		ClientID: clientID,
 		Data:     &resJSON,
 	}
+
+	chanCheckTask := checkingExecuteTaskFiltration(cwtResText, sma, clientID)
+
+	for r := range chanCheckTask {
+		if r.isComplite {
+			break
+		}
+
+		if r.Error != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(r.Error))
+		}
+	}
+}
+
+//checkingExecuteTaskFiltration проверка наличие выполняемых задач и отправка информации по ним
+func checkingExecuteTaskFiltration(
+	cwtResText chan<- configure.MsgWsTransmission,
+	sma *configure.StoreMemoryApplication,
+	clientID string) chan checkingTaskResult {
+
+	c := make(chan checkingTaskResult)
+
+	go func() {
+		//получаем все выполняемые данным пользователем задачи
+		taskList, ok := sma.GetListTasksFiltration(clientID)
+		if !ok {
+			c <- checkingTaskResult{
+				isComplite: true,
+			}
+		}
+
+		if len(taskList) == 0 {
+			c <- checkingTaskResult{
+				isComplite: true,
+			}
+		}
+
+		for taskID, info := range taskList {
+			if info.Status == "stop" || info.Status == "complite" {
+				//отправляем сообщение о завершении фильтрации и передаем СПИСОК ВСЕХ найденных в результате фильтрации файлов
+				if err := modulefiltrationfile.SendMessageFiltrationComplete(cwtResText, sma, clientID, taskID); err != nil {
+					c <- checkingTaskResult{
+						Error: err,
+					}
+				}
+			}
+		}
+
+		c <- checkingTaskResult{
+			isComplite: true,
+		}
+	}()
+
+	return c
 }

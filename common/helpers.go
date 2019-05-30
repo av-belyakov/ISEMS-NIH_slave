@@ -44,6 +44,20 @@ func GetCountPartsMessage(list map[string]int, sizeChunk int) int {
 	return int(x)
 }
 
+//CountNumberParts подсчет количества частей
+func CountNumberParts(num, sizeChunk int) int {
+	n := float64(num)
+	sc := float64(sizeChunk)
+	x := math.Floor(n / sc)
+	y := n / sc
+
+	if (y - x) != 0 {
+		x++
+	}
+
+	return int(x)
+}
+
 //GetChunkListFiles разделяет список файлов на кусочки
 func GetChunkListFiles(numPart, sizeChunk, countParts int, listFilesFilter map[string][]string) map[string][]string {
 	lff := map[string][]string{}

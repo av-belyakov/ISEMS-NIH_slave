@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"net"
 	"os"
 	"path"
@@ -416,19 +415,6 @@ func GetListFoundFiles(directoryResultFilter string) (map[string]*configure.Inpu
 	return newList, sizeFiles, nil
 }
 
-func getCountPartsMessage(maxFiles, sizeChunk int) int {
-	newMaxFiles := float64(maxFiles)
-	newCountChunk := float64(sizeChunk)
-	x := math.Floor(newMaxFiles / newCountChunk)
-	y := newMaxFiles / newCountChunk
-
-	if (y - x) != 0 {
-		x++
-	}
-
-	return int(x)
-}
-
 //SendMessageFiltrationComplete передача сообщений о завершении фильтрации
 // при этом передается СПИСОК ВСЕХ найденных в результате фильтрации файлов
 func SendMessageFiltrationComplete(
@@ -488,13 +474,13 @@ func SendMessageFiltrationComplete(
 	/* отправляем множество частей одного и того же сообщения */
 
 	//получаем количество частей сообщений
-	countPartsMessage := getCountPartsMessage(numFilesFound, sizeChunk)
+	numParts := common.CountNumberParts(numFilesFound, sizeChunk)
 
-	numberMessageParts := [2]int{0, countPartsMessage}
+	numberMessageParts := [2]int{0, numParts}
 
 	//отправляются последующие части сообщений содержащие списки имен файлов
-	for i := 1; i <= countPartsMessage; i++ {
-		chunkListFiles := common.GetChunkListFilesFound(listFiles, i, countPartsMessage, sizeChunk)
+	for i := 1; i <= numParts; i++ {
+		chunkListFiles := common.GetChunkListFilesFound(listFiles, i, numParts, sizeChunk)
 
 		numberMessageParts[0] = i
 		msgRes.Info.NumberMessagesParts = numberMessageParts
@@ -511,17 +497,6 @@ func SendMessageFiltrationComplete(
 			Data:     &resJSON,
 		}
 	}
-
-	/*
-	   	!!! ВНИМАНИЕ !!!
-	   Выполнить следующее:
-	   1. ОБЯЗАТЕЛЬНО протестировать функцию "GetChunkListFilesFound" она не проверялась
-	   2. Сделать запуск функции SendMessageFiltrationComplete при установлении соединения (возможно повторного). Если есть задачи
-	   по фильтрации которые не были удалены. Это функция RouteWssConnect, раздел "PING"
-	   3. Сделать удаление задачи по фильтрации если она была выполненна и вся информаия о ней была успешно передана. Это достигается
-	   за счет ответа от ISEMS-NIH_master MsgType: "filtration", Info.Command: "confirm complite"
-
-	*/
 
 	return nil
 }

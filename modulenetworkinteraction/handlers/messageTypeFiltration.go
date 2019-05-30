@@ -93,5 +93,4 @@ func HandlerMessageTypeFiltration(
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 	}
-
 }
