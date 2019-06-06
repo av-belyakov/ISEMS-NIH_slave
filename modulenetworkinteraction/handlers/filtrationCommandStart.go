@@ -28,17 +28,23 @@ func StartFiltration(
 	saveMessageApp := savemessageapp.New()
 
 	taskID := mtfcJSON.Info.TaskID
-	errMsg := configure.MsgTypeError{
-		MsgType: "error",
-		Info: configure.DetailInfoMsgError{
-			TaskID: taskID,
-		},
+
+	np := common.NotifyParameters{
+		ClientID: clientID,
+		TaskID:   taskID,
+		ChanRes:  cwtResText,
 	}
 
 	if mtfcJSON.Info.NumberMessagesFrom[0] == 0 {
 		cs, ok := sma.GetClientSetting(clientID)
 		if !ok {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprintf("client with ID %v not found", clientID))
+
+			en := "user error"
+			ed := fmt.Sprintf("client with ID %v not found", clientID)
+			if err := np.SendMsgErr(en, ed); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
 
 			return
 		}
@@ -49,19 +55,11 @@ func StartFiltration(
 
 		//проверяем количество выполняемых задач (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
 		if len(tasksList) >= int(mcpf) {
-			errMsg.Info.ErrorName = "max limit task filtration"
-			errMsg.Info.ErrorDescription = "Достигнут лимит максимального количества выполняемых параллельных задач по фильтрации файлов"
+			_ = saveMessageApp.LogMessage("info", "the maximum number of concurrent file filtering tasks has been reached, the task is rejected.")
 
-			msgJSON, err := json.Marshal(errMsg)
-			if err != nil {
+			d := "Достигнут лимит максимального количества выполняемых, параллельных задач по фильтрации файлов. Задача отклонена."
+			if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-				return
-			}
-
-			cwtResText <- configure.MsgWsTransmission{
-				ClientID: clientID,
-				Data:     &msgJSON,
 			}
 
 			return
@@ -69,22 +67,11 @@ func StartFiltration(
 
 		//проверяем параметры фильтрации (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
 		if msg, ok := common.CheckParametersFiltration(&mtfcJSON.Info.Options); !ok {
-			errMsg.Info.ErrorName = "invalid value received"
-			errMsg.Info.ErrorDescription = msg
-
-			msgJSON, err := json.Marshal(errMsg)
-			if err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-				return
-			}
-
-			cwtResText <- configure.MsgWsTransmission{
-				ClientID: clientID,
-				Data:     &msgJSON,
-			}
-
 			_ = saveMessageApp.LogMessage("error", fmt.Sprintf("incorrect parameters for filtering (client ID: %v, task ID: %v)", clientID, taskID))
+
+			if err := np.SendMsgNotify("danger", "filtration control", msg, "start"); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
 
 			return
 		}
@@ -94,22 +81,14 @@ func StartFiltration(
 		//проверяем наличие директорий переданных с сообщением типа 'Ping'
 		newStorageFolders, err := checkExistDirectory(as.StorageFolders)
 		if err != nil {
-			errMsg.Info.ErrorName = "invalid storage folders"
-			errMsg.Info.ErrorDescription = "не было задано ни одной директории для фильтрации сетевого трафика или директории были заданы не верно"
-
-			msgJSON, err := json.Marshal(errMsg)
-			if err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-				return
-			}
-
-			cwtResText <- configure.MsgWsTransmission{
-				ClientID: clientID,
-				Data:     &msgJSON,
-			}
-
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+			d := "Не было задано ни одной директории для фильтрации сетевого трафика или заданные директории не были найденны. Задача отклонена."
+			if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			return
 		}
 
 		//изменяем список директорий для фильтрации на реально существующие
@@ -140,20 +119,33 @@ func StartFiltration(
 	//объединение списков файлов для задачи (возобновляемой или выполняемой на основе индексов)
 	layoutListCompleted, err := common.MergingFileListForTaskFiltration(sma, mtfcJSON, clientID)
 	if err != nil {
-		errMsg.Info.ErrorName = "invalid value received"
-		errMsg.Info.ErrorDescription = "Получено неверное значение, невозможно объединить список файлов, найденных в результате поиска по индексам"
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		msgJSON, err := json.Marshal(errMsg)
+		d := "Получено неверное значение, невозможно объединить список файлов, найденных в результате поиска по индексам. Задача отклонена."
+		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		//отправляем ответ на снятие задачи
+		resJSON, err := json.Marshal(configure.MsgTypeFiltration{
+			MsgType: "filtration",
+			Info: configure.DetailInfoMsgFiltration{
+				TaskID:     taskID,
+				TaskStatus: "rejected",
+			},
+		})
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			return
 		}
 
+		//сообщение о ходе процесса фильтрации
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
-			Data:     &msgJSON,
+			Data:     &resJSON,
 		}
+
+		//удаляем задачу
+		sma.DelTaskFiltration(clientID, taskID)
 
 		return
 	}

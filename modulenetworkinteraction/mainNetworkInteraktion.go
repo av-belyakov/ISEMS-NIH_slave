@@ -117,9 +117,6 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 		for {
 			select {
 			case msgText := <-cwtResText:
-
-				fmt.Println(msgText.ClientID)
-
 				c, err := getConnLink(msgText)
 
 				if err != nil {

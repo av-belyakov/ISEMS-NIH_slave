@@ -114,8 +114,6 @@ func createFileReadme(sma *configure.StoreMemoryApplication, clientID, taskID st
 		return err
 	}
 
-	fmt.Printf("storageDir: %v, README.xml", task.FileStorageDirectory)
-
 	f, err := os.OpenFile(path.Join(task.FileStorageDirectory, "README.xml"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -496,6 +494,28 @@ func SendMessageFiltrationComplete(
 			ClientID: clientID,
 			Data:     &resJSON,
 		}
+	}
+
+	return nil
+}
+
+//sendMsgTypeFilteringRejected отправить сообщение для удаления информации о задаче на ISEMS-NIH_master
+func sendMsgTypeFilteringRejected(cwt chan<- configure.MsgWsTransmission, clientID, taskID string) error {
+	resJSON, err := json.Marshal(configure.MsgTypeFiltration{
+		MsgType: "filtration",
+		Info: configure.DetailInfoMsgFiltration{
+			TaskID:     taskID,
+			TaskStatus: "rejected",
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	//сообщение о ходе процесса фильтрации
+	cwt <- configure.MsgWsTransmission{
+		ClientID: clientID,
+		Data:     &resJSON,
 	}
 
 	return nil

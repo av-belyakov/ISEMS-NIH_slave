@@ -32,7 +32,6 @@ func ProcessingFiltration(
 	fmt.Println("START function 'ProcessingFiltration'...")
 
 	saveMessageApp := savemessageapp.New()
-
 	np := common.NotifyParameters{
 		ClientID: clientID,
 		TaskID:   taskID,
@@ -40,8 +39,6 @@ func ProcessingFiltration(
 	}
 
 	d := "Инициализирована задача по фильтрации сетевого трафика, идет поиск файлов удовлетворяющих параметрам фильтрации"
-
-	//информируем клиента о начале создания списка файлов удовлетворяющих параметрам фильтрации
 	if err := np.SendMsgNotify("info", "filtration control", d, "start"); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
@@ -50,14 +47,18 @@ func ProcessingFiltration(
 	if err := getListFilesForFiltering(sma, clientID, taskID); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		en := "cannot create a list of files"
-		ed := "Ошибка, невозможно создать список файлов удовлетворяющий параметрам фильтрации"
-
-		if err := np.SendMsgErr(en, ed); err != nil {
+		d := "Ошибка, невозможно создать список файлов удовлетворяющий параметрам фильтрации. Задача отклонена."
+		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			return
 		}
+
+		//отправляем ответ на снятие задачи
+		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		//удаляем задачу
+		sma.DelTaskFiltration(clientID, taskID)
 
 		return
 	}
@@ -67,14 +68,18 @@ func ProcessingFiltration(
 	if err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprintf("incorrect parameters for filtering (client ID: %v, task ID: %v)", clientID, taskID))
 
-		en := "invalid value received"
-		ed := "Невозможно начать выполнение фильтрации, принят некорректный идентификатор клиента или задачи"
-
-		if err := np.SendMsgErr(en, ed); err != nil {
+		d := "Невозможно начать выполнение фильтрации, принят некорректный идентификатор клиента или задачи. Задача отклонена."
+		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			return
 		}
+
+		//отправляем ответ на снятие задачи
+		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		//удаляем задачу
+		sma.DelTaskFiltration(clientID, taskID)
 
 		return
 	}
@@ -82,7 +87,6 @@ func ProcessingFiltration(
 	//проверяем количество файлов которые не были найдены при поиске их по индексам
 	if info.NumberErrorProcessedFiles > 0 {
 		d := "Внимание, фильтрация выполняется по файлам полученным при поиске по индексам. Однако, на диске были найдены не все файлы, перечисленные в индексах"
-
 		if err := np.SendMsgNotify("warning", "filtration control", d, "start"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
@@ -90,13 +94,14 @@ func ProcessingFiltration(
 
 	//поверяем количество файлов по которым необходимо выполнить фильтрацию
 	if info.NumberFilesMeetFilterParameters == 0 {
-		en := "no files matching configured interval"
-		ed := "Внимание, фильтрация остановлена так как не найдены файлы удовлетворяющие параметрам фильтрации"
-
-		if err := np.SendMsgErr(en, ed); err != nil {
+		d := "Внимание, фильтрация остановлена так как не найдены файлы удовлетворяющие заданным параметрам"
+		if err := np.SendMsgNotify("warning", "filtration control", d, "start"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
 
-			return
+		//отправляем ответ на снятие задачи
+		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
 		//удаляем задачу
@@ -109,14 +114,18 @@ func ProcessingFiltration(
 	if err := createDirectoryForFiltering(sma, clientID, taskID, rootDirStoringFiles); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		en := "unable to create directory"
-		ed := "Ошибка при создании директории для хранения отфильтрованных файлов"
-
-		if err := np.SendMsgErr(en, ed); err != nil {
+		d := "Ошибка при создании директории для хранения отфильтрованных файлов. Задача отклонена."
+		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			return
 		}
+
+		//отправляем ответ на снятие задачи
+		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		//удаляем задачу
+		sma.DelTaskFiltration(clientID, taskID)
 
 		return
 	}
@@ -125,14 +134,18 @@ func ProcessingFiltration(
 	if err := createFileReadme(sma, clientID, taskID); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		en := "cannot create a file README.txt"
-		ed := "Невозможно создать файл с информацией о параметрах фильтрации"
-
-		if err := np.SendMsgErr(en, ed); err != nil {
+		d := "Невозможно создать файл с информацией о параметрах фильтрации. Задача отклонена."
+		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			return
 		}
+
+		//отправляем ответ на снятие задачи
+		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		//удаляем задачу
+		sma.DelTaskFiltration(clientID, taskID)
 
 		return
 	}
@@ -320,8 +333,6 @@ func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyPa
 	}
 
 	d := "задача по фильтрации сетевого трафика завершена"
-
-	//информируем клиента об окончании фильтрации
 	if err := np.SendMsgNotify("info", "filtration control", d, "complete"); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}

@@ -13,13 +13,13 @@ import (
 func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParametersFiltration) (string, bool) {
 	//проверяем наличие ID источника
 	if fccpf.ID == 0 {
-		return "Отсутствует идентификатор источника", false
+		return "Отсутствует идентификатор источника. Задача отклонена.", false
 	}
 
 	//проверяем временной интервал
 	isZero := ((fccpf.DateTime.Start == 0) || (fccpf.DateTime.End == 0))
 	if isZero || (fccpf.DateTime.Start > fccpf.DateTime.End) {
-		return "Задан неверный временной интервал", false
+		return "Задан неверный временной интервал. Задача отклонена.", false
 	}
 
 	//проверяем тип протокола
@@ -32,7 +32,7 @@ func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParameter
 	isProtoANY := strings.EqualFold(fccpf.Protocol, "any")
 
 	if !isProtoTCP && !isProtoUDP && !isProtoANY {
-		return "Задан неверный идентификатор транспортного протокола", false
+		return "Задан неверный идентификатор транспортного протокола. Задача отклонена.", false
 	}
 
 	isEmpty := true
@@ -138,12 +138,12 @@ func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParameter
 
 	//проверка ip адресов, портов и подсетей
 	if err := circle(filterParameters, checkIPOrPortOrNetwork); err != nil {
-		return fmt.Sprint(err), false
+		return fmt.Sprintf("%v. Задача отклонена.", err), false
 	}
 
 	//проверяем параметры свойства 'Filters' на пустоту
 	if isEmpty {
-		return "Невозможно начать фильтрацию, необходимо указать хотябы один искомый ip адрес, порт или подсеть", false
+		return "Невозможно начать фильтрацию, необходимо указать хотябы один искомый ip адрес, порт или подсеть. Задача отклонена.", false
 	}
 
 	return "", true

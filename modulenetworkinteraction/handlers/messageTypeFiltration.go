@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"ISEMS-NIH_slave/common"
 	"ISEMS-NIH_slave/configure"
 	"ISEMS-NIH_slave/savemessageapp"
 )
@@ -24,33 +25,21 @@ func HandlerMessageTypeFiltration(
 	fmt.Println("START function 'HandlerMessageTypeFiltration'...")
 
 	saveMessageApp := savemessageapp.New()
-
 	mtfcJSON := configure.MsgTypeFiltrationControl{}
 
 	if err := json.Unmarshal(*req, &mtfcJSON); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		msgJSON, err := json.Marshal(configure.MsgTypeError{
-			MsgType: "error",
-			Info: configure.DetailInfoMsgError{
-				TaskID:           mtfcJSON.Info.TaskID,
-				ErrorName:        "invalid value received",
-				ErrorDescription: "Принят не валидный тип JSON сообщения",
-			},
-		})
-		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			return
-		}
-
-		cwtResText <- configure.MsgWsTransmission{
-			ClientID: clientID,
-			Data:     &msgJSON,
-		}
-
 		return
 	}
+
+	np := common.NotifyParameters{
+		TaskID:   mtfcJSON.Info.TaskID,
+		ClientID: clientID,
+		ChanRes:  cwtResText,
+	}
+
+	np.TaskID = mtfcJSON.Info.TaskID
 
 	if mtfcJSON.Info.Command == "start" {
 		go StartFiltration(cwtResText, sma, &mtfcJSON, clientID, directoryStoringProcessedFiles)
@@ -61,23 +50,9 @@ func HandlerMessageTypeFiltration(
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-			msgJSON, err := json.Marshal(configure.MsgTypeError{
-				MsgType: "error",
-				Info: configure.DetailInfoMsgError{
-					TaskID:           mtfcJSON.Info.TaskID,
-					ErrorName:        "invalid value received",
-					ErrorDescription: "Невозможно остановить выполнение фильтрации, не найдена задача с заданным идентификатором",
-				},
-			})
-			if err != nil {
+			d := "Невозможно остановить выполнение фильтрации, не найдена задача с заданным идентификатором"
+			if err := np.SendMsgNotify("warning", "filtration control", d, "stop"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-				return
-			}
-
-			cwtResText <- configure.MsgWsTransmission{
-				ClientID: clientID,
-				Data:     &msgJSON,
 			}
 
 			return
