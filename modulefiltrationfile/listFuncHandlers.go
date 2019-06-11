@@ -251,6 +251,11 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeArea string) string {
 	var pAnd, patterns string
 
+	listTypeArea := map[string]string{
+		"ip":    "",
+		"pppoe": "(pppoes && ip) && ",
+	}
+
 	rangeFunc := func(s []string, pattern string) string {
 		countAny := len(s)
 		if countAny == 0 {
@@ -364,7 +369,7 @@ func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeAr
 		patterns = fmt.Sprintf("%v%v%v%v", pIP, pNetwork, pAnd, pPort)
 	}
 
-	return fmt.Sprintf("tcpdump -r $path_file_name '%v%v%v || (vlan && %v)' -w %v", typeArea, pProto, patterns, patterns, filtrationParameters.FileStorageDirectory)
+	return fmt.Sprintf("tcpdump -r $path_file_name '%v%v%v || (vlan && %v)' -w %v", listTypeArea[typeArea], pProto, patterns, patterns, path.Join(filtrationParameters.FileStorageDirectory, "$file_name_result"))
 }
 
 func getFileParameters(filePath string) (int64, string, error) {
@@ -420,12 +425,16 @@ func SendMessageFiltrationComplete(
 	sma *configure.StoreMemoryApplication,
 	clientID, taskID string) error {
 
+	fmt.Println("START function 'SendMessageFiltrationComplete'...")
+
 	const sizeChunk = 100
 
 	taskInfo, err := sma.GetInfoTaskFiltration(clientID, taskID)
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(taskInfo)
 
 	//получить список найденных, в результате фильтрации, файлов
 	listFiles, sizeFiles, err := GetListFoundFiles(taskInfo.FileStorageDirectory)
@@ -499,13 +508,13 @@ func SendMessageFiltrationComplete(
 	return nil
 }
 
-//sendMsgTypeFilteringRejected отправить сообщение для удаления информации о задаче на ISEMS-NIH_master
-func sendMsgTypeFilteringRejected(cwt chan<- configure.MsgWsTransmission, clientID, taskID string) error {
+//sendMsgTypeFilteringRefused отправить сообщение для удаления информации о задаче на ISEMS-NIH_master
+func sendMsgTypeFilteringRefused(cwt chan<- configure.MsgWsTransmission, clientID, taskID string) error {
 	resJSON, err := json.Marshal(configure.MsgTypeFiltration{
 		MsgType: "filtration",
 		Info: configure.DetailInfoMsgFiltration{
 			TaskID:     taskID,
-			TaskStatus: "rejected",
+			TaskStatus: "refused",
 		},
 	})
 	if err != nil {

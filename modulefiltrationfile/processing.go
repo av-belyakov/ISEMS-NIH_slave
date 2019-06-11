@@ -38,14 +38,20 @@ func ProcessingFiltration(
 		ChanRes:  cwtResText,
 	}
 
+	fmt.Println("\t---Инициализирована задача по фильтрации сетевого трафика, идет поиск файлов удовлетворяющих параметрам фильтрации")
+
 	d := "Инициализирована задача по фильтрации сетевого трафика, идет поиск файлов удовлетворяющих параметрам фильтрации"
 	if err := np.SendMsgNotify("info", "filtration control", d, "start"); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
+	fmt.Println("\t---строим список файлов удовлетворяющих параметрам фильтрации")
+
 	//строим список файлов удовлетворяющих параметрам фильтрации
 	if err := getListFilesForFiltering(sma, clientID, taskID); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+		fmt.Println("\t=== Ошибка, невозможно создать список файлов удовлетворяющий параметрам фильтрации. Задача отклонена.")
 
 		d := "Ошибка, невозможно создать список файлов удовлетворяющий параметрам фильтрации. Задача отклонена."
 		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
@@ -53,7 +59,7 @@ func ProcessingFiltration(
 		}
 
 		//отправляем ответ на снятие задачи
-		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+		if err := sendMsgTypeFilteringRefused(cwtResText, clientID, taskID); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -74,7 +80,7 @@ func ProcessingFiltration(
 		}
 
 		//отправляем ответ на снятие задачи
-		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+		if err := sendMsgTypeFilteringRefused(cwtResText, clientID, taskID); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -100,7 +106,7 @@ func ProcessingFiltration(
 		}
 
 		//отправляем ответ на снятие задачи
-		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+		if err := sendMsgTypeFilteringRefused(cwtResText, clientID, taskID); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -120,7 +126,7 @@ func ProcessingFiltration(
 		}
 
 		//отправляем ответ на снятие задачи
-		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+		if err := sendMsgTypeFilteringRefused(cwtResText, clientID, taskID); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -140,7 +146,7 @@ func ProcessingFiltration(
 		}
 
 		//отправляем ответ на снятие задачи
-		if err := sendMsgTypeFilteringRejected(cwtResText, clientID, taskID); err != nil {
+		if err := sendMsgTypeFilteringRefused(cwtResText, clientID, taskID); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -174,7 +180,7 @@ func ProcessingFiltration(
 	_ = saveMessageApp.LogMessage("info", fmt.Sprintf("start of a task to filter with the ID %v", taskID))
 
 	//обработка информации о завершении фильтрации для каждой директории
-	go filteringComplete(sma, np, done)
+	filteringComplete(sma, np, done)
 }
 
 //выполнение фильтрации
@@ -183,13 +189,15 @@ func executeFiltration(
 	ft *configure.FiltrationTasks,
 	sma *configure.StoreMemoryApplication,
 	np common.NotifyParameters,
-	dirName, patternScript string) {
+	dirName, ps string) {
 
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
 DONE:
 	for _, file := range ft.ListFiles[dirName] {
+		patternScript := ps
+
 		select {
 		//выполнится если в канал придет запрос на останов фильтрации
 		case <-ft.ChanStopFiltration:
@@ -202,12 +210,16 @@ DONE:
 			break DONE
 
 		default:
-			pathAndFileName := path.Join(dirName, file)
-			patternScript = strings.Replace(patternScript, "$path_file_name", pathAndFileName, -1)
+			var successfulFiltering bool
+
+			//заменяем путь и имя до фильтруемого файла
+			patternScript = strings.Replace(patternScript, "$path_file_name", path.Join(dirName, file), -1)
+			//заменяем имя файла в который будет сохранятся результат фильтрации
+			patternScript = strings.Replace(patternScript, "$file_name_result", file, -1)
 
 			//запускаем сформированный скрипт для поиска файлов
 			if err := exec.Command("sh", "-c", patternScript).Run(); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprintf("%v\t%v, file: %v\n", err, dirName, file))
+				_ = saveMessageApp.LogMessage("error", fmt.Sprintf("%v\t%v, file: %v", err, dirName, file))
 
 				//если ошибка увеличиваем количество обработанных с ошибкой файлов
 				if _, err := sma.IncrementNumNotFoundIndexFiles(np.ClientID, np.TaskID); err != nil {
@@ -217,17 +229,19 @@ DONE:
 
 			//увеличиваем кол-во обработанных файлов
 			if _, err := sma.IncrementNumProcessedFiles(np.ClientID, np.TaskID); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprintf("%v\t%v, file: %v\n", err, dirName, file))
+				_ = saveMessageApp.LogMessage("error", fmt.Sprintf("%v\t%v, file: %v", err, dirName, file))
 			}
 
 			//если файл имеет размер больше 24 байта прибавляем его к найденным и складываем общий размер найденных файлов
-			fileSize, fileHex, err := getFileParameters(pathAndFileName)
+			fileSize, fileHex, err := getFileParameters(path.Join(ft.FileStorageDirectory, file))
 
 			if err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
 			if fileSize > int64(24) {
+				successfulFiltering = true
+
 				if _, err := sma.IncrementNumFoundFiles(np.ClientID, np.TaskID, fileSize); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
@@ -253,13 +267,16 @@ DONE:
 					SizeFilesMeetFilterParameters:   taskInfo.SizeFilesMeetFilterParameters,
 					SizeFilesFoundResultFiltering:   taskInfo.SizeFilesFoundResultFiltering,
 					PathStorageSource:               taskInfo.FileStorageDirectory,
-					FoundFilesInformation: map[string]*configure.InputFilesInformation{
-						file: &configure.InputFilesInformation{
-							Size: fileSize,
-							Hex:  fileHex,
-						},
-					},
 				},
+			}
+
+			if successfulFiltering {
+				msgRes.Info.FoundFilesInformation = map[string]*configure.InputFilesInformation{
+					file: &configure.InputFilesInformation{
+						Size: fileSize,
+						Hex:  fileHex,
+					},
+				}
 			}
 
 			resJSON, err := json.Marshal(msgRes)
@@ -300,6 +317,8 @@ DONE:
 func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyParameters, done chan chanDone) {
 	saveMessageApp := savemessageapp.New()
 
+	fmt.Println("START function 'filteringComplete'...")
+
 	defer close(done)
 
 	var dirComplete int
@@ -317,12 +336,22 @@ func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyPa
 	for dirComplete < num {
 		responseDone = <-done
 		if np.TaskID == responseDone.TaskID {
+
+			fmt.Println("**** DIRECTORY FILTRATION COMPLITE")
+
 			dirComplete++
 		}
 	}
 
+	fmt.Printf("----+++---- FILTRATION STOP, type processing:'%v'\n", responseDone.TypeProcessing)
+
+	tp := responseDone.TypeProcessing
+	if responseDone.TypeProcessing == "execute" {
+		tp = "complite"
+	}
+
 	if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{
-		"Status": responseDone.TypeProcessing,
+		"Status": tp,
 	}); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}

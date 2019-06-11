@@ -399,6 +399,8 @@ func (sma *StoreMemoryApplication) SetInfoTaskFiltration(clientID, taskID string
 		case "Status":
 			if status, ok := v.(string); ok {
 				sma.clientTasks[clientID].filtrationTasks[taskID].Status = status
+
+				fmt.Printf("\tFunction 'SetInfoTaskFiltration' status:%v\n", sma.clientTasks[clientID].filtrationTasks[taskID].Status)
 			}
 
 		default:
