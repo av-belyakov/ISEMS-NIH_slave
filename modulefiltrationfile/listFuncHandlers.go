@@ -256,7 +256,7 @@ func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeAr
 		"pppoe": "(pppoes && ip) && ",
 	}
 
-	rangeFunc := func(s []string, pattern string) string {
+	rangeFunc := func(s []string, pattern, typeElem string) string {
 		countAny := len(s)
 		if countAny == 0 {
 			return ""
@@ -266,7 +266,11 @@ func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeAr
 		for _, v := range s {
 			pEnd := " ||"
 			if num == countAny-1 {
-				pEnd = ")"
+				if typeElem == "port" {
+					pEnd = ")"
+				} else {
+					pEnd = "))"
+				}
 			}
 
 			pattern += " " + v + pEnd
@@ -281,11 +285,11 @@ func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeAr
 			return ""
 		}
 
-		return fmt.Sprintf("((ip && %v) || (vlan && %v)) && ", proto, proto)
+		return fmt.Sprintf("%v &&", proto)
 
 	}
 
-	formingPatterns := func(p *configure.FiltrationControlIPorNetorPortParameters, a, s, d string) string {
+	formingPatterns := func(p *configure.FiltrationControlIPorNetorPortParameters, a, s, d, typeElem string) string {
 		numAny := len(p.Any)
 		numSrc := len(p.Src)
 		numDst := len(p.Dst)
@@ -296,9 +300,9 @@ func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeAr
 			return ""
 		}
 
-		pAny := rangeFunc(p.Any, a)
-		pSrc := rangeFunc(p.Src, s)
-		pDst := rangeFunc(p.Dst, d)
+		pAny := rangeFunc(p.Any, a, typeElem)
+		pSrc := rangeFunc(p.Src, s, typeElem)
+		pDst := rangeFunc(p.Dst, d, typeElem)
 
 		if (numAny > 0) && ((numSrc > 0) || (numDst > 0)) {
 			pOr = " || "
@@ -313,15 +317,19 @@ func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeAr
 		return fmt.Sprintf("(%v%v%v%v%v)", pAny, pOr, pSrc, pAnd, pDst)
 	}
 
-	patternIPAddress := func(ip *configure.FiltrationControlIPorNetorPortParameters) string {
-		return formingPatterns(ip, "(host", "(src", "(dst")
+	patternIPAddress := func(ip *configure.FiltrationControlIPorNetorPortParameters, pProto string) string {
+		h := fmt.Sprintf("(%v (host", pProto)
+		s := fmt.Sprintf("(%v (src", pProto)
+		d := fmt.Sprintf("(%v (dst", pProto)
+
+		return formingPatterns(ip, h, s, d, "ip")
 	}
 
 	patternPort := func(port *configure.FiltrationControlIPorNetorPortParameters) string {
-		return formingPatterns(port, "(port", "(src port", "(dst port")
+		return formingPatterns(port, "(port", "(src port", "(dst port", "port")
 	}
 
-	patternNetwork := func(network *configure.FiltrationControlIPorNetorPortParameters) string {
+	patternNetwork := func(network *configure.FiltrationControlIPorNetorPortParameters, pProto string) string {
 		//приводим значение сетей к валидным сетевым маскам
 		forEachFunc := func(list []string) []string {
 			newList := make([]string, 0, len(list))
@@ -340,24 +348,28 @@ func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeAr
 			return newList
 		}
 
+		h := fmt.Sprintf("(%v (net", pProto)
+		s := fmt.Sprintf("(%v (src net", pProto)
+		d := fmt.Sprintf("(%v (dst net", pProto)
+
 		return formingPatterns(&configure.FiltrationControlIPorNetorPortParameters{
 			Any: forEachFunc(network.Any),
 			Src: forEachFunc(network.Src),
 			Dst: forEachFunc(network.Dst),
-		}, "(net", "(src net", "(dst net")
+		}, h, s, d, "network")
 	}
 
 	//формируем шаблон для фильтрации по протоколам сетевого уровня
 	pProto := patternTypeProtocol(filtrationParameters.Protocol)
 
 	//формируем шаблон для фильтрации по ip адресам
-	pIP := patternIPAddress(&filtrationParameters.Filters.IP)
+	pIP := patternIPAddress(&filtrationParameters.Filters.IP, pProto)
 
 	//формируем шаблон для фильтрации по сетевым портам
 	pPort := patternPort(&filtrationParameters.Filters.Port)
 
 	//формируем шаблон для фильтрации по сетям
-	pNetwork := patternNetwork(&filtrationParameters.Filters.Network)
+	pNetwork := patternNetwork(&filtrationParameters.Filters.Network, pProto)
 
 	if len(pPort) > 0 && (len(pIP) > 0 || len(pNetwork) > 0) {
 		pAnd = " && "
@@ -369,7 +381,7 @@ func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeAr
 		patterns = fmt.Sprintf("%v%v%v%v", pIP, pNetwork, pAnd, pPort)
 	}
 
-	return fmt.Sprintf("tcpdump -r $path_file_name '%v%v%v || (vlan && %v)' -w %v", listTypeArea[typeArea], pProto, patterns, patterns, path.Join(filtrationParameters.FileStorageDirectory, "$file_name_result"))
+	return fmt.Sprintf("tcpdump -r $path_file_name '%v%v || (vlan && %v)' -w %v", listTypeArea[typeArea], patterns, patterns, path.Join(filtrationParameters.FileStorageDirectory, "$file_name_result"))
 }
 
 func getFileParameters(filePath string) (int64, string, error) {

@@ -346,7 +346,7 @@ func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyPa
 	fmt.Printf("----+++---- FILTRATION STOP, type processing:'%v'\n", responseDone.TypeProcessing)
 
 	tp := responseDone.TypeProcessing
-	if responseDone.TypeProcessing == "execute" {
+	if tp == "execute" {
 		tp = "complite"
 	}
 
@@ -361,8 +361,8 @@ func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyPa
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
-	d := "задача по фильтрации сетевого трафика завершена"
-	if err := np.SendMsgNotify("info", "filtration control", d, "complete"); err != nil {
+	d := "Задача по фильтрации сетевого трафика завершена"
+	if err := np.SendMsgNotify("success", "filtration control", d, tp); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 }

@@ -227,7 +227,7 @@ var _ = Describe("Function Test", func() {
 		})
 
 		It("Получить список файлов ввиде отображения, по количеству равному 53", func() {
-			Expect(numFiles).Should(Equal(53))
+			Expect(numFiles).Should(Equal(55))
 		})
 
 		It("Получить количество частей сообщения равных 6", func() {
