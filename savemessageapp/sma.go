@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -35,7 +36,7 @@ func New() *PathDirLocationLogFiles {
 	var pc pathConfig
 
 	//читаем основной конфигурационный файл в формате JSON
-	err = readMainConfig(dir+"/config.json", &pc)
+	err = readMainConfig(path.Join(dir, "config.json"), &pc)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -75,7 +76,7 @@ func createLogsDirectory(pathLogFiles, directoryName string) error {
 		}
 	}
 
-	err = os.Mkdir(pathLogFiles+"/"+directoryName, 0777)
+	err = os.Mkdir(path.Join(pathLogFiles, directoryName), 0777)
 	if err != nil {
 		return err
 	}
@@ -84,7 +85,7 @@ func createLogsDirectory(pathLogFiles, directoryName string) error {
 }
 
 func compressLogFile(filePath string, fileName string, fileSize int64) error {
-	fd, err := os.Open(filePath + fileName)
+	fd, err := os.Open(path.Join(filePath, fileName))
 	if err != nil {
 		return err
 	}
@@ -147,10 +148,10 @@ func (pdllf *PathDirLocationLogFiles) LogMessage(typeMessage, message string) (e
 		return err
 	}
 
-	_ = compressLogFile(pdllf.pathLogFiles+"/"+logDirName+"/", fileNameTypeMessage[typeMessage], logFileSize)
+	_ = compressLogFile(path.Join(pdllf.pathLogFiles, logDirName), fileNameTypeMessage[typeMessage], logFileSize)
 
 	var fileOut *os.File
-	fileOut, err = os.OpenFile(pdllf.pathLogFiles+"/"+logDirName+"/"+fileNameTypeMessage[typeMessage], os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	fileOut, err = os.OpenFile(path.Join(pdllf.pathLogFiles, logDirName, fileNameTypeMessage[typeMessage]), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Println(err)
 

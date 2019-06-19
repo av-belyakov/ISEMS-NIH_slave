@@ -7,7 +7,6 @@ package telemetry
 * */
 
 import (
-	"fmt"
 	"time"
 
 	"ISEMS-NIH_slave/configure"
@@ -18,8 +17,6 @@ func TransmissionTelemetry(
 	cwtResText chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
 	sma *configure.StoreMemoryApplication) {
-
-	fmt.Println("START function 'Telemetry'...")
 
 	ticker := time.NewTicker(time.Duration(appc.RefreshIntervalTelemetryInfo) * time.Second)
 	for range ticker.C {
