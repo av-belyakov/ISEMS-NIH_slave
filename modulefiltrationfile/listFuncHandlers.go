@@ -437,16 +437,12 @@ func SendMessageFiltrationComplete(
 	sma *configure.StoreMemoryApplication,
 	clientID, taskID string) error {
 
-	fmt.Println("START function 'SendMessageFiltrationComplete'...")
-
 	const sizeChunk = 100
 
 	taskInfo, err := sma.GetInfoTaskFiltration(clientID, taskID)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(taskInfo)
 
 	//получить список найденных, в результате фильтрации, файлов
 	listFiles, sizeFiles, err := GetListFoundFiles(taskInfo.FileStorageDirectory)

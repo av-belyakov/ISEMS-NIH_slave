@@ -25,8 +25,6 @@ func StartFiltration(
 	mtfcJSON *configure.MsgTypeFiltrationControl,
 	clientID, rootDirStoringFiles string) {
 
-	fmt.Println("\tSTART function 'StartFiltration'...")
-
 	saveMessageApp := savemessageapp.New()
 	taskID := mtfcJSON.Info.TaskID
 	np := common.NotifyParameters{
@@ -53,8 +51,6 @@ func StartFiltration(
 
 		tasksList, _ := sma.GetListTasksFiltration(clientID)
 
-		fmt.Println("\t Проверяем лимит количества выполняемых задач")
-
 		//проверяем количество выполняемых задач (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
 		if len(tasksList) >= int(mcpf) {
 			_ = saveMessageApp.LogMessage("info", "the maximum number of concurrent file filtering tasks has been reached, the task is rejected.")
@@ -66,8 +62,6 @@ func StartFiltration(
 
 			return
 		}
-
-		fmt.Println("\t Проверяем параметры фильтрации")
 
 		//проверяем параметры фильтрации (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
 		if msg, ok := common.CheckParametersFiltration(&mtfcJSON.Info.Options); !ok {
@@ -81,8 +75,6 @@ func StartFiltration(
 		}
 
 		as := sma.GetApplicationSetting()
-
-		fmt.Println("\t Проверяем наличие директорий переданных с сообщением типа 'Ping'")
 
 		//проверяем наличие директорий переданных с сообщением типа 'Ping'
 		newStorageFolders, err := checkExistDirectory(as.StorageFolders)
@@ -102,8 +94,6 @@ func StartFiltration(
 			TypeAreaNetwork: as.TypeAreaNetwork,
 			StorageFolders:  newStorageFolders,
 		})
-
-		fmt.Println("\t и если параметры верны создаем новую задачу")
 
 		//и если параметры верны создаем новую задачу
 		sma.AddTaskFiltration(clientID, taskID, &configure.FiltrationTasks{

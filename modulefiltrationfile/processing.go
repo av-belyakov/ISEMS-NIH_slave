@@ -29,8 +29,6 @@ func ProcessingFiltration(
 	sma *configure.StoreMemoryApplication,
 	clientID, taskID, rootDirStoringFiles string) {
 
-	fmt.Println("START function 'ProcessingFiltration'...")
-
 	saveMessageApp := savemessageapp.New()
 	np := common.NotifyParameters{
 		ClientID: clientID,
@@ -38,20 +36,14 @@ func ProcessingFiltration(
 		ChanRes:  cwtResText,
 	}
 
-	fmt.Println("\t---Инициализирована задача по фильтрации сетевого трафика, идет поиск файлов удовлетворяющих параметрам фильтрации")
-
 	d := "Инициализирована задача по фильтрации сетевого трафика, идет поиск файлов удовлетворяющих параметрам фильтрации"
 	if err := np.SendMsgNotify("info", "filtration control", d, "start"); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
-	fmt.Println("\t---строим список файлов удовлетворяющих параметрам фильтрации")
-
 	//строим список файлов удовлетворяющих параметрам фильтрации
 	if err := getListFilesForFiltering(sma, clientID, taskID); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-		fmt.Println("\t=== Ошибка, невозможно создать список файлов удовлетворяющий параметрам фильтрации. Задача отклонена.")
 
 		d := "Ошибка, невозможно создать список файлов удовлетворяющий параметрам фильтрации. Задача отклонена."
 		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
@@ -317,8 +309,6 @@ DONE:
 func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyParameters, done chan chanDone) {
 	saveMessageApp := savemessageapp.New()
 
-	fmt.Println("START function 'filteringComplete'...")
-
 	defer close(done)
 
 	var dirComplete int
@@ -336,14 +326,9 @@ func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyPa
 	for dirComplete < num {
 		responseDone = <-done
 		if np.TaskID == responseDone.TaskID {
-
-			fmt.Println("**** DIRECTORY FILTRATION COMPLITE")
-
 			dirComplete++
 		}
 	}
-
-	fmt.Printf("----+++---- FILTRATION STOP, type processing:'%v'\n", responseDone.TypeProcessing)
 
 	tp := responseDone.TypeProcessing
 	if tp == "execute" {

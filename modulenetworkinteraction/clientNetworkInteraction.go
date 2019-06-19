@@ -10,7 +10,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,8 +22,6 @@ import (
 )
 
 func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request) error {
-	fmt.Println("start function REDIRECT")
-
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
@@ -44,9 +41,6 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 		c, res, err := d.Dial("wss://"+cs.IP+":"+cs.Port+"/wss", header)
 		if err != nil {
-
-			fmt.Printf("!!!!! ERROR WSS connect with IP %v\n", cs.IP)
-
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 			return
@@ -59,8 +53,7 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 			//добавляем линк соединения
 			cs.StoreMemoryApplication.AddLinkWebsocketConnect(cs.IP, c)
-
-			fmt.Printf("+++ CONNECTION WITH SOURCE IP %v SUCCESS ESTABLISHED\n", cs.IP)
+			_ = saveMessageApp.LogMessage("info", fmt.Sprintf("connection with source IP %v success established", cs.IP))
 
 			//обработчик запросов приходящих через websocket
 			for {
@@ -90,8 +83,6 @@ func ClientNetworkInteraction(
 	sma *configure.StoreMemoryApplication,
 	conf *tls.Config) {
 
-	log.Printf("START application ISEMS-NIH_slave version %q, the application is running as a \"CLIENT\"\n", appc.VersionApp)
-
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
@@ -120,8 +111,6 @@ func ClientNetworkInteraction(
 	for range ticker.C {
 		for id, s := range sma.GetAllClientSettings() {
 			if !s.ConnectionStatus {
-				fmt.Printf("connection attempt with client IP: %v, ID %v\n", s.IP, id)
-
 				cs := clientSetting{
 					ID:                     id,
 					IP:                     s.IP,
@@ -146,8 +135,6 @@ func ClientNetworkInteraction(
 				_, err = client.Do(req)
 				if err != nil {
 					strErr := fmt.Sprint(err)
-
-					fmt.Println(strErr)
 
 					if !strings.Contains(strErr, "stop redirect") {
 						_ = saveMessageApp.LogMessage("error", strErr)

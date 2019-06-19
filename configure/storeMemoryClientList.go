@@ -15,7 +15,6 @@ type SourceSetting struct {
 	Token             string
 	AccessIsAllowed   bool              //разрешен ли доступ, по умолчанию false (при проверке токена ставится true если он верен)
 	CurrentTasks      map[string]string // задачи для данного источника,
-	//key - ID задачи, value - ее тип 'filtration' или 'download'
 }
 
 //WssConnection дескриптор соединения по протоколу websocket
@@ -95,35 +94,6 @@ func (isl *InformationSourcesList) GetSourceList() *map[string]SourceSetting {
 	return &sl
 }
 
-//ChangeSourceConnectionStatus изменить состояние источника
-/*func (isl *InformationSourcesList) ChangeSourceConnectionStatus(id string) bool {
-	if s, ok := isl.sourcesListSetting[id]; ok {
-		s.ConnectionStatus = !s.ConnectionStatus
-
-		if s.ConnectionStatus {
-			s.DateLastConnected = time.Now().Unix()
-		} else {
-			s.AccessIsAllowed = false
-		}
-		isl.sourcesListSetting[id] = s
-
-		return true
-	}
-
-	return false
-}*/
-
-//GetAccessIsAllowed возвращает значение подтверждающее или отклоняющее права доступа источника
-/*func (isl *InformationSourcesList) GetAccessIsAllowed(ip string) bool {
-	for _, s := range isl.sourcesListSetting {
-		if s.IP == ip {
-			return s.AccessIsAllowed
-		}
-	}
-
-	return false
-}*/
-
 //SetAccessIsAllowed устанавливает статус позволяющий продолжать wss соединение
 func (isl *InformationSourcesList) SetAccessIsAllowed(id string) {
 	if s, ok := isl.sourcesListSetting[id]; ok {
@@ -176,44 +146,3 @@ func (isl InformationSourcesList) GetListTasksPerformedSourceByType(id string, t
 
 	return taskList
 }
-
-/*
-//SendWsMessage используется для отправки сообщений через протокол websocket (применяется Mutex)
-func (wssc *WssConnection) SendWsMessage(t int, v []byte) error {
-	/*wssc.mu.Lock()
-	defer wssc.mu.Unlock()*/
-/*
-	return wssc.Link.WriteMessage(t, v)
-}
-
-//GetSourcesListConnection получить список всех соединений
-func (isl *InformationSourcesList) GetSourcesListConnection() map[string]WssConnection {
-	return isl.sourcesListConnection
-}
-
-//AddLinkWebsocketConnect добавить линк соединения по websocket
-func (isl *InformationSourcesList) AddLinkWebsocketConnect(host string, lwsc *websocket.Conn) {
-	isl.sourcesListConnection[host] = WssConnection{
-		Link: lwsc,
-	}
-}
-
-//DelLinkWebsocketConnection удаление дескриптора соединения при отключении источника
-func (isl *InformationSourcesList) DelLinkWebsocketConnection(host string) {
-	delete(isl.sourcesListConnection, host)
-	/*if _, ok := ism.SourcesListConnection[host]; ok {
-		ism.SourcesListConnection[host] = WssConnection{
-			Link: nil,
-		}
-	}*/
-/*}
-
-//GetLinkWebsocketConnect получить линк соединения по websocket
-func (isl *InformationSourcesList) GetLinkWebsocketConnect(host string) (*WssConnection, bool) {
-	if conn, ok := isl.sourcesListConnection[host]; ok {
-		return &conn, true
-	}
-
-	return nil, false
-}
-*/

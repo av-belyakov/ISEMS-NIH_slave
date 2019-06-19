@@ -27,8 +27,6 @@ func RouteWssConnect(
 	sma *configure.StoreMemoryApplication,
 	cwtReq <-chan configure.MsgWsTransmission) {
 
-	fmt.Println("START function 'RouteWssConnect'...")
-
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
@@ -41,15 +39,9 @@ func RouteWssConnect(
 
 		switch mtJSON.MsgType {
 		case "ping":
-			fmt.Println("--- resived message JSON 'PING', func 'RouteWssConnect'")
-			fmt.Printf("client ID %v\n", msg.ClientID)
-
 			go handlers.HandlerMessageTypePing(cwtResText, sma, msg.Data, msg.ClientID)
 
 		case "filtration":
-			fmt.Println("--- resived message JSON 'FILTRATION', func 'RouteWssConnect'")
-			fmt.Printf("client ID %v\n", msg.ClientID)
-
 			handlers.HandlerMessageTypeFiltration(cwtResText, sma, msg.Data, msg.ClientID, appc.DirectoryStoringProcessedFiles.Raw)
 
 		case "download files":

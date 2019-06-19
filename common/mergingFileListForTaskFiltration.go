@@ -2,7 +2,6 @@ package common
 
 import (
 	"errors"
-	"fmt"
 
 	"ISEMS-NIH_slave/configure"
 )
@@ -23,9 +22,6 @@ func MergingFileListForTaskFiltration(
 	//добавляем часть списка в осовной файл
 	_, err := sma.AddFileToListFilesFiltrationTask(clientID, taskID, mtf.Info.ListFilesReceivedIndex)
 	if err != nil {
-
-		fmt.Printf("Function MergingFileListForTaskFiltration, ERROR: %v\n", err)
-
 		return false, err
 	}
 

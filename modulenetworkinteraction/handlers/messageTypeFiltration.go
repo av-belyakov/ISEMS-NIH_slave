@@ -22,8 +22,6 @@ func HandlerMessageTypeFiltration(
 	req *[]byte,
 	clientID, directoryStoringProcessedFiles string) {
 
-	fmt.Println("START function 'HandlerMessageTypeFiltration'...")
-
 	saveMessageApp := savemessageapp.New()
 	mtfcJSON := configure.MsgTypeFiltrationControl{}
 

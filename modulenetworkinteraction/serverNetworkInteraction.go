@@ -23,9 +23,6 @@ import (
 
 //HandlerRequest обработчик HTTPS запросов
 func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request) {
-
-	fmt.Println("START function 'HandlerRequest'...")
-
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
@@ -34,8 +31,6 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 	<head><meta charset="utf-8"><title>Server Nginx</title></head>
 	<body><h1>Access denied. For additional information, please contact the webmaster.</h1></body>
 	</html>`)
-
-	fmt.Printf("_____________ RESIVED HTTP REQUEST FROM IP:%v _______________\n %v\n", req.RemoteAddr, req.Header)
 
 	stringToken := ""
 	for headerName := range req.Header {
@@ -77,10 +72,12 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 		AccessIsAllowed: true,
 	})
 
-	fmt.Println("CLIENT IP:", remoteIP)
-	fmt.Println("CLIENT ID:", clientID)
-	sett, _ := ss.StoreMemoryApplication.GetClientSetting(clientID)
-	fmt.Println(sett)
+	/*
+		fmt.Println("CLIENT IP:", remoteIP)
+		fmt.Println("CLIENT ID:", clientID)
+		sett, _ := ss.StoreMemoryApplication.GetClientSetting(clientID)
+		fmt.Println(sett)
+	*/
 
 	http.Redirect(w, req, "https://"+ss.IP+":"+ss.Port+"/wss", 301)
 }
@@ -96,6 +93,7 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	if !idIsExist {
 		w.WriteHeader(401)
 		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+remoteIP+" is prohibited")
+
 		return
 	}
 
@@ -103,6 +101,7 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	if !sws.StoreMemoryApplication.GetAccessIsAllowed(remoteIP) {
 		w.WriteHeader(401)
 		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+remoteIP+" is prohibited")
+
 		return
 	}
 
@@ -163,8 +162,6 @@ func ServerNetworkInteraction(
 	cwtReq chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
 	sma *configure.StoreMemoryApplication) {
-
-	fmt.Println("START function 'ServerNetworkInteraction'...")
 
 	log.Printf("START application ISEMS-NIH_slave version %q, the application is running as a \"SERVER\", ip %v, port %v\n", appc.VersionApp, appc.LocalServerHTTPS.IP, appc.LocalServerHTTPS.Port)
 
