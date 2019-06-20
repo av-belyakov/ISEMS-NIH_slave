@@ -41,6 +41,8 @@ func ProcessingFiltration(
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
+	fmt.Println("//строим список файлов удовлетворяющих параметрам фильтрации")
+
 	//строим список файлов удовлетворяющих параметрам фильтрации
 	if err := getListFilesForFiltering(sma, clientID, taskID); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -60,6 +62,8 @@ func ProcessingFiltration(
 
 		return
 	}
+
+	fmt.Println("//получаем информацию о выполняемой задачи")
 
 	//получаем информацию о выполняемой задачи
 	info, err := sma.GetInfoTaskFiltration(clientID, taskID)
@@ -82,6 +86,8 @@ func ProcessingFiltration(
 		return
 	}
 
+	fmt.Println("//проверяем количество файлов которые не были найдены при поиске их по индексам")
+
 	//проверяем количество файлов которые не были найдены при поиске их по индексам
 	if info.NumberErrorProcessedFiles > 0 {
 		d := "Внимание, фильтрация выполняется по файлам полученным при поиске по индексам. Однако, на диске были найдены не все файлы, перечисленные в индексах"
@@ -89,6 +95,8 @@ func ProcessingFiltration(
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 	}
+
+	fmt.Println("//поверяем количество файлов по которым необходимо выполнить фильтрацию")
 
 	//поверяем количество файлов по которым необходимо выполнить фильтрацию
 	if info.NumberFilesMeetFilterParameters == 0 {
@@ -107,6 +115,8 @@ func ProcessingFiltration(
 
 		return
 	}
+
+	fmt.Println("//создаем директорию для хранения отфильтрованных файлов")
 
 	//создаем директорию для хранения отфильтрованных файлов
 	if err := createDirectoryForFiltering(sma, clientID, taskID, rootDirStoringFiles); err != nil {
@@ -127,6 +137,8 @@ func ProcessingFiltration(
 
 		return
 	}
+
+	fmt.Println("//создаем файл README с описанием параметров фильтрации")
 
 	//создаем файл README с описанием параметров фильтрации
 	if err := createFileReadme(sma, clientID, taskID); err != nil {
@@ -150,8 +162,12 @@ func ProcessingFiltration(
 
 	as := sma.GetApplicationSetting()
 
+	fmt.Println("//формируем шаблон фильтрации")
+
 	//формируем шаблон фильтрации
 	patternScript := createPatternScript(info, as.TypeAreaNetwork)
+
+	fmt.Println("//изменяем статус задачи")
 
 	//изменяем статус задачи
 	_ = sma.SetInfoTaskFiltration(clientID, taskID, map[string]interface{}{
@@ -165,11 +181,15 @@ func ProcessingFiltration(
 			continue
 		}
 
+		fmt.Printf("//запуск фильтрации для каждой директории %v\n", dirName)
+
 		//запуск фильтрации для каждой директории
 		go executeFiltration(done, info, sma, np, dirName, patternScript)
 	}
 
 	_ = saveMessageApp.LogMessage("info", fmt.Sprintf("start of a task to filter with the ID %v", taskID))
+
+	fmt.Println("	//обработка информации о завершении фильтрации для каждой директории")
 
 	//обработка информации о завершении фильтрации для каждой директории
 	filteringComplete(sma, np, done)

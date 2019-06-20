@@ -33,6 +33,8 @@ func StartFiltration(
 		ChanRes:  cwtResText,
 	}
 
+	fmt.Printf("\tПринята задача по фильтрации сет. трафика с ID %v\n", taskID)
+
 	if mtfcJSON.Info.NumberMessagesFrom[0] == 0 {
 		cs, ok := sma.GetClientSetting(clientID)
 		if !ok {
@@ -51,6 +53,8 @@ func StartFiltration(
 
 		tasksList, _ := sma.GetListTasksFiltration(clientID)
 
+		fmt.Println("\tПроверяем максимальное кол-во одновременно запущеных задач")
+
 		//проверяем количество выполняемых задач (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
 		if len(tasksList) >= int(mcpf) {
 			_ = saveMessageApp.LogMessage("info", "the maximum number of concurrent file filtering tasks has been reached, the task is rejected.")
@@ -62,6 +66,8 @@ func StartFiltration(
 
 			return
 		}
+
+		fmt.Println("\tпроверяем параметры фильтрации")
 
 		//проверяем параметры фильтрации (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
 		if msg, ok := common.CheckParametersFiltration(&mtfcJSON.Info.Options); !ok {
@@ -76,6 +82,8 @@ func StartFiltration(
 
 		as := sma.GetApplicationSetting()
 
+		fmt.Println("\tпроверяем наличие директорий переданных с сообщением типа 'Ping'")
+
 		//проверяем наличие директорий переданных с сообщением типа 'Ping'
 		newStorageFolders, err := checkExistDirectory(as.StorageFolders)
 		if err != nil {
@@ -89,11 +97,15 @@ func StartFiltration(
 			return
 		}
 
+		fmt.Println("\tизменяем список директорий для фильтрации на реально существующие")
+
 		//изменяем список директорий для фильтрации на реально существующие
 		sma.SetApplicationSetting(configure.ApplicationSettings{
 			TypeAreaNetwork: as.TypeAreaNetwork,
 			StorageFolders:  newStorageFolders,
 		})
+
+		fmt.Println("\tи если параметры верны создаем новую задачу")
 
 		//и если параметры верны создаем новую задачу
 		sma.AddTaskFiltration(clientID, taskID, &configure.FiltrationTasks{
@@ -109,6 +121,8 @@ func StartFiltration(
 	}
 
 	if !mtfcJSON.Info.IndexIsFound {
+		fmt.Println("\tвыполнение фильтрации без индексов")
+
 		go modulefiltrationfile.ProcessingFiltration(cwtResText, sma, clientID, taskID, rootDirStoringFiles)
 
 		return
