@@ -80,6 +80,7 @@ func createDirectoryForFiltering(sma *configure.StoreMemoryApplication, clientID
 	}
 
 	dateTimeStart := time.Unix(int64(info.DateTimeStart), 0)
+	dateTimeStart = dateTimeStart.UTC()
 
 	dirName := strconv.Itoa(dateTimeStart.Year()) + "_" + dateTimeStart.Month().String() + "_" + strconv.Itoa(dateTimeStart.Day()) + "_" + strconv.Itoa(dateTimeStart.Hour()) + "_" + strconv.Itoa(dateTimeStart.Minute()) + "_" + taskID
 	filePath := path.Join(dspf, "/", dirName)
@@ -131,19 +132,16 @@ func createFileReadme(sma *configure.StoreMemoryApplication, clientID, taskID st
 		return err
 	}
 
-	tct := time.Unix(int64(time.Now().Unix()), 0)
-	dtct := strconv.Itoa(tct.Day()) + " " + tct.Month().String() + " " + strconv.Itoa(tct.Year()) + " " + strconv.Itoa(tct.Hour()) + ":" + strconv.Itoa(tct.Minute())
-
 	i := Information{
 		UseIndex:                        task.UseIndex,
-		DateTimeCreateTask:              dtct,
+		DateTimeCreateTask:              time.Now().UTC().String(),
 		NumberFilesMeetFilterParameters: task.NumberFilesMeetFilterParameters,
 		NumberProcessedFiles:            task.NumberProcessedFiles,
 		NumberErrorProcessedFiles:       task.NumberErrorProcessedFiles,
 		FilterSettings: FilterSettings{
 			Protocol:      task.Protocol,
-			DateTimeStart: fmt.Sprint(time.Unix(int64(task.DateTimeStart), 0)),
-			DateTimeEnd:   fmt.Sprint(time.Unix(int64(task.DateTimeEnd), 0)),
+			DateTimeStart: time.Unix(int64(task.DateTimeStart), 0).UTC().String(),
+			DateTimeEnd:   time.Unix(int64(task.DateTimeEnd), 0).UTC().String(),
 			IP: FiltrationControlIPorNetorPortParameters{
 				Any: task.Filters.IP.Any,
 				Src: task.Filters.IP.Src,
