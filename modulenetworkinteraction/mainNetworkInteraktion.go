@@ -146,7 +146,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	}()
 
 	//обработка запросов поступающих в приложение снаружи
-	go RouteWssConnect(cwtResText, cwtResBinary, appc, sma, cwtReq)
+	go RouteWssConnect(cwtResText, cwtResBinary, appc, sma, cwtReq, saveMessageApp)
 
 	//запуск телеметрии
 	go telemetry.TransmissionTelemetry(cwtResText, appc, sma)

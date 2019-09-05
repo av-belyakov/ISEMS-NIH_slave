@@ -79,12 +79,9 @@ func createFileReadme(sma *configure.StoreMemoryApplication, clientID, taskID st
 		return err
 	}
 
-	tct := time.Unix(int64(time.Now().Unix()), 0)
-	dtct := strconv.Itoa(tct.Day()) + " " + tct.Month().String() + " " + strconv.Itoa(tct.Year()) + " " + strconv.Itoa(tct.Hour()) + ":" + strconv.Itoa(tct.Minute())
-
 	i := Information{
 		UseIndex:                        task.UseIndex,
-		DateTimeCreateTask:              dtct,
+		DateTimeCreateTask:              time.Now().String(),
 		NumberFilesMeetFilterParameters: task.NumberFilesMeetFilterParameters,
 		NumberProcessedFiles:            task.NumberProcessedFiles,
 		NumberErrorProcessedFiles:       task.NumberErrorProcessedFiles,

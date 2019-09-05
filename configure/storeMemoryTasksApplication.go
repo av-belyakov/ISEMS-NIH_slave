@@ -44,7 +44,7 @@ type ClientSettings struct {
 }
 
 //TasksList список задач
-// map[string] = taskID
+// ключом 'filtrationTasks' и 'downloadTasks' является идентификатор задачи
 type TasksList struct {
 	filtrationTasks map[string]*FiltrationTasks
 	downloadTasks   map[string]*DownloadTasks
@@ -89,7 +89,22 @@ type FiltrationTasks struct {
 }
 
 //DownloadTasks описание параметров задач по выгрузке файлов
-type DownloadTasks struct{}
+// FileName - имя выгружаемого файла
+// FileSize - размер выгружаемого файла
+// FileHex - хеш-сумма выгружаемого файла
+// NumFileChunk - количество частей файла
+// NumChunkSent - количество оправленых частей
+// SizeFileChunk - размер части файла
+// DirectiryPathStorage - путь к директории для хранения файлов
+type DownloadTasks struct {
+	FileName             string
+	FileSize             int64
+	FileHex              string
+	NumFileChunk         int
+	NumChunkSent         int
+	SizeFileChunk        int
+	DirectiryPathStorage string
+}
 
 type chanReqSettingsTask struct {
 	ClientID, TaskID, TaskType, ActionType string
@@ -536,4 +551,10 @@ func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) er
 //AddTaskDownload добавить задачу
 func (sma *StoreMemoryApplication) AddTaskDownload(clientID, taskID string) {
 
+}
+
+//CheckTaskDownload проверяем наличие задачи
+func (sma *StoreMemoryApplication) CheckTaskDownload(taskID string) bool {
+
+	return false
 }

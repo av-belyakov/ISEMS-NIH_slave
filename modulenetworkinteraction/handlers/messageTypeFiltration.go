@@ -15,14 +15,14 @@ import (
 	"ISEMS-NIH_slave/savemessageapp"
 )
 
-//HandlerMessageTypeFiltration обработчик сообщений типа 'Filtration'
+//HandlerMessageTypeFiltration обработчик сообщений типа 'filtration'
 func HandlerMessageTypeFiltration(
-	cwtResText chan<- configure.MsgWsTransmission,
 	sma *configure.StoreMemoryApplication,
 	req *[]byte,
-	clientID, directoryStoringProcessedFiles string) {
+	clientID, directoryStoringProcessedFiles string,
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
+	cwtResText chan<- configure.MsgWsTransmission) {
 
-	saveMessageApp := savemessageapp.New()
 	mtfcJSON := configure.MsgTypeFiltrationControl{}
 
 	if err := json.Unmarshal(*req, &mtfcJSON); err != nil {
@@ -36,8 +36,6 @@ func HandlerMessageTypeFiltration(
 		ClientID: clientID,
 		ChanRes:  cwtResText,
 	}
-
-	np.TaskID = mtfcJSON.Info.TaskID
 
 	if mtfcJSON.Info.Command == "start" {
 		go StartFiltration(cwtResText, sma, &mtfcJSON, clientID, directoryStoringProcessedFiles)

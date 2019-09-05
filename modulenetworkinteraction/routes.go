@@ -3,7 +3,7 @@ package modulenetworkinteraction
 /*
 * Маршрутизация запросов поступающих через протокол websocket
 *
-* Версия 0.1, дата релиза 02.04.2019
+* Версия 0.2, дата релиза 05.09.2019
 * */
 
 import (
@@ -25,10 +25,8 @@ func RouteWssConnect(
 	cwtResBinary chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
 	sma *configure.StoreMemoryApplication,
-	cwtReq <-chan configure.MsgWsTransmission) {
-
-	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
+	cwtReq <-chan configure.MsgWsTransmission,
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 
 	var mtJSON msgTypeJSON
 
@@ -39,15 +37,16 @@ func RouteWssConnect(
 
 		switch mtJSON.MsgType {
 		case "ping":
-			go handlers.HandlerMessageTypePing(cwtResText, sma, msg.Data, msg.ClientID)
+			go handlers.HandlerMessageTypePing(sma, msg.Data, msg.ClientID, saveMessageApp, cwtResText)
 
 		case "filtration":
-			handlers.HandlerMessageTypeFiltration(cwtResText, sma, msg.Data, msg.ClientID, appc.DirectoryStoringProcessedFiles.Raw)
+			handlers.HandlerMessageTypeFiltration(sma, msg.Data, msg.ClientID, appc.DirectoryStoringProcessedFiles.Raw, saveMessageApp, cwtResText)
 
 		case "download files":
 			fmt.Println("--- resived message JSON 'DOWNLOAD FILES', func 'RouteWssConnect'")
 			fmt.Printf("client ID %v\n", msg.ClientID)
 
+			handlers.HandlerMessageTypeDownload(sma, msg.Data, msg.ClientID, appc.DirectoryStoringProcessedFiles.Raw, saveMessageApp, cwtResText, cwtResBinary)
 		}
 	}
 }

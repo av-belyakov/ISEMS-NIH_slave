@@ -5,6 +5,10 @@ package configure
 * */
 
 //DetailInfoMsgPing подробная информация
+// MaxCountProcessFiltration - максимальное кол-во одновременно выполняемых процессов фильтрации
+// EnableTelemetry - включить телеметрию
+// StorageFolders - директория для хранения файлов
+// TypeAreaNetwork - тип сети
 type DetailInfoMsgPing struct {
 	MaxCountProcessFiltration int8     `json:"maxCountProcessFiltration"`
 	EnableTelemetry           bool     `json:"enableTelemetry"`
@@ -69,4 +73,43 @@ type FiltrationControlIPorNetorPortParameters struct {
 	Any []string `json:"any"`
 	Src []string `json:"src"`
 	Dst []string `json:"dst"`
+}
+
+/* ПАРАМЕТРЫ СКАЧИВАНИЯ ФАЙЛОВ */
+
+//MsgTypeDownloadControl сообщение типа 'download files'
+type MsgTypeDownloadControl struct {
+	MsgType string                `json:"messageType"`
+	Info    DetailInfoMsgDownload `json:"info"`
+}
+
+//DetailInfoMsgDownload подробная информация
+// TaskID - ID задачи
+// Command - статус выполняемой задачи
+//  - 'give me the file' (master -> slave), запрос файла
+//  - 'ready to receive file' (master -> salve), подтверждение готовности приема файла
+//  - 'ready for the transfer' (slave -> master), подтверждение готовности передачи
+//  - 'file transfer not possible' (slave -> master), сообщение о невозможности передачи
+//  - 'file transfer complete' (slave -> master), сообщение о завершении передачи
+// PathDirStorage - директория в которой хранятся файлы на источнике
+// FileOptions - параметры файла
+type DetailInfoMsgDownload struct {
+	TaskID         string              `json:"tid"`
+	Command        string              `json:"c"`
+	PathDirStorage string              `json:"pds"`
+	FileOptions    DownloadFileOptions `json:"fo"`
+}
+
+//DownloadFileOptions параметры загружаемого файла
+// Name - название файла
+// Size - размер файла
+// Hex - контрольная сумма файла
+// NumChunk - кол-во передаваемых кусочков
+// ChunkSize - размер передаваемого кусочка
+type DownloadFileOptions struct {
+	Name      string `json:"n"`
+	Size      int64  `json:"sz"`
+	Hex       string `json:"hex"`
+	NumChunk  int    `json:"nc"`
+	ChunkSize int    `json:"cs"`
 }

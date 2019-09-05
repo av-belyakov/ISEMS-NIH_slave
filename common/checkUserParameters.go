@@ -148,3 +148,24 @@ func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParameter
 
 	return "", true
 }
+
+//CheckParametersDownloadFile проверяем параметры запроса на скачивание файла
+func CheckParametersDownloadFile(dimd configure.DetailInfoMsgDownload) (string, bool) {
+	if len(dimd.TaskID) == 0 {
+		return fmt.Sprint("Невозможно начать выгрузку файла, ID задачи не задан."), false
+	}
+
+	if len(dimd.PathDirStorage) == 0 {
+		return fmt.Sprint("Невозможно начать выгрузку файла, не задана директория в которой хранится требуемый файл."), false
+	}
+
+	if len(dimd.FileOptions.Name) == 0 {
+		return fmt.Sprint("Невозможно начать выгрузку файла, не задано имя файла."), false
+	}
+
+	if len(dimd.FileOptions.Hex) == 0 {
+		return fmt.Sprint("Невозможно начать выгрузку файла, не указана хеш-сумма запрашиваемого файла."), false
+	}
+
+	return "", true
+}

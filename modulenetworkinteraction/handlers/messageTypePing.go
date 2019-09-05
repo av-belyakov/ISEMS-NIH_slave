@@ -23,13 +23,11 @@ type checkingTaskResult struct {
 
 //HandlerMessageTypePing обработчик сообщений типа 'Ping'
 func HandlerMessageTypePing(
-	cwtResText chan<- configure.MsgWsTransmission,
 	sma *configure.StoreMemoryApplication,
 	req *[]byte,
-	clientID string) {
-
-	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
+	clientID string,
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
+	cwtResText chan<- configure.MsgWsTransmission) {
 
 	reqJSON := configure.MsgTypePing{}
 	if err := json.Unmarshal(*req, &reqJSON); err != nil {
