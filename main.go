@@ -182,6 +182,11 @@ func init() {
 		_ = saveMessageApp.LogMessage("error", "it is impossible to obtain the version number of the application")
 	}
 
+	//проверяем размер передаваемой части файла
+	if (appConfig.MaxSizeTransferredChunkFile < 1024) || (appConfig.MaxSizeTransferredChunkFile > 65535) {
+		appConfig.MaxSizeTransferredChunkFile = 1024
+	}
+
 }
 
 func main() {

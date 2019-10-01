@@ -6,7 +6,6 @@ import (
 	"io"
 	"math"
 	"os"
-	"path"
 	"strconv"
 	"time"
 
@@ -45,7 +44,7 @@ func GetCountPartsMessage(list map[string]int, sizeChunk int) int {
 }
 
 //CountNumberParts подсчет количества частей
-func CountNumberParts(num, sizeChunk int) int {
+func CountNumberParts(num int64, sizeChunk int) int {
 	n := float64(num)
 	sc := float64(sizeChunk)
 	x := math.Floor(n / sc)
@@ -143,18 +142,23 @@ func GetChunkListFilesFound(lf map[string]*configure.InputFilesInformation, numP
 	return listFiles
 }
 
-//GetChecksumFile возвращает контрольную сумму файла
-func GetChecksumFile(pathFile, nameFile string) (string, error) {
-	f, err := os.Open(path.Join(pathFile, nameFile))
+//GetFileParameters получает параметры файла, его размер и хеш-сумму
+func GetFileParameters(filePath string) (int64, string, error) {
+	fd, err := os.Open(filePath)
 	if err != nil {
-		return "", err
+		return 0, "", err
 	}
-	defer f.Close()
+	defer fd.Close()
+
+	fileInfo, err := fd.Stat()
+	if err != nil {
+		return 0, "", err
+	}
 
 	h := md5.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", err
+	if _, err := io.Copy(h, fd); err != nil {
+		return 0, "", err
 	}
 
-	return hex.EncodeToString(h.Sum(nil)), nil
+	return fileInfo.Size(), hex.EncodeToString(h.Sum(nil)), nil
 }

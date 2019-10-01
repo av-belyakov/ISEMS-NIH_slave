@@ -1,6 +1,6 @@
 {
     "isServer": false,
-    "isServer_comments": "запускать приложение как сервер (true), как клиент (false)",
+    "isServer_comments": "запуск приложения как сервер (true), как клиент (false)",
     "toConnectServerHTTPS": [{
             "ip": "127.0.0.1",
             "port": 13313,
@@ -12,6 +12,7 @@
             "token": "f3y8y7te7t278gf6f26f62fd6"
         }
     ],
+    "toConnectServerHTTPS_comments": "параметры для соединения с серверами 'ISEMS-NIH_master'",
     "timeReconnect": 10,
     "timeReconnect_comments": "актуально только в режиме isServer = false, тогда с заданным интервалом времени будут попытки соединения с адресом мастера",
     "localServerHTTPS": {
@@ -34,5 +35,7 @@
     "pathLogFiles": "/var/log",
     "pathLogFiles_comments": "место расположение лог-файла приложения",
     "refreshIntervalTelemetryInfo": 15,
-    "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации"
+    "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации",
+    "maxSizeTransferredChunkFile": 4096,
+    "maxSizeTransferredChunkFile_comments": "максимальный размер передаваемого кусочка файла"
 }

@@ -25,8 +25,8 @@ func RouteWssConnect(
 	cwtResBinary chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
 	sma *configure.StoreMemoryApplication,
-	cwtReq <-chan configure.MsgWsTransmission,
-	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
+	cwtReq <-chan configure.MsgWsTransmission) {
 
 	var mtJSON msgTypeJSON
 
@@ -46,7 +46,7 @@ func RouteWssConnect(
 			fmt.Println("--- resived message JSON 'DOWNLOAD FILES', func 'RouteWssConnect'")
 			fmt.Printf("client ID %v\n", msg.ClientID)
 
-			handlers.HandlerMessageTypeDownload(sma, msg.Data, msg.ClientID, appc.DirectoryStoringProcessedFiles.Raw, saveMessageApp, cwtResText, cwtResBinary)
+			handlers.HandlerMessageTypeDownload(sma, msg.Data, msg.ClientID, appc, saveMessageApp, cwtResText, cwtResBinary)
 		}
 	}
 }

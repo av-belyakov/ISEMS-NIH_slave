@@ -9,8 +9,7 @@ import (
 )
 
 /*
-* Описание типа в котором хранятся параметры и выполняемые задачи
-* приложения
+* Описание типа в котором хранятся параметры и выполняемые задачи приложения
 *
 * Версия 0.3, дата релиза 27.05.2019
 * */
@@ -95,7 +94,9 @@ type FiltrationTasks struct {
 // NumFileChunk - количество частей файла
 // NumChunkSent - количество оправленых частей
 // SizeFileChunk - размер части файла
+// StrHex - хеш-строка идентифицирующая часть файла
 // DirectiryPathStorage - путь к директории для хранения файлов
+// ChanStopReadFile - канал для останова чтения и передачи файла
 type DownloadTasks struct {
 	FileName             string
 	FileSize             int64
@@ -103,7 +104,9 @@ type DownloadTasks struct {
 	NumFileChunk         int
 	NumChunkSent         int
 	SizeFileChunk        int
+	StrHex               string
 	DirectiryPathStorage string
+	ChanStopReadFile     chan struct{}
 }
 
 type chanReqSettingsTask struct {
@@ -195,6 +198,29 @@ func NewRepositorySMA() *StoreMemoryApplication {
 				}
 
 			case "download":
+				switch msg.ActionType {
+				case "add chan stop read file":
+					if csrf, ok := msg.Parameters.(chan struct{}); ok {
+						sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].ChanStopReadFile = csrf
+					}
+
+				case "get task information":
+					msg.ChanRespons <- chanResSettingsTask{
+						Parameters: sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID],
+					}
+
+				case "inc num chunk sent":
+					num := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].NumChunkSent + 1
+					sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].NumChunkSent = num
+
+					msg.ChanRespons <- chanResSettingsTask{
+						Parameters: num,
+					}
+
+				case "delete task":
+					delete(sma.clientTasks[msg.ClientID].downloadTasks, msg.TaskID)
+
+				}
 
 			}
 		}
@@ -549,12 +575,96 @@ func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) er
 }
 
 //AddTaskDownload добавить задачу
-func (sma *StoreMemoryApplication) AddTaskDownload(clientID, taskID string) {
+func (sma *StoreMemoryApplication) AddTaskDownload(clientID, taskID string, dt *DownloadTasks) {
+	sma.clientTasks[clientID].downloadTasks[taskID] = dt
+}
 
+//AddChanStopReadFileTaskDownload добавляет канал для останова чтения и передачи файла
+func (sma *StoreMemoryApplication) AddChanStopReadFileTaskDownload(clientID, taskID string, csrf chan struct{}) error {
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return err
+	}
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:   clientID,
+		TaskID:     taskID,
+		TaskType:   "download",
+		ActionType: "add chan stop read file",
+		Parameters: csrf,
+	}
+
+	return nil
+}
+
+//GetInfoTaskDownload получить всю информацию о задаче выполняемой пользователем
+func (sma *StoreMemoryApplication) GetInfoTaskDownload(clientID, taskID string) (*DownloadTasks, error) {
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return nil, err
+	}
+
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "download",
+		ActionType:  "get task information",
+		ChanRespons: chanRes,
+	}
+
+	res := <-chanRes
+	if info, ok := res.Parameters.(*DownloadTasks); ok {
+		return info, res.Error
+	}
+
+	return nil, res.Error
+}
+
+//IncrementNumChunkSent увеличивает на еденицу кол-во переданных частей файла
+func (sma *StoreMemoryApplication) IncrementNumChunkSent(clientID, taskID string) (int, error) {
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return 0, err
+	}
+
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "download",
+		ActionType:  "inc num chunk sent",
+		ChanRespons: chanRes,
+	}
+
+	res := <-chanRes
+	if num, ok := res.Parameters.(int); ok {
+		return num, res.Error
+	}
+
+	return 0, res.Error
+}
+
+//DelTaskDownload удаление выбранной задачи
+func (sma *StoreMemoryApplication) DelTaskDownload(clientID, taskID string) error {
+	if err := sma.checkTaskExist(clientID, taskID); err != nil {
+		return err
+	}
+
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "download",
+		ActionType:  "delete task",
+		ChanRespons: chanRes,
+	}
+
+	return nil
 }
 
 //CheckTaskDownload проверяем наличие задачи
-func (sma *StoreMemoryApplication) CheckTaskDownload(taskID string) bool {
+/*func (sma *StoreMemoryApplication) CheckTaskDownload(taskID string) bool {
 
 	return false
-}
+}*/

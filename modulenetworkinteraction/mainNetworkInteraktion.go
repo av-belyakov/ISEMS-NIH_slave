@@ -12,7 +12,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -91,7 +90,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 
 	//инициализируем канал для передачи текстовых данных через websocket соединение
 	cwtResText := make(chan configure.MsgWsTransmission)
-	//инициализируем канал для передачи текстовых данных через websocket соединение
+	//инициализируем канал для передачи бинарных данных через websocket соединение
 	cwtResBinary := make(chan configure.MsgWsTransmission)
 	//инициализируем канал для приема текстовых данных через websocket соединение
 	cwtReq := make(chan configure.MsgWsTransmission)
@@ -102,13 +101,13 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 		getConnLink := func(msg configure.MsgWsTransmission) (*configure.WssConnection, error) {
 			s, ok := sma.GetClientSetting(msg.ClientID)
 			if !ok {
-				return nil, errors.New("the ip address cannot be found by the given client ID " + msg.ClientID)
+				return nil, fmt.Errorf("the ip address cannot be found by the given client ID %v", msg.ClientID)
 			}
 
 			//получаем линк websocket соединения
 			c, ok := sma.GetLinkWebsocketConnect(s.IP)
 			if !ok {
-				return nil, errors.New("no connection found at websocket link ip address " + s.IP)
+				return nil, fmt.Errorf("no connection found at websocket link ip address %v", s.IP)
 			}
 
 			return c, nil
@@ -146,7 +145,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	}()
 
 	//обработка запросов поступающих в приложение снаружи
-	go RouteWssConnect(cwtResText, cwtResBinary, appc, sma, cwtReq, saveMessageApp)
+	go RouteWssConnect(cwtResText, cwtResBinary, appc, sma, saveMessageApp, cwtReq)
 
 	//запуск телеметрии
 	go telemetry.TransmissionTelemetry(cwtResText, appc, sma)

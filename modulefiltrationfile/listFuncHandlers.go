@@ -414,11 +414,11 @@ func GetListFoundFiles(directoryResultFilter string) (map[string]*configure.Inpu
 
 	for _, file := range files {
 		if (file.Name() != "README.xml") && (file.Size() > 24) {
-			checkSum, _ := common.GetChecksumFile(directoryResultFilter, file.Name())
+			_, hex, _ := common.GetFileParameters(path.Join(directoryResultFilter, file.Name()))
 
 			newList[file.Name()] = &configure.InputFilesInformation{
 				Size: file.Size(),
-				Hex:  checkSum,
+				Hex:  hex,
 			}
 
 			sizeFiles += file.Size()
@@ -487,7 +487,7 @@ func SendMessageFiltrationComplete(
 	/* отправляем множество частей одного и того же сообщения */
 
 	//получаем количество частей сообщений
-	numParts := common.CountNumberParts(numFilesFound, sizeChunk)
+	numParts := common.CountNumberParts(int64(numFilesFound), sizeChunk)
 
 	numberMessageParts := [2]int{0, numParts}
 

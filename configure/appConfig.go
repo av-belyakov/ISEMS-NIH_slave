@@ -3,10 +3,20 @@ package configure
 /*
 * Описание типа конфигурационных настроек приложения
 *
-* Версия 0.2, дата релиза 03.04.2019
+* Версия 0.21, дата релиза 01.10.2019
 * */
 
 //AppConfig настройки приложения
+// VersionApp - версия приложения
+// RootDir - корневая директория приложения
+// IsServer - запуск приложения как сервер (true), как клиент (false)
+// ToConnectServerHTTPS - параметры для соединения с сервером 'Master'
+// LocalServerHTTPS - параметры настройки локального сервера
+// DirectoryStoringProcessedFiles - директории для хранения обработанных файлов
+// PathLogFiles - место расположение лог-файла приложения
+// RefreshIntervalTelemetryInfo - интервал обновления системной информации
+// TimeReconnect - актуально только в режиме isServer = false, тогда с заданным интервалом времени будут попытки соединения с адресом мастера
+// MaxSizeTransferredChunkFile - максимальный размер передаваемого кусочка файла
 type AppConfig struct {
 	VersionApp                     string
 	RootDir                        string
@@ -17,7 +27,7 @@ type AppConfig struct {
 	PathLogFiles                   string
 	RefreshIntervalTelemetryInfo   int
 	TimeReconnect                  int
-	TypeAreaNetwork                int
+	MaxSizeTransferredChunkFile    int
 }
 
 //settingsToConnectServerHTTPS настройки сервера с которым устанавливается подключение в режиме клиента
