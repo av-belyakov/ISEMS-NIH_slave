@@ -61,7 +61,7 @@ func HandlerMessageTypeDownload(
 	switch mtfcJSON.Info.Command {
 	//запрос на выгрузку файла
 	case "give me the file":
-		//проверяем выполняется ли уже задача по выгрузке файла для данного клиента
+		//проверяем, выполняется ли уже задача по выгрузке файла для данного клиента
 		if _, err := sma.GetInfoTaskDownload(clientID, taskID); err == nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprintf("the download task for this client is already in progress (client ID: %v, task ID: %v)", clientID, taskID))
 			msgErr := "Невозможно начать выгрузку файла, задача по скачиванию файла для данного клиента уже выполняется."
@@ -177,7 +177,7 @@ func HandlerMessageTypeDownload(
 			return
 		}
 
-		//запускаем передачу файла (добавляем в начале каждого кусочка строку '<id типа>:<id задачи>:<хеш файла>')
+		//запускаем передачу файла (добавляем в начале каждого кусочка строку '<id тип передачи>:<id задачи>:<хеш файла>')
 		chanStopReadFile, err := moduledownloadfile.ReadingFile(moduledownloadfile.ReadingFileParameters{
 			TaskID:           taskID,
 			ClientID:         clientID,
@@ -244,12 +244,5 @@ func HandlerMessageTypeDownload(
 
 		//отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла
 		ti.ChanStopReadFile <- struct{}{}
-
-		// отправляем 'file transfer stopped' при успешном останове передачи файла
-		/*
-
-			СООБЩЕНИЕ ОБ УСПЕШНОМ ОСТАНОВЕ
-
-		*/
 	}
 }

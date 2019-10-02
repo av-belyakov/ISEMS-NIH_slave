@@ -37,13 +37,6 @@ type ReadingFileParameters struct {
 func ReadingFile(rfp ReadingFileParameters, saveMessageApp *savemessageapp.PathDirLocationLogFiles) (chan struct{}, error) {
 	chanStop := make(chan struct{})
 
-	/*
-
-	   Похоже нужен еще один канал через котороый будут приходить сообщения
-	   об успешном останове или успешном завершении передачи файла
-
-	*/
-
 	file, err := os.Open(path.Join(rfp.PathDirName, rfp.FileName))
 	if err != nil {
 		return chanStop, err
