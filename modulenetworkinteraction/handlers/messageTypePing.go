@@ -17,7 +17,7 @@ import (
 )
 
 type checkingTaskResult struct {
-	isComplite bool
+	isComplete bool
 	Error      error
 }
 
@@ -81,7 +81,7 @@ func HandlerMessageTypePing(
 	chanCheckTask := checkingExecuteTaskFiltration(cwtResText, sma, clientID)
 
 	for r := range chanCheckTask {
-		if r.isComplite {
+		if r.isComplete {
 			break
 		}
 
@@ -104,18 +104,18 @@ func checkingExecuteTaskFiltration(
 		taskList, ok := sma.GetListTasksFiltration(clientID)
 		if !ok {
 			c <- checkingTaskResult{
-				isComplite: true,
+				isComplete: true,
 			}
 		}
 
 		if len(taskList) == 0 {
 			c <- checkingTaskResult{
-				isComplite: true,
+				isComplete: true,
 			}
 		}
 
 		for taskID, info := range taskList {
-			if info.Status == "stop" || info.Status == "complite" {
+			if info.Status == "stop" || info.Status == "complete" {
 				//отправляем сообщение о завершении фильтрации и передаем СПИСОК ВСЕХ найденных в результате фильтрации файлов
 				if err := modulefiltrationfile.SendMessageFiltrationComplete(cwtResText, sma, clientID, taskID); err != nil {
 					c <- checkingTaskResult{
@@ -126,7 +126,7 @@ func checkingExecuteTaskFiltration(
 		}
 
 		c <- checkingTaskResult{
-			isComplite: true,
+			isComplete: true,
 		}
 	}()
 

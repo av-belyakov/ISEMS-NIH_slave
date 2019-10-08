@@ -310,7 +310,7 @@ DONE:
 		ClientID:       np.ClientID,
 		TaskID:         np.TaskID,
 		DirectoryName:  dirName,
-		TypeProcessing: "complite",
+		TypeProcessing: "complete",
 	}
 
 	ti, err := sma.GetInfoTaskFiltration(np.ClientID, np.TaskID)
@@ -352,7 +352,7 @@ func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyPa
 
 	tp := responseDone.TypeProcessing
 	if tp == "execute" {
-		tp = "complite"
+		tp = "complete"
 	}
 
 	if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{

@@ -58,8 +58,10 @@ func HandlerMessageTypeFiltration(
 		task.ChanStopFiltration <- struct{}{}
 	}
 
-	//при получении подтверждения о завершении фильтрации (не важно 'stop' или 'complite') удаляем задачу
-	if mtfcJSON.Info.Command == "confirm complite" {
+	//при получении подтверждения о завершении фильтрации (не важно 'stop' или 'complete') удаляем задачу
+	if mtfcJSON.Info.Command == "confirm complete" {
+		fmt.Println("function 'messageTypeFiltration', resived message type 'confirm complete'")
+
 		if err := sma.DelTaskFiltration(clientID, mtfcJSON.Info.TaskID); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
