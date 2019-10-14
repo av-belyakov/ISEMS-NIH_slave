@@ -138,6 +138,8 @@ type currentListFilesFilteration struct {
 func searchFiles(result chan<- currentListFilesFilteration, disk string, currentTask *configure.FiltrationTasks) {
 	clff := currentListFilesFilteration{Path: disk}
 
+	fmt.Printf("func 'searchFiles' search file for DISK = %v\n", disk)
+
 	if currentTask.UseIndex {
 		for _, file := range currentTask.ListFiles[disk] {
 			fileInfo, err := os.Stat(path.Join(disk, file))
@@ -184,12 +186,14 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
+	fmt.Println("func 'getListFilesForFiltering' START...")
+
 	currentTask, err := sma.GetInfoTaskFiltration(clientID, taskID)
 	if err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
 		return err
 	}
+
+	fmt.Println("func 'getListFilesForFiltering' GET current task")
 
 	as := sma.GetApplicationSetting()
 	ld := as.StorageFolders
@@ -215,6 +219,8 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 
 	for count > 0 {
 		resultFoundFile := <-result
+
+		fmt.Printf("func 'getListFilesForFiltering' INFO FOR FOUND FILES %v\n", resultFoundFile)
 
 		if resultFoundFile.ErrMsg != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(resultFoundFile.ErrMsg))
@@ -437,6 +443,8 @@ func SendMessageFiltrationComplete(
 
 	const sizeChunk = 100
 
+	fmt.Println("func 'SendMessageFiltrationComplete' START...")
+
 	taskInfo, err := sma.GetInfoTaskFiltration(clientID, taskID)
 	if err != nil {
 		return err
@@ -475,6 +483,8 @@ func SendMessageFiltrationComplete(
 			return err
 		}
 
+		fmt.Println("func 'SendMessageFiltrationComplete' SEND ONE MESSAGE COMPLITE")
+
 		//сообщение о завершении процесса фильтрации
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
@@ -503,6 +513,8 @@ func SendMessageFiltrationComplete(
 		if err != nil {
 			return err
 		}
+
+		fmt.Printf("func 'SendMessageFiltrationComplete' SEND %v MESSAGE COMPLITE\n", i)
 
 		//сообщение о завершении процесса фильтрации
 		cwtResText <- configure.MsgWsTransmission{

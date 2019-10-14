@@ -54,8 +54,24 @@ func HandlerMessageTypeFiltration(
 			return
 		}
 
+		fmt.Println("func 'messageTypeFiltration' RESIVED MSG 'STOP FILTRATION'")
+
+		if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{
+			"Status": "stop",
+		}); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
 		//отправляем запрос на останов задачи по фильтрации файлов
-		task.ChanStopFiltration <- struct{}{}
+		//task.ChanStopFiltration <- struct{}{}
+		num := 1
+		for _, c := range task.ListChanStopFiltration {
+			fmt.Printf("func 'messageTypeFiltration' SEND msg to CHAN STOP %v\n", num)
+
+			c <- struct{}{}
+
+			num++
+		}
 	}
 
 	//при получении подтверждения о завершении фильтрации (не важно 'stop' или 'complete') удаляем задачу

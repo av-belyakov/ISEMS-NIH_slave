@@ -45,6 +45,9 @@ func ProcessingFiltration(
 
 	//строим список файлов удовлетворяющих параметрам фильтрации
 	if err := getListFilesForFiltering(sma, clientID, taskID); err != nil {
+
+		fmt.Printf("func 'ProcessingFiltration' ERROR: %v\n", err)
+
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 		d := "Ошибка, невозможно создать список файлов удовлетворяющий параметрам фильтрации. Задача отклонена."
@@ -183,8 +186,14 @@ func ProcessingFiltration(
 
 		fmt.Printf("//запуск фильтрации для каждой директории %v\n", dirName)
 
+		newChanStop := make(chan struct{})
+
+		if err := sma.AddNewChanStopProcessionFiltrationTask(clientID, taskID, newChanStop); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
 		//запуск фильтрации для каждой директории
-		go executeFiltration(done, info, sma, np, dirName, patternScript)
+		go executeFiltration(done, info, sma, np, dirName, patternScript, newChanStop)
 	}
 
 	_ = saveMessageApp.LogMessage("info", fmt.Sprintf("start of a task to filter with the ID %v", taskID))
@@ -201,7 +210,10 @@ func executeFiltration(
 	ft *configure.FiltrationTasks,
 	sma *configure.StoreMemoryApplication,
 	np common.NotifyParameters,
-	dirName, ps string) {
+	dirName, ps string,
+	chanStop <-chan struct{}) {
+
+	fmt.Printf("func 'executeFiltration' START, dir name: %v\n", dirName)
 
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
@@ -212,15 +224,28 @@ DONE:
 
 		select {
 		//выполнится если в канал придет запрос на останов фильтрации
-		case <-ft.ChanStopFiltration:
-			if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{
+		case <-chanStop:
+
+			fmt.Println("func 'executeFiltration' ----- STOP -------")
+
+			/*if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{
 				"Status": "stop",
 			}); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}
+			}*/
 
 			break DONE
 
+			/*
+				case <-ft.ChanStopFiltration:
+				if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{
+					"Status": "stop",
+				}); err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+
+				break DONE
+			*/
 		default:
 			var successfulFiltering bool
 
@@ -270,7 +295,7 @@ DONE:
 				MsgType: "filtration",
 				Info: configure.DetailInfoMsgFiltration{
 					TaskID:                          np.TaskID,
-					TaskStatus:                      taskInfo.Status,
+					TaskStatus:                      "execute",
 					NumberFilesMeetFilterParameters: taskInfo.NumberFilesMeetFilterParameters,
 					NumberProcessedFiles:            taskInfo.NumberProcessedFiles,
 					NumberFilesFoundResultFiltering: taskInfo.NumberFilesFoundResultFiltering,
@@ -329,6 +354,8 @@ DONE:
 func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyParameters, done chan chanDone) {
 	saveMessageApp := savemessageapp.New()
 
+	fmt.Println("func 'filteringComplete' START...")
+
 	defer close(done)
 
 	var dirComplete int
@@ -345,6 +372,9 @@ func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyPa
 
 	for dirComplete < num {
 		responseDone = <-done
+
+		fmt.Printf("func 'filteringComplete' dirComplete = %v\n", dirComplete)
+
 		if np.TaskID == responseDone.TaskID {
 			dirComplete++
 		}
@@ -361,13 +391,15 @@ func filteringComplete(sma *configure.StoreMemoryApplication, np common.NotifyPa
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
+	fmt.Println("func 'filteringComplete' SEND MSG...")
+
 	//отправляем сообщение о завершении фильтрации и передаем СПИСОК ВСЕХ найденных в результате фильтрации файлов
 	if err := SendMessageFiltrationComplete(np.ChanRes, sma, np.ClientID, np.TaskID); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
-	d := "Задача по фильтрации сетевого трафика завершена"
+	/*d := "Задача по фильтрации сетевого трафика завершена"
 	if err := np.SendMsgNotify("success", "filtration control", d, tp); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-	}
+	}*/
 }

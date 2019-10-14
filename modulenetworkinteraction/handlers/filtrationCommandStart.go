@@ -115,7 +115,7 @@ func StartFiltration(
 			UseIndex:                        mtfcJSON.Info.IndexIsFound,
 			NumberFilesMeetFilterParameters: mtfcJSON.Info.CountIndexFiles,
 			Filters:                         mtfcJSON.Info.Options.Filters,
-			ChanStopFiltration:              make(chan struct{}),
+			ListChanStopFiltration:          make([]chan struct{}, 0, len(as.StorageFolders)),
 			ListFiles:                       make(map[string][]string),
 		})
 	}
