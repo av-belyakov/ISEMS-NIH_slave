@@ -35,38 +35,18 @@ func StartFiltration(
 
 	fmt.Printf("\tПринята задача по фильтрации сет. трафика с ID %v\n", taskID)
 
+	rejectMsgJSON, err := json.Marshal(configure.MsgTypeFiltration{
+		MsgType: "filtration",
+		Info: configure.DetailInfoMsgFiltration{
+			TaskID:     taskID,
+			TaskStatus: "refused",
+		},
+	})
+	if err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}
+
 	if mtfcJSON.Info.NumberMessagesFrom[0] == 0 {
-		cs, ok := sma.GetClientSetting(clientID)
-		if !ok {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprintf("client with ID %v not found", clientID))
-
-			en := "user error"
-			ed := fmt.Sprintf("client with ID %v not found", clientID)
-			if err := np.SendMsgErr(en, ed); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}
-
-			return
-		}
-
-		mcpf := cs.MaxCountProcessFiltration
-
-		tasksList, _ := sma.GetListTasksFiltration(clientID)
-
-		fmt.Println("\tПроверяем максимальное кол-во одновременно запущеных задач")
-
-		//проверяем количество выполняемых задач (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
-		if len(tasksList) >= int(mcpf) {
-			_ = saveMessageApp.LogMessage("info", "the maximum number of concurrent file filtering tasks has been reached, the task is rejected.")
-
-			d := "Достигнут лимит максимального количества выполняемых, параллельных задач по фильтрации файлов. Задача отклонена."
-			if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}
-
-			return
-		}
-
 		fmt.Println("\tпроверяем параметры фильтрации")
 
 		//проверяем параметры фильтрации (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
@@ -75,6 +55,11 @@ func StartFiltration(
 
 			if err := np.SendMsgNotify("danger", "filtration control", msg, "start"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			cwtResText <- configure.MsgWsTransmission{
+				ClientID: clientID,
+				Data:     &rejectMsgJSON,
 			}
 
 			return
@@ -92,6 +77,11 @@ func StartFiltration(
 			d := "Не было задано ни одной директории для фильтрации сетевого трафика или заданные директории не были найденны. Задача отклонена."
 			if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			cwtResText <- configure.MsgWsTransmission{
+				ClientID: clientID,
+				Data:     &rejectMsgJSON,
 			}
 
 			return
@@ -138,22 +128,9 @@ func StartFiltration(
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
-		//отправляем ответ на снятие задачи
-		resJSON, err := json.Marshal(configure.MsgTypeFiltration{
-			MsgType: "filtration",
-			Info: configure.DetailInfoMsgFiltration{
-				TaskID:     taskID,
-				TaskStatus: "refused",
-			},
-		})
-		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}
-
-		//сообщение о ходе процесса фильтрации
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
-			Data:     &resJSON,
+			Data:     &rejectMsgJSON,
 		}
 
 		//удаляем задачу

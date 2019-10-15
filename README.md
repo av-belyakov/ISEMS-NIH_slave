@@ -1,4 +1,4 @@
-Application ISEMS-NIH slave, v0.3
+Application ISEMS-NIH slave, v0.31
 Information Security Event Management System Network Interaction Handler (ISEMS-NIH)
 
 Клиент сетевого взаимодействия с сервером ISEMS-NIH master.

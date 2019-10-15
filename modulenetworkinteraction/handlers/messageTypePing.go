@@ -36,11 +36,6 @@ func HandlerMessageTypePing(
 		return
 	}
 
-	var mcpf int8 = 3
-	if mcpf > 0 {
-		mcpf = reqJSON.Info.MaxCountProcessFiltration
-	}
-
 	typeAreaNetwork := "ip"
 	if strings.ToLower(reqJSON.Info.TypeAreaNetwork) == "pppoe" {
 		typeAreaNetwork = "pppoe"
@@ -58,7 +53,6 @@ func HandlerMessageTypePing(
 		return
 	}
 
-	cs.MaxCountProcessFiltration = mcpf
 	cs.SendsTelemetry = reqJSON.Info.EnableTelemetry
 
 	sma.SetClientSetting(clientID, cs)

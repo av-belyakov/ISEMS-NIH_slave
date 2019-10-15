@@ -32,14 +32,13 @@ type ApplicationSettings struct {
 
 //ClientSettings настройки индивидуальные для клиента
 type ClientSettings struct {
-	ConnectionStatus          bool
-	IP                        string
-	Port                      string
-	Token                     string
-	DateLastConnected         int64 //Unix time
-	AccessIsAllowed           bool
-	SendsTelemetry            bool
-	MaxCountProcessFiltration int8
+	ConnectionStatus  bool
+	IP                string
+	Port              string
+	Token             string
+	DateLastConnected int64 //Unix time
+	AccessIsAllowed   bool
+	SendsTelemetry    bool
 }
 
 //TasksList список задач

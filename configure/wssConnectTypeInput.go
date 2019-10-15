@@ -5,15 +5,13 @@ package configure
 * */
 
 //DetailInfoMsgPing подробная информация
-// MaxCountProcessFiltration - максимальное кол-во одновременно выполняемых процессов фильтрации
 // EnableTelemetry - включить телеметрию
 // StorageFolders - директория для хранения файлов
 // TypeAreaNetwork - тип сети
 type DetailInfoMsgPing struct {
-	MaxCountProcessFiltration int8     `json:"maxCountProcessFiltration"`
-	EnableTelemetry           bool     `json:"enableTelemetry"`
-	StorageFolders            []string `json:"storageFolders"`
-	TypeAreaNetwork           string   `json:"typeAreaNetwork"`
+	EnableTelemetry bool     `json:"enableTelemetry"`
+	StorageFolders  []string `json:"storageFolders"`
+	TypeAreaNetwork string   `json:"typeAreaNetwork"`
 }
 
 //MsgTypePing сообщение типа ping
