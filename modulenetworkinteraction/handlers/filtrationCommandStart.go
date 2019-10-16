@@ -118,7 +118,7 @@ func StartFiltration(
 		return
 	}
 
-	//объединение списков файлов для задачи (возобновляемой или выполняемой на основе индексов)
+	//объединение списков файлов для задачи (выполняемой на основе индексов)
 	layoutListCompleted, err := common.MergingFileListForTaskFiltration(sma, mtfcJSON, clientID)
 	if err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))

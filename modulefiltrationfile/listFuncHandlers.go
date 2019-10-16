@@ -477,7 +477,7 @@ func SendMessageFiltrationComplete(
 			return err
 		}
 
-		fmt.Println("func 'SendMessageFiltrationComplete' SEND ONE MESSAGE COMPLITE")
+		fmt.Printf("func 'SendMessageFiltrationComplete' SEND ONE MESSAGE COMPLITE, TASK ID %v\n", taskID)
 
 		//сообщение о завершении процесса фильтрации
 		cwtResText <- configure.MsgWsTransmission{
@@ -508,7 +508,7 @@ func SendMessageFiltrationComplete(
 			return err
 		}
 
-		fmt.Printf("func 'SendMessageFiltrationComplete' SEND %v MESSAGE COMPLITE\n", i)
+		fmt.Printf("func 'SendMessageFiltrationComplete' SEND %v MESSAGE COMPLITE, TASK ID %v\n", i, taskID)
 
 		//сообщение о завершении процесса фильтрации
 		cwtResText <- configure.MsgWsTransmission{

@@ -66,7 +66,7 @@ func ProcessingFiltration(
 		return
 	}
 
-	fmt.Println("//получаем информацию о выполняемой задачи")
+	fmt.Println("//получаем информацию о выполняемой задаче")
 
 	//получаем информацию о выполняемой задачи
 	info, err := sma.GetInfoTaskFiltration(clientID, taskID)
@@ -315,6 +315,8 @@ DONE:
 					},
 				}
 			}
+
+			fmt.Printf("отправлена информация о задаче с ID '%v', статус задачи - 'execute'\n", np.TaskID)
 
 			resJSON, err := json.Marshal(msgRes)
 			if err != nil {
