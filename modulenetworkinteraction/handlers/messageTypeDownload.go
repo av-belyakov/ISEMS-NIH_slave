@@ -37,6 +37,8 @@ func HandlerMessageTypeDownload(
 		return
 	}
 
+	fmt.Printf("function 'HandlerMessageTypeDownload', RESIVED MSG '%v' FROM MASTER\n", mtfcJSON)
+
 	taskID := mtfcJSON.Info.TaskID
 
 	np := common.NotifyParameters{
@@ -61,10 +63,15 @@ func HandlerMessageTypeDownload(
 	switch mtfcJSON.Info.Command {
 	//запрос на выгрузку файла
 	case "give me the file":
-		//проверяем, выполняется ли уже задача по выгрузке файла для данного клиента
+
+		fmt.Println("func 'HandlerMessageTypeDownload', проверяем, выполняется ли уже задача по выгрузке файла для данного клиента")
+
+		//проверяем, выполняется ли задача по выгрузке файла для данного клиента
 		if _, err := sma.GetInfoTaskDownload(clientID, taskID); err == nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprintf("the download task for this client is already in progress (client ID: %v, task ID: %v)", clientID, taskID))
 			msgErr := "Невозможно начать выгрузку файла, задача по скачиванию файла для данного клиента уже выполняется."
+
+			fmt.Printf("func 'HandlerMessageTypeDownload' ERROR: %v\n", fmt.Sprint(err))
 
 			if err := np.SendMsgNotify("danger", "download control", msgErr, "stop"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -77,12 +84,16 @@ func HandlerMessageTypeDownload(
 
 			return
 		}
+
+		fmt.Println("func 'HandlerMessageTypeDownload', проверяем параметры запроса")
 
 		//проверяем параметры запроса
 		msgErr, ok := common.CheckParametersDownloadFile(mtfcJSON.Info)
 		if !ok {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprintf("incorrect parameters for download file (client ID: %v, task ID: %v)", clientID, taskID))
 
+			fmt.Printf("func 'HandlerMessageTypeDownload' ERROR: %v\n", fmt.Sprint(err))
+
 			if err := np.SendMsgNotify("danger", "download control", msgErr, "stop"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
@@ -95,11 +106,15 @@ func HandlerMessageTypeDownload(
 			return
 		}
 
+		fmt.Println("func 'HandlerMessageTypeDownload', проверяем наличие файла, его размер и хеш-сумму")
+
 		//проверяем наличие файла, его размер и хеш-сумму
 		fileSize, fileHex, err := common.GetFileParameters(path.Join(mtfcJSON.Info.PathDirStorage, mtfcJSON.Info.FileOptions.Name))
 		if (err != nil) || (fileSize != mtfcJSON.Info.FileOptions.Size) || (fileHex != mtfcJSON.Info.FileOptions.Hex) {
 			errMsgLog := fmt.Sprintf("file upload cannot be started, the requested file is not found, or the file size and checksum do not match those accepted in the request (client ID: %v, task ID: %v)", clientID, taskID)
 			errMsgHuman := "Невозможно начать выгрузку файла, требуемый файл не найден или его размер и контрольная сумма не совпадают с принятыми в запросе."
+
+			fmt.Println("Невозможно начать выгрузку файла, требуемый файл не найден или его размер и контрольная сумма не совпадают с принятыми в запросе.")
 
 			_ = saveMessageApp.LogMessage("error", errMsgLog)
 
@@ -118,10 +133,12 @@ func HandlerMessageTypeDownload(
 		strHex := fmt.Sprintf("1:%v:%v", taskID, fileHex)
 		chunkSize := (appc.MaxSizeTransferredChunkFile - len(strHex))
 
+		fmt.Println("func 'HandlerMessageTypeDownload', подсчитываем и получаем кол-во частей файла")
+
 		//получаем кол-во частей файла
 		numChunk := common.CountNumberParts(fileSize, chunkSize)
 		responseMsgJSON, err := json.Marshal(configure.MsgTypeDownloadControl{
-			MsgType: "download control",
+			MsgType: "download files",
 			Info: configure.DetailInfoMsgDownload{
 				TaskID:  taskID,
 				Command: "ready for the transfer",
@@ -135,10 +152,17 @@ func HandlerMessageTypeDownload(
 			},
 		})
 		if err != nil {
+
+			fmt.Printf("func 'HandlerMessageTypeDownload', %v\n", fmt.Sprint(err))
+
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 			return
 		}
+
+		fmt.Printf("func 'HandlerMessageTypeDownload', размер части = %v, всего частей = %v\n", chunkSize, numChunk)
+
+		fmt.Println("func 'HandlerMessageTypeDownload', создаем новую задачу по выгрузке файла в 'StoreMemoryApplication'")
 
 		//создаем новую задачу по выгрузке файла в 'StoreMemoryApplication'
 		sma.AddTaskDownload(clientID, taskID, &configure.DownloadTasks{
@@ -151,6 +175,13 @@ func HandlerMessageTypeDownload(
 			DirectiryPathStorage: mtfcJSON.Info.PathDirStorage,
 		})
 
+		tid, err := sma.GetInfoTaskDownload(clientID, taskID)
+
+		fmt.Printf("func 'HandlerMessageTypeDownload', ERROR from GetInfoTaskDownload '%v'\n", fmt.Sprint(err))
+		fmt.Printf("func 'HandlerMessageTypeDownload', Download Task Information: %v\n", tid)
+
+		fmt.Println("func 'HandlerMessageTypeDownload', отправляем сообщение типа 'ready for the transfer', кол-во частей файла и их размер")
+
 		//отправляем сообщение типа 'ready for the transfer', кол-во частей файла и их размер
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
@@ -159,6 +190,9 @@ func HandlerMessageTypeDownload(
 
 	//готовность к приему файла
 	case "ready to receive file":
+
+		fmt.Println("func 'HandlerMessageTypeDownload', проверяем наличие задачи в 'StoreMemoryApplication'")
+
 		//проверяем наличие задачи в 'StoreMemoryApplication'
 		ti, err := sma.GetInfoTaskDownload(clientID, taskID)
 		if err != nil {
@@ -177,8 +211,12 @@ func HandlerMessageTypeDownload(
 			return
 		}
 
+		fmt.Println("func 'HandlerMessageTypeDownload', запускаем передачу файла")
+
+		chanStopReadFile := make(chan struct{})
+
 		//запускаем передачу файла (добавляем в начале каждого кусочка строку '<id тип передачи>:<id задачи>:<хеш файла>')
-		chanStopReadFile, err := moduledownloadfile.ReadingFile(moduledownloadfile.ReadingFileParameters{
+		err = moduledownloadfile.ReadingFile(moduledownloadfile.ReadingFileParameters{
 			TaskID:           taskID,
 			ClientID:         clientID,
 			FileName:         ti.FileName,
@@ -187,10 +225,12 @@ func HandlerMessageTypeDownload(
 			StrHex:           ti.StrHex,
 			PathDirName:      ti.DirectiryPathStorage,
 			ChanCWTResBinary: cwtResBinary,
-		}, saveMessageApp)
+		}, saveMessageApp, chanStopReadFile)
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			msgErr := "Невозможно начать выгрузку файла, ошибка при чтении файла."
+
+			fmt.Printf("func 'HandlerMessageTypeDownload', ERROR: %v\n", fmt.Sprint(err))
 
 			if err := np.SendMsgNotify("danger", "download control", msgErr, "stop"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -203,6 +243,8 @@ func HandlerMessageTypeDownload(
 
 			return
 		}
+
+		fmt.Println("func 'HandlerMessageTypeDownload', добавляем канал для останова чтения и передачи файла")
 
 		//добавляем канал для останова чтения и передачи файла
 		if err := sma.AddChanStopReadFileTaskDownload(clientID, taskID, chanStopReadFile); err != nil {

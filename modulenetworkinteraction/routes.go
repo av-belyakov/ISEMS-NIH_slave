@@ -43,8 +43,7 @@ func RouteWssConnect(
 			handlers.HandlerMessageTypeFiltration(sma, msg.Data, msg.ClientID, appc.DirectoryStoringProcessedFiles.Raw, saveMessageApp, cwtResText)
 
 		case "download files":
-			fmt.Println("--- resived message JSON 'DOWNLOAD FILES', func 'RouteWssConnect'")
-			fmt.Printf("client ID %v\n", msg.ClientID)
+			fmt.Printf("\t func 'RouteWssConnect' resived message JSON 'DOWNLOAD FILES', func 'RouteWssConnect', client ID %v\n", msg.ClientID)
 
 			handlers.HandlerMessageTypeDownload(sma, msg.Data, msg.ClientID, appc, saveMessageApp, cwtResText, cwtResBinary)
 		}
