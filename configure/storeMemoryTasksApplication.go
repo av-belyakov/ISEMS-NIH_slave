@@ -11,7 +11,7 @@ import (
 /*
 * Описание типа в котором хранятся параметры и выполняемые задачи приложения
 *
-* Версия 0.31, дата релиза 14.10.2019
+* Версия 0.32, дата релиза 22.10.2019
 * */
 
 //StoreMemoryApplication параметры и задачи приложения
@@ -133,6 +133,17 @@ func NewRepositorySMA() *StoreMemoryApplication {
 	go func() {
 		for msg := range sma.chanReqSettingsTask {
 			switch msg.TaskType {
+			case "check exist client id":
+				if _, ok := sma.clientTasks[msg.ClientID]; !ok {
+					msg.ChanRespons <- chanResSettingsTask{
+						Error: fmt.Errorf("client with ID %v not found", msg.ClientID),
+					}
+
+					continue
+				}
+
+				msg.ChanRespons <- chanResSettingsTask{}
+
 			case "check filtration task exist":
 				if _, ok := sma.clientTasks[msg.ClientID]; !ok {
 					msg.ChanRespons <- chanResSettingsTask{
@@ -248,13 +259,30 @@ func NewRepositorySMA() *StoreMemoryApplication {
 				case "delete task":
 					delete(sma.clientTasks[msg.ClientID].downloadTasks, msg.TaskID)
 
-				}
+				case "delete all tasks":
+					for taskID := range sma.clientTasks[msg.ClientID].downloadTasks {
+						delete(sma.clientTasks[msg.ClientID].downloadTasks, taskID)
+					}
 
+				}
 			}
 		}
 	}()
 
 	return &sma
+}
+
+//checkExistClientID проверяет существование информации о клиенте
+func (sma *StoreMemoryApplication) checkExistClientID(clientID string) error {
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskType:    "check exist client id",
+		ChanRespons: chanRes,
+	}
+
+	return (<-chanRes).Error
 }
 
 //checkTaskExist проверяет существование задачи
@@ -274,9 +302,7 @@ func (sma *StoreMemoryApplication) checkTaskExist(clientID, taskID, taskType str
 		ChanRespons: chanRes,
 	}
 
-	res := <-chanRes
-
-	return res.Error
+	return (<-chanRes).Error
 }
 
 /* параметры приложения */
@@ -749,8 +775,17 @@ func (sma *StoreMemoryApplication) DelTaskDownload(clientID, taskID string) erro
 	return nil
 }
 
-//CheckTaskDownload проверяем наличие задачи
-/*func (sma *StoreMemoryApplication) CheckTaskDownload(taskID string) bool {
+//DelAllTaskDownload удаляет все задачи по скачиванию файлов выполняемые для заданного пользователя
+func (sma *StoreMemoryApplication) DelAllTaskDownload(clientID string) error {
+	if err := sma.checkExistClientID(clientID); err != nil {
+		return err
+	}
 
-	return false
-}*/
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:   clientID,
+		TaskType:   "download",
+		ActionType: "delete all tasks",
+	}
+
+	return nil
+}

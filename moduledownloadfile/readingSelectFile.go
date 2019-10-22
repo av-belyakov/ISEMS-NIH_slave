@@ -89,7 +89,7 @@ DONE:
 
 			rfp.ChanCWTResBinary <- configure.MsgWsTransmission{
 				ClientID: rfp.ClientID,
-				Data:     &data,
+				Data:     &bytesTransmitted,
 			}
 
 		}

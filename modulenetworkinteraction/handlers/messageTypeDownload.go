@@ -215,6 +215,11 @@ func HandlerMessageTypeDownload(
 
 		chanStopReadFile := make(chan struct{})
 
+		//добавляем канал для останова чтения и передачи файла
+		if err := sma.AddChanStopReadFileTaskDownload(clientID, taskID, chanStopReadFile); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
 		//запускаем передачу файла (добавляем в начале каждого кусочка строку '<id тип передачи>:<id задачи>:<хеш файла>')
 		err = moduledownloadfile.ReadingFile(moduledownloadfile.ReadingFileParameters{
 			TaskID:           taskID,
@@ -244,11 +249,12 @@ func HandlerMessageTypeDownload(
 			return
 		}
 
-		fmt.Println("func 'HandlerMessageTypeDownload', добавляем канал для останова чтения и передачи файла")
-
-		//добавляем канал для останова чтения и передачи файла
-		if err := sma.AddChanStopReadFileTaskDownload(clientID, taskID, chanStopReadFile); err != nil {
+		//удаляем задачу
+		if err := sma.DelTaskDownload(clientID, taskID); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+			fmt.Printf("func 'HandlerMessageTypeDownload', ERROR: %v\n", fmt.Sprint(err))
+
 		}
 
 	//запрос на останов выгрузки файла
