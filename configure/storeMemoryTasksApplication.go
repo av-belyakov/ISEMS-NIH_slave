@@ -139,16 +139,22 @@ func NewRepositorySMA() *StoreMemoryApplication {
 						Error: fmt.Errorf("client with ID %v not found", msg.ClientID),
 					}
 
+					close(msg.ChanRespons)
+
 					continue
 				}
 
 				msg.ChanRespons <- chanResSettingsTask{}
+
+				close(msg.ChanRespons)
 
 			case "check filtration task exist":
 				if _, ok := sma.clientTasks[msg.ClientID]; !ok {
 					msg.ChanRespons <- chanResSettingsTask{
 						Error: fmt.Errorf("tasks filtration for client with ID %v not found", msg.ClientID),
 					}
+
+					close(msg.ChanRespons)
 
 					continue
 				}
@@ -158,16 +164,22 @@ func NewRepositorySMA() *StoreMemoryApplication {
 						Error: fmt.Errorf("tasks filtration with ID %v not found", msg.TaskID),
 					}
 
+					close(msg.ChanRespons)
+
 					continue
 				}
 
 				msg.ChanRespons <- chanResSettingsTask{}
+
+				close(msg.ChanRespons)
 
 			case "check download task exist":
 				if _, ok := sma.clientTasks[msg.ClientID]; !ok {
 					msg.ChanRespons <- chanResSettingsTask{
 						Error: fmt.Errorf("tasks download for client with ID %v not found", msg.ClientID),
 					}
+
+					close(msg.ChanRespons)
 
 					continue
 				}
@@ -177,10 +189,14 @@ func NewRepositorySMA() *StoreMemoryApplication {
 						Error: fmt.Errorf("tasks download with ID %v not found", msg.TaskID),
 					}
 
+					close(msg.ChanRespons)
+
 					continue
 				}
 
 				msg.ChanRespons <- chanResSettingsTask{}
+
+				close(msg.ChanRespons)
 
 			case "filtration":
 				switch msg.ActionType {
@@ -191,6 +207,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 						Parameters: taskInfo,
 					}
 
+					close(msg.ChanRespons)
+
 				case "inc num proc files":
 					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberProcessedFiles + 1
 					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberProcessedFiles = num
@@ -198,6 +216,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					msg.ChanRespons <- chanResSettingsTask{
 						Parameters: num,
 					}
+
+					close(msg.ChanRespons)
 
 				case "inc num not proc files":
 
@@ -207,6 +227,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					msg.ChanRespons <- chanResSettingsTask{
 						Parameters: num,
 					}
+
+					close(msg.ChanRespons)
 
 				case "inc num found files":
 					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberFilesFoundResultFiltering + 1
@@ -221,6 +243,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 						Parameters: num,
 					}
 
+					close(msg.ChanRespons)
+
 				case "add new chan to stop filtration":
 					if csf, ok := msg.Parameters.(chan struct{}); ok {
 						lcsf := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].ListChanStopFiltration
@@ -230,6 +254,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					}
 
 					msg.ChanRespons <- chanResSettingsTask{}
+
+					close(msg.ChanRespons)
 
 				case "delete task":
 					delete(sma.clientTasks[msg.ClientID].filtrationTasks, msg.TaskID)
@@ -248,6 +274,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 						Parameters: sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID],
 					}
 
+					close(msg.ChanRespons)
+
 				case "inc num chunk sent":
 					num := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].NumChunkSent + 1
 					sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].NumChunkSent = num
@@ -255,6 +283,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					msg.ChanRespons <- chanResSettingsTask{
 						Parameters: num,
 					}
+
+					close(msg.ChanRespons)
 
 				case "delete task":
 					delete(sma.clientTasks[msg.ClientID].downloadTasks, msg.TaskID)

@@ -9,6 +9,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
 
 	"ISEMS-NIH_slave/common"
@@ -249,14 +250,6 @@ func HandlerMessageTypeDownload(
 			return
 		}
 
-		//удаляем задачу
-		if err := sma.DelTaskDownload(clientID, taskID); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-			fmt.Printf("func 'HandlerMessageTypeDownload', ERROR: %v\n", fmt.Sprint(err))
-
-		}
-
 	//запрос на останов выгрузки файла
 	case "stop receiving files":
 		//проверяем наличие задачи в 'StoreMemoryApplication'
@@ -292,5 +285,25 @@ func HandlerMessageTypeDownload(
 
 		//отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла
 		ti.ChanStopReadFile <- struct{}{}
+
+	//выполняем удаление файла при его успешной передаче
+	case "file successfully accepted":
+		//проверяем наличие задачи в 'StoreMemoryApplication'
+		ti, err := sma.GetInfoTaskDownload(clientID, taskID)
+		if err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+			return
+		}
+
+		if err := os.Remove(path.Join(ti.DirectiryPathStorage, ti.FileName)); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		//удаляем задачу
+		if err := sma.DelTaskDownload(clientID, taskID); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+		}
 	}
 }
