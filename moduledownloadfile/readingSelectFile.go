@@ -1,7 +1,6 @@
 package moduledownloadfile
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -62,6 +61,8 @@ DONE:
 
 		select {
 		case <-chanStop:
+			fmt.Printf("func 'ReadingFile', Resived message 'STOP', Value fileIsReaded equal '%v'\n", fileIsReaded)
+
 			break DONE
 
 		default:
@@ -92,27 +93,6 @@ DONE:
 				Data:     &bytesTransmitted,
 			}
 
-		}
-	}
-
-	//сообщение об успешном останове задачи (сообщение об успешном завершении передачи файла не передается,
-	// master сам решает когда файл передан полностью основываясь на количестве переданных частей и общем
-	// размере файла)
-	if fileIsReaded == nil {
-		msgResJSON, err := json.Marshal(configure.MsgTypeDownloadControl{
-			MsgType: "download control",
-			Info: configure.DetailInfoMsgDownload{
-				TaskID:  rfp.TaskID,
-				Command: "file transfer stopped",
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		rfp.ChanCWTResText <- configure.MsgWsTransmission{
-			ClientID: rfp.ClientID,
-			Data:     &msgResJSON,
 		}
 	}
 
