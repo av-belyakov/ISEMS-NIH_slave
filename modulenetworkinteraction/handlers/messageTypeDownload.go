@@ -258,6 +258,8 @@ func HandlerMessageTypeDownload(
 			_ = saveMessageApp.LogMessage("error", fmt.Sprintf("it is impossible to stop file transfer (client ID: %v, task ID: %v)", clientID, taskID))
 			msgErr := "Невозможно остановить выгрузку файла, не найдена задача по выгрузке файла для заданного ID."
 
+			fmt.Printf("func 'handlerMessageTypeDownloadFile', %v\n", msgErr)
+
 			if err := np.SendMsgNotify("warning", "download control", msgErr, "stop"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
@@ -282,6 +284,8 @@ func HandlerMessageTypeDownload(
 
 			return
 		}
+
+		fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла")
 
 		//отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла
 		ti.ChanStopReadFile <- struct{}{}

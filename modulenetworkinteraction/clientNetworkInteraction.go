@@ -111,6 +111,9 @@ func ClientNetworkInteraction(
 	for range ticker.C {
 		for id, s := range sma.GetAllClientSettings() {
 			if !s.ConnectionStatus {
+
+				fmt.Printf("Attempt network connection with IP %v:%v\n", s.IP, s.Port)
+
 				cs := clientSetting{
 					ID:                     id,
 					IP:                     s.IP,

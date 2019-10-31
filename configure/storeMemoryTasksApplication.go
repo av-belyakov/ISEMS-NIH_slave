@@ -148,7 +148,7 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 				close(msg.ChanRespons)
 
-			case "check filtration task exist":
+			/*case "check filtration task exist":
 				if _, ok := sma.clientTasks[msg.ClientID]; !ok {
 					msg.ChanRespons <- chanResSettingsTask{
 						Error: fmt.Errorf("tasks filtration for client with ID %v not found", msg.ClientID),
@@ -197,19 +197,37 @@ func NewRepositorySMA() *StoreMemoryApplication {
 				msg.ChanRespons <- chanResSettingsTask{}
 
 				close(msg.ChanRespons)
-
+			*/
 			case "filtration":
 				switch msg.ActionType {
 				case "get task information":
-					taskInfo := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID]
+					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						close(msg.ChanRespons)
+
+						continue
+					}
 
 					msg.ChanRespons <- chanResSettingsTask{
-						Parameters: taskInfo,
+						Parameters: sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID],
 					}
 
 					close(msg.ChanRespons)
 
 				case "inc num proc files":
+					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						close(msg.ChanRespons)
+
+						continue
+					}
+
 					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberProcessedFiles + 1
 					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberProcessedFiles = num
 
@@ -220,6 +238,15 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					close(msg.ChanRespons)
 
 				case "inc num not proc files":
+					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						close(msg.ChanRespons)
+
+						continue
+					}
 
 					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberErrorProcessedFiles + 1
 					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberErrorProcessedFiles = num
@@ -231,6 +258,16 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					close(msg.ChanRespons)
 
 				case "inc num found files":
+					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						close(msg.ChanRespons)
+
+						continue
+					}
+
 					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberFilesFoundResultFiltering + 1
 					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberFilesFoundResultFiltering = num
 
@@ -246,6 +283,16 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					close(msg.ChanRespons)
 
 				case "add new chan to stop filtration":
+					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						close(msg.ChanRespons)
+
+						continue
+					}
+
 					if csf, ok := msg.Parameters.(chan struct{}); ok {
 						lcsf := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].ListChanStopFiltration
 
@@ -258,18 +305,50 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					close(msg.ChanRespons)
 
 				case "delete task":
+					resMsg := chanResSettingsTask{}
+					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
+						resMsg.Error = err
+					}
+
 					delete(sma.clientTasks[msg.ClientID].filtrationTasks, msg.TaskID)
 
+					msg.ChanRespons <- resMsg
+
+					close(msg.ChanRespons)
 				}
 
 			case "download":
 				switch msg.ActionType {
 				case "add chan stop read file":
+					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						close(msg.ChanRespons)
+
+						continue
+					}
+
 					if csrf, ok := msg.Parameters.(chan struct{}); ok {
 						sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].ChanStopReadFile = csrf
 					}
 
+					msg.ChanRespons <- chanResSettingsTask{}
+
+					close(msg.ChanRespons)
+
 				case "get task information":
+					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						close(msg.ChanRespons)
+
+						continue
+					}
+
 					msg.ChanRespons <- chanResSettingsTask{
 						Parameters: sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID],
 					}
@@ -277,6 +356,16 @@ func NewRepositorySMA() *StoreMemoryApplication {
 					close(msg.ChanRespons)
 
 				case "inc num chunk sent":
+					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						close(msg.ChanRespons)
+
+						continue
+					}
+
 					num := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].NumChunkSent + 1
 					sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].NumChunkSent = num
 
@@ -315,8 +404,34 @@ func (sma *StoreMemoryApplication) checkExistClientID(clientID string) error {
 	return (<-chanRes).Error
 }
 
+//checkForFilteringTask проверяет наличие задачи
+func (sma *StoreMemoryApplication) checkForFilteringTask(clientID, taskID string) error {
+	if _, ok := sma.clientTasks[clientID]; !ok {
+		return fmt.Errorf("tasks filtration for client with ID %v not found", clientID)
+	}
+
+	if _, ok := sma.clientTasks[clientID].filtrationTasks[taskID]; !ok {
+		return fmt.Errorf("tasks filtration with ID %v not found", taskID)
+	}
+
+	return nil
+}
+
+//checkForDownloadingTask проверяет наличие задачи
+func (sma *StoreMemoryApplication) checkForDownloadingTask(clientID, taskID string) error {
+	if _, ok := sma.clientTasks[clientID]; !ok {
+		return fmt.Errorf("tasks download for client with ID %v not found", clientID)
+	}
+
+	if _, ok := sma.clientTasks[clientID].downloadTasks[taskID]; !ok {
+		return fmt.Errorf("tasks download with ID %v not found", taskID)
+	}
+
+	return nil
+}
+
 //checkTaskExist проверяет существование задачи
-func (sma *StoreMemoryApplication) checkTaskExist(clientID, taskID, taskType string) error {
+/*func (sma *StoreMemoryApplication) checkTaskExist(clientID, taskID, taskType string) error {
 	chanRes := make(chan chanResSettingsTask)
 
 	tt := "check filtration task exist"
@@ -333,7 +448,7 @@ func (sma *StoreMemoryApplication) checkTaskExist(clientID, taskID, taskType str
 	}
 
 	return (<-chanRes).Error
-}
+}*/
 
 /* параметры приложения */
 /*----------------------*/
@@ -474,12 +589,12 @@ func (sma *StoreMemoryApplication) GetListTasksFiltration(clientID string) (map[
 
 //GetInfoTaskFiltration получить всю информацию о задаче выполняемой пользователем
 func (sma *StoreMemoryApplication) GetInfoTaskFiltration(clientID, taskID string) (*FiltrationTasks, error) {
-	if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
 
 		fmt.Printf("SMTA func 'GetInfoTaskFiltration', ERROR: %v\n", err)
 
 		return nil, err
-	}
+	}*/
 
 	chanRes := make(chan chanResSettingsTask)
 
@@ -501,12 +616,12 @@ func (sma *StoreMemoryApplication) GetInfoTaskFiltration(clientID, taskID string
 
 //SetInfoTaskFiltration устанавливает новое значение некоторых параметров
 func (sma *StoreMemoryApplication) SetInfoTaskFiltration(clientID, taskID string, settings map[string]interface{}) error {
-	if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
 
 		fmt.Printf("SMTA func 'SetInfoTaskFiltration', ERROR: %v\n", err)
 
 		return err
-	}
+	}*/
 
 	for k, v := range settings {
 		switch k {
@@ -548,12 +663,12 @@ func (sma *StoreMemoryApplication) SetInfoTaskFiltration(clientID, taskID string
 
 //IncrementNumProcessedFiles увеличивает кол-во обработанных файлов
 func (sma *StoreMemoryApplication) IncrementNumProcessedFiles(clientID, taskID string) (int, error) {
-	if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
 
 		fmt.Printf("SMTA func 'IncrementNumProcessedFiles', ERROR: %v\n", err)
 
 		return 0, err
-	}
+	}*/
 
 	chanRes := make(chan chanResSettingsTask)
 
@@ -575,12 +690,12 @@ func (sma *StoreMemoryApplication) IncrementNumProcessedFiles(clientID, taskID s
 
 //IncrementNumNotFoundIndexFiles увеличивает кол-во не обработанных файлов
 func (sma *StoreMemoryApplication) IncrementNumNotFoundIndexFiles(clientID, taskID string) (int, error) {
-	if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
 
 		fmt.Printf("SMTA func 'IncrementNumNotFoundIndexFiles', ERROR: %v\n", err)
 
 		return 0, err
-	}
+	}*/
 
 	chanRes := make(chan chanResSettingsTask)
 
@@ -602,12 +717,12 @@ func (sma *StoreMemoryApplication) IncrementNumNotFoundIndexFiles(clientID, task
 
 //IncrementNumFoundFiles увеличивает кол-во найденных, в результате фильтрации, файлов и их общий размер
 func (sma *StoreMemoryApplication) IncrementNumFoundFiles(clientID, taskID string, fileSize int64) (int, error) {
-	if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
 
 		fmt.Printf("SMTA func 'IncrementNumFoundFiles', ERROR: %v\n", err)
 
 		return 0, err
-	}
+	}*/
 
 	chanRes := make(chan chanResSettingsTask)
 
@@ -630,9 +745,9 @@ func (sma *StoreMemoryApplication) IncrementNumFoundFiles(clientID, taskID strin
 
 //AddNewChanStopProcessionFiltrationTask добавляет новый канал для останова процессов задачи фильтрации файлов
 func (sma *StoreMemoryApplication) AddNewChanStopProcessionFiltrationTask(clientID, taskID string, ncsf chan struct{}) error {
-	if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
 		return err
-	}
+	}*/
 
 	chanRes := make(chan chanResSettingsTask)
 
@@ -645,9 +760,7 @@ func (sma *StoreMemoryApplication) AddNewChanStopProcessionFiltrationTask(client
 		Parameters:  ncsf,
 	}
 
-	<-chanRes
-
-	return nil
+	return (<-chanRes).Error
 }
 
 //AddFileToListFilesFiltrationTask добавить в основной список часть списка найденных, в том числе и по индексам, файлов
@@ -684,12 +797,12 @@ func (sma *StoreMemoryApplication) AddFileToListFilesFiltrationTask(clientID, ta
 
 //DelTaskFiltration удаление выбранной задачи
 func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) error {
-	if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "filtration"); err != nil {
 
 		fmt.Printf("SMTA func 'DelTaskFiltration', ERROR: %v\n", err)
 
 		return err
-	}
+	}*/
 
 	chanRes := make(chan chanResSettingsTask)
 
@@ -701,7 +814,7 @@ func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) er
 		ChanRespons: chanRes,
 	}
 
-	return nil
+	return (<-chanRes).Error
 }
 
 //AddTaskDownload добавить задачу
@@ -711,32 +824,35 @@ func (sma *StoreMemoryApplication) AddTaskDownload(clientID, taskID string, dt *
 
 //AddChanStopReadFileTaskDownload добавляет канал для останова чтения и передачи файла
 func (sma *StoreMemoryApplication) AddChanStopReadFileTaskDownload(clientID, taskID string, csrf chan struct{}) error {
-	if err := sma.checkTaskExist(clientID, taskID, "download"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "download"); err != nil {
 
 		fmt.Printf("SMTA func 'AddChanStopReadFileTaskDownload', ERROR: %v\n", err)
 
 		return err
-	}
+	}*/
+
+	chanRes := make(chan chanResSettingsTask)
 
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
-		ClientID:   clientID,
-		TaskID:     taskID,
-		TaskType:   "download",
-		ActionType: "add chan stop read file",
-		Parameters: csrf,
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "download",
+		ActionType:  "add chan stop read file",
+		Parameters:  csrf,
+		ChanRespons: chanRes,
 	}
 
-	return nil
+	return (<-chanRes).Error
 }
 
 //GetInfoTaskDownload получить всю информацию о задаче выполняемой пользователем
 func (sma *StoreMemoryApplication) GetInfoTaskDownload(clientID, taskID string) (*DownloadTasks, error) {
-	if err := sma.checkTaskExist(clientID, taskID, "download"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "download"); err != nil {
 
 		fmt.Printf("SMTA func 'GetInfoTaskDownload', ERROR: %v\n", err)
 
 		return nil, err
-	}
+	}*/
 
 	chanRes := make(chan chanResSettingsTask)
 
@@ -758,12 +874,12 @@ func (sma *StoreMemoryApplication) GetInfoTaskDownload(clientID, taskID string) 
 
 //IncrementNumChunkSent увеличивает на еденицу кол-во переданных частей файла
 func (sma *StoreMemoryApplication) IncrementNumChunkSent(clientID, taskID string) (int, error) {
-	if err := sma.checkTaskExist(clientID, taskID, "download"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "download"); err != nil {
 
 		fmt.Printf("SMTA func 'IncrementNumChunkSent', ERROR: %v\n", err)
 
 		return 0, err
-	}
+	}*/
 
 	chanRes := make(chan chanResSettingsTask)
 
@@ -785,12 +901,12 @@ func (sma *StoreMemoryApplication) IncrementNumChunkSent(clientID, taskID string
 
 //DelTaskDownload удаление выбранной задачи
 func (sma *StoreMemoryApplication) DelTaskDownload(clientID, taskID string) error {
-	if err := sma.checkTaskExist(clientID, taskID, "download"); err != nil {
+	/*if err := sma.checkTaskExist(clientID, taskID, "download"); err != nil {
 
 		fmt.Printf("SMTA func 'DelTaskDownload', ERROR: %v\n", err)
 
 		return err
-	}
+	}*/
 
 	chanRes := make(chan chanResSettingsTask)
 
