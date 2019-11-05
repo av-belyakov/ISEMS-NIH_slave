@@ -7,7 +7,6 @@ import (
 	"path"
 
 	"ISEMS-NIH_slave/configure"
-	"ISEMS-NIH_slave/savemessageapp"
 )
 
 //ReadingFileParameters параметры для функции 'readingFile'
@@ -33,6 +32,78 @@ type ReadingFileParameters struct {
 }
 
 //ReadingFile осуществляет чтение бинарного файла побайтно и передачу прочитанных байт в канал
+func ReadingFile(chanError chan<- error, rfp ReadingFileParameters, chanStop <-chan struct{}) {
+	fmt.Println("START func 'ReadingFile'...")
+
+	file, err := os.Open(path.Join(rfp.PathDirName, rfp.FileName))
+	if err != nil {
+		chanError <- err
+
+		return
+	}
+	defer func() {
+		close(chanError)
+		file.Close()
+	}()
+
+	chunkSize := (rfp.MaxChunkSize - len(rfp.StrHex))
+
+	fmt.Printf("START func 'ReadingFile', chunk size = %v\n", chunkSize)
+
+	var fileIsReaded error
+DONE:
+	for i := 0; i <= rfp.NumReadCycle; i++ {
+		bytesTransmitted := []byte(rfp.StrHex)
+
+		if i == 0 {
+			fmt.Printf("\tReader byteTransmitted = %v\n", len(bytesTransmitted))
+		}
+
+		if fileIsReaded == io.EOF {
+			break DONE
+		}
+
+		select {
+		case <-chanStop:
+			fmt.Printf("func 'ReadingFile', Resived message 'STOP', Value fileIsReaded equal '%v'\n", fileIsReaded)
+
+			break DONE
+
+		default:
+			data, err := readNextBytes(file, chunkSize, i)
+			if err != nil {
+				if err != io.EOF {
+					if i == 0 {
+						fmt.Printf("func 'ReadingFile', ERROR %v\n", fmt.Sprint(err))
+					}
+
+					chanError <- err
+
+					break DONE
+				}
+
+				fileIsReaded = io.EOF
+			}
+
+			bytesTransmitted = append(bytesTransmitted, data...)
+
+			if (i == 0) || (i == 1) {
+				fmt.Printf("Reader chunk = %v, DATA = %v\n", len(bytesTransmitted), len(data))
+				fmt.Printf("func 'ReadingFile', send next byte... %v\n", bytesTransmitted[:67])
+			}
+
+			rfp.ChanCWTResBinary <- configure.MsgWsTransmission{
+				ClientID: rfp.ClientID,
+				Data:     &bytesTransmitted,
+			}
+
+		}
+	}
+
+	fmt.Println("func 'ReadingFile', COMPLITE CYCLE READING FILE")
+}
+
+/*
 func ReadingFile(rfp ReadingFileParameters, saveMessageApp *savemessageapp.PathDirLocationLogFiles, chanStop <-chan struct{}) error {
 	fmt.Println("START func 'ReadingFile'...")
 
@@ -83,7 +154,7 @@ DONE:
 
 			bytesTransmitted = append(bytesTransmitted, data...)
 
-			if i == 0 || i == 1 {
+			if (i == 0) || (i == 1) {
 				fmt.Printf("Reader chunk = %v, DATA = %v\n", len(bytesTransmitted), len(data))
 				fmt.Printf("func 'ReadingFile', send next byte... %v\n", bytesTransmitted[:67])
 			}
@@ -96,8 +167,11 @@ DONE:
 		}
 	}
 
+	fmt.Println("func 'ReadingFile', COMPLITE CYCLE READING FILE")
+
 	return nil
 }
+*/
 
 func readNextBytes(file *os.File, number, nextNum int) ([]byte, error) {
 	bytes := make([]byte, number)

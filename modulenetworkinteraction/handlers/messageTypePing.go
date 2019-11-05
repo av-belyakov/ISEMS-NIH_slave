@@ -46,8 +46,8 @@ func HandlerMessageTypePing(
 		StorageFolders:  reqJSON.Info.StorageFolders,
 	})
 
-	cs, ok := sma.GetClientSetting(clientID)
-	if !ok {
+	cs, err := sma.GetClientSetting(clientID)
+	if err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprintf("unable to send message of type 'pong' client with ID %v does not exist", clientID))
 
 		return

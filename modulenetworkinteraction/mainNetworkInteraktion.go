@@ -102,8 +102,8 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	//через канал cwtRes
 	go func() {
 		getConnLink := func(msg configure.MsgWsTransmission) (*configure.WssConnection, error) {
-			s, ok := sma.GetClientSetting(msg.ClientID)
-			if !ok {
+			s, err := sma.GetClientSetting(msg.ClientID)
+			if err != nil {
 				return nil, fmt.Errorf("the ip address cannot be found by the given client ID %v", msg.ClientID)
 			}
 

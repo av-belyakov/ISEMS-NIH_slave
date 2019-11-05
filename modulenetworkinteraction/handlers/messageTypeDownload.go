@@ -215,14 +215,49 @@ func HandlerMessageTypeDownload(
 		fmt.Println("func 'HandlerMessageTypeDownload', запускаем передачу файла")
 
 		chanStopReadFile := make(chan struct{})
+		chanResponseError := make(chan error)
 
 		//добавляем канал для останова чтения и передачи файла
 		if err := sma.AddChanStopReadFileTaskDownload(clientID, taskID, chanStopReadFile); err != nil {
+
+			fmt.Printf("func 'HandlerMessageTypeDownload', add chan stop ERROR: %v\n", err)
+
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
 		//запускаем передачу файла (добавляем в начале каждого кусочка строку '<id тип передачи>:<id задачи>:<хеш файла>')
-		err = moduledownloadfile.ReadingFile(moduledownloadfile.ReadingFileParameters{
+		go moduledownloadfile.ReadingFile(chanResponseError,
+			moduledownloadfile.ReadingFileParameters{
+				TaskID:           taskID,
+				ClientID:         clientID,
+				StrHex:           ti.StrHex,
+				FileName:         ti.FileName,
+				NumReadCycle:     ti.NumFileChunk,
+				MaxChunkSize:     ti.SizeFileChunk,
+				PathDirName:      ti.DirectiryPathStorage,
+				ChanCWTResBinary: cwtResBinary,
+			}, chanStopReadFile)
+
+		go func() {
+			msgErr := "Выгрузка файла остановлена, ошибка чтения."
+
+			for errMessage := range chanResponseError {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(errMessage))
+
+				fmt.Printf("func 'HandlerMessageTypeDownload', ERROR: %v\n", fmt.Sprint(errMessage))
+
+				if err := np.SendMsgNotify("danger", "download control", msgErr, "stop"); err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+
+				cwtResText <- configure.MsgWsTransmission{
+					ClientID: clientID,
+					Data:     &rejectMsgJSON,
+				}
+			}
+		}()
+
+		/*err = moduledownloadfile.ReadingFile(moduledownloadfile.ReadingFileParameters{
 			TaskID:           taskID,
 			ClientID:         clientID,
 			FileName:         ti.FileName,
@@ -248,17 +283,20 @@ func HandlerMessageTypeDownload(
 			}
 
 			return
-		}
+		}*/
 
 	//запрос на останов выгрузки файла
 	case "stop receiving files":
+
+		fmt.Println("\t_______func 'handlerMessageTypeDownloadFile', запрос на останов выгрузки файла")
+
 		//проверяем наличие задачи в 'StoreMemoryApplication'
 		ti, err := sma.GetInfoTaskDownload(clientID, taskID)
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprintf("it is impossible to stop file transfer (client ID: %v, task ID: %v)", clientID, taskID))
 			msgErr := "Невозможно остановить выгрузку файла, не найдена задача по выгрузке файла для заданного ID."
 
-			fmt.Printf("func 'handlerMessageTypeDownloadFile', %v\n", msgErr)
+			fmt.Printf("func 'handlerMessageTypeDownloadFile', ERROR: %v\n", msgErr)
 
 			if err := np.SendMsgNotify("warning", "download control", msgErr, "stop"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -285,13 +323,21 @@ func HandlerMessageTypeDownload(
 			return
 		}
 
-		fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла")
+		fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 111")
+		fmt.Printf("func 'handlerMessageTypeDownloadFile', CHAN STOP - '%v'\n", ti.ChanStopReadFile)
 
-		//отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла
-		ti.ChanStopReadFile <- struct{}{}
+		if ti.ChanStopReadFile != nil {
+			//отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла
+			ti.ChanStopReadFile <- struct{}{}
+
+			fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 222")
+		}
 
 	//выполняем удаление файла при его успешной передаче
 	case "file successfully accepted":
+
+		fmt.Println("func 'handlerMessageTypeDownloadFile', MESSAGE: 'file successfully accepted'")
+
 		//проверяем наличие задачи в 'StoreMemoryApplication'
 		ti, err := sma.GetInfoTaskDownload(clientID, taskID)
 		if err != nil {
