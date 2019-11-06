@@ -9,6 +9,7 @@ package modulefiltrationfile
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path"
 	"strings"
@@ -269,17 +270,22 @@ DONE:
 				_ = saveMessageApp.LogMessage("error", fmt.Sprintf("%v\t%v, file: %v", err, dirName, file))
 			}
 
-			//если файл имеет размер больше 24 байта прибавляем его к найденным и складываем общий размер найденных файлов
-			fileSize, fileHex, err := getFileParameters(path.Join(ft.FileStorageDirectory, file))
+			pathToFile := path.Join(ft.FileStorageDirectory, file)
 
+			fileSize, fileHex, err := getFileParameters(pathToFile)
 			if err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
+			//если файл имеет размер больше 24 байта прибавляем его к найденным и складываем общий размер найденных файлов
 			if fileSize > int64(24) {
 				successfulFiltering = true
 
 				if _, err := sma.IncrementNumFoundFiles(np.ClientID, np.TaskID, fileSize); err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+			} else {
+				if err := os.Remove(pathToFile); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
 			}

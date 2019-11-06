@@ -257,34 +257,6 @@ func HandlerMessageTypeDownload(
 			}
 		}()
 
-		/*err = moduledownloadfile.ReadingFile(moduledownloadfile.ReadingFileParameters{
-			TaskID:           taskID,
-			ClientID:         clientID,
-			FileName:         ti.FileName,
-			MaxChunkSize:     ti.SizeFileChunk,
-			NumReadCycle:     ti.NumFileChunk,
-			StrHex:           ti.StrHex,
-			PathDirName:      ti.DirectiryPathStorage,
-			ChanCWTResBinary: cwtResBinary,
-		}, saveMessageApp, chanStopReadFile)
-		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			msgErr := "Невозможно начать выгрузку файла, ошибка при чтении файла."
-
-			fmt.Printf("func 'HandlerMessageTypeDownload', ERROR: %v\n", fmt.Sprint(err))
-
-			if err := np.SendMsgNotify("danger", "download control", msgErr, "stop"); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}
-
-			cwtResText <- configure.MsgWsTransmission{
-				ClientID: clientID,
-				Data:     &rejectMsgJSON,
-			}
-
-			return
-		}*/
-
 	//запрос на останов выгрузки файла
 	case "stop receiving files":
 
