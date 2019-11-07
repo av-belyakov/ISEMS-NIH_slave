@@ -42,6 +42,8 @@ func ReadingFile(chanError chan<- error, rfp ReadingFileParameters, chanStop <-c
 		return
 	}
 	defer func() {
+		chanError <- nil
+
 		close(chanError)
 		file.Close()
 	}()

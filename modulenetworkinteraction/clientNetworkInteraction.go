@@ -112,7 +112,9 @@ func ClientNetworkInteraction(
 		for id, s := range sma.GetAllClientSettings() {
 			if !s.ConnectionStatus {
 
-				fmt.Printf("Attempt network connection with IP %v:%v\n", s.IP, s.Port)
+				if s.IP == "127.0.0.1" {
+					fmt.Printf("Attempt network connection with IP %v:%v\n", s.IP, s.Port)
+				}
 
 				cs := clientSetting{
 					ID:                     id,

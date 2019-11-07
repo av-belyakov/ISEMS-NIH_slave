@@ -54,7 +54,7 @@ func getVersionApp(appc *configure.AppConfig) error {
 	}
 
 	//Application ISEMS-NIH master, v0.1
-	pattern := `^Application\sISEMS-NIH\s(master|slave),\sv\d+\.\d+`
+	pattern := `^Application\sISEMS-NIH\s(master|slave),\sv\d+\.\d+\.\d+`
 	rx := regexp.MustCompile(pattern)
 	numVersion := rx.FindString(string(content))
 

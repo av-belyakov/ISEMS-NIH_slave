@@ -361,6 +361,28 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 					close(msg.ChanRespons)
 
+				case "close chan stop read file":
+					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						close(msg.ChanRespons)
+
+						continue
+					}
+
+					tid := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID]
+					chanStop := tid.ChanStopReadFile
+
+					tid.ChanStopReadFile = nil
+					sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID] = tid
+
+					msg.ChanRespons <- chanResSettingsTask{}
+
+					close(chanStop)
+					close(msg.ChanRespons)
+
 				case "get task information":
 					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
 						msg.ChanRespons <- chanResSettingsTask{
@@ -846,6 +868,21 @@ func (sma *StoreMemoryApplication) AddChanStopReadFileTaskDownload(clientID, tas
 		TaskType:    "download",
 		ActionType:  "add chan stop read file",
 		Parameters:  csrf,
+		ChanRespons: chanRes,
+	}
+
+	return (<-chanRes).Error
+}
+
+//CloseChanStopReadFileTaskDownload удаляет канал для останова чтения файла
+func (sma *StoreMemoryApplication) CloseChanStopReadFileTaskDownload(clientID, taskID string) error {
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "download",
+		ActionType:  "close chan stop read file",
 		ChanRespons: chanRes,
 	}
 
