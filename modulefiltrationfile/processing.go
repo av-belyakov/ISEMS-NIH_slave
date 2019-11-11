@@ -322,7 +322,7 @@ DONE:
 				}
 			}
 
-			fmt.Printf("отправлена информация о задаче с ID '%v', статус задачи - 'execute'\n", np.TaskID)
+			fmt.Printf("отправлена информация о задаче с ID '%v', статус задачи - 'execute', task info: '%v'\n", np.TaskID, msgRes.Info)
 
 			resJSON, err := json.Marshal(msgRes)
 			if err != nil {
