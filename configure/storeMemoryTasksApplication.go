@@ -419,6 +419,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 				case "delete task":
 					delete(sma.clientTasks[msg.ClientID].downloadTasks, msg.TaskID)
 
+					fmt.Printf("*+**+**+*++**++**+*++***++ func 'storeMemoryTasksApplication', DELETE task. AFTER list task:'%v'\n", sma.clientTasks)
+
 				case "delete all tasks":
 					for taskID := range sma.clientTasks[msg.ClientID].downloadTasks {
 						delete(sma.clientTasks[msg.ClientID].downloadTasks, taskID)
@@ -931,14 +933,15 @@ func (sma *StoreMemoryApplication) IncrementNumChunkSent(clientID, taskID string
 
 //DelTaskDownload удаление выбранной задачи
 func (sma *StoreMemoryApplication) DelTaskDownload(clientID, taskID string) error {
-	chanRes := make(chan chanResSettingsTask)
+	if err := sma.checkExistClientID(clientID); err != nil {
+		return err
+	}
 
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
-		ClientID:    clientID,
-		TaskID:      taskID,
-		TaskType:    "download",
-		ActionType:  "delete task",
-		ChanRespons: chanRes,
+		ClientID:   clientID,
+		TaskID:     taskID,
+		TaskType:   "download",
+		ActionType: "delete task",
 	}
 
 	return nil

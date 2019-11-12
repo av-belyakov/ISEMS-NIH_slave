@@ -121,12 +121,18 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 			case msgText := <-cwtResText:
 				c, err := getConnLink(msgText)
 				if err != nil {
+
+					fmt.Printf("func 'mainNetworkInteraction', ERROR: '%v', reseived text message 111\n", err)
+
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 					continue
 				}
 
 				if err := c.SendWsMessage(1, *msgText.Data); err != nil {
+
+					fmt.Printf("func 'mainNetworkInteraction', ERROR: '%v', reseived text message 222\n", err)
+
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
 

@@ -46,6 +46,8 @@ func ReadingFile(chanError chan<- error, rfp ReadingFileParameters, chanStop <-c
 
 		close(chanError)
 		file.Close()
+
+		fmt.Println("/////////////////////// func 'ReadingFile', STOP FUCN AND CLOSE FILE //////////////")
 	}()
 
 	chunkSize := (rfp.MaxChunkSize - len(rfp.StrHex))

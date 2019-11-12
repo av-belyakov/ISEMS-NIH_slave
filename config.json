@@ -13,7 +13,7 @@
         }
     ],
     "toConnectServerHTTPS_comments": "параметры для соединения с серверами 'ISEMS-NIH_master'",
-    "timeReconnect": 10,
+    "timeReconnect": 20,
     "timeReconnect_comments": "актуально только в режиме isServer = false, тогда с заданным интервалом времени будут попытки соединения с адресом мастера",
     "localServerHTTPS": {
         "ip": "127.0.0.1",
@@ -34,7 +34,7 @@
     "directoryStoringProcessedFiles_comments": "директории для хранения обработанных файлов",
     "pathLogFiles": "/var/log",
     "pathLogFiles_comments": "место расположение лог-файла приложения",
-    "refreshIntervalTelemetryInfo": 15,
+    "refreshIntervalTelemetryInfo": 10,
     "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации",
     "maxSizeTransferredChunkFile": 4096,
     "maxSizeTransferredChunkFile_comments": "максимальный размер передаваемого кусочка файла"
