@@ -94,6 +94,7 @@ type FiltrationTasks struct {
 }
 
 //DownloadTasks описание параметров задач по выгрузке файлов
+// IsTaskCompleted - была ли задача завершена успешно
 // FileName - имя выгружаемого файла
 // FileSize - размер выгружаемого файла
 // FileHex - хеш-сумма выгружаемого файла
@@ -104,6 +105,7 @@ type FiltrationTasks struct {
 // DirectiryPathStorage - путь к директории для хранения файлов
 // ChanStopReadFile - канал для останова чтения и передачи файла
 type DownloadTasks struct {
+	IsTaskCompleted      bool
 	FileName             string
 	FileSize             int64
 	FileHex              string
@@ -396,6 +398,27 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 					close(msg.ChanRespons)
 
+				case "set is completed task download":
+					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
+						msg.ChanRespons <- chanResSettingsTask{
+							Error: err,
+						}
+
+						fmt.Printf("----- func 'storeMemoryTasksApplication', SECTION:'set is completed task download' ERROR: '%v' ----\n", err)
+
+						close(msg.ChanRespons)
+
+						continue
+					}
+
+					tid := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID]
+					tid.IsTaskCompleted = true
+					sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID] = tid
+
+					fmt.Printf("----- func 'storeMemoryTasksApplication', SECTION:'set is completed task download' IsTaskCompleted: '%v' ----- 'n", sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].IsTaskCompleted)
+
+					msg.ChanRespons <- chanResSettingsTask{}
+
 				case "inc num chunk sent":
 					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
 						msg.ChanRespons <- chanResSettingsTask{
@@ -418,6 +441,10 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 				case "delete task":
 					delete(sma.clientTasks[msg.ClientID].downloadTasks, msg.TaskID)
+
+					msg.ChanRespons <- chanResSettingsTask{}
+
+					close(msg.ChanRespons)
 
 					fmt.Printf("*+**+**+*++**++**+*++***++ func 'storeMemoryTasksApplication', DELETE task. AFTER list task:'%v'\n", sma.clientTasks)
 
@@ -891,6 +918,23 @@ func (sma *StoreMemoryApplication) CloseChanStopReadFileTaskDownload(clientID, t
 	return (<-chanRes).Error
 }
 
+//SetIsCompletedTaskDownload отмечает состояние задачи (что задача была остановлена и может быть удалена)
+func (sma *StoreMemoryApplication) SetIsCompletedTaskDownload(clientID, taskID string) error {
+	chanRes := make(chan chanResSettingsTask)
+
+	fmt.Println("----- func 'SetIsCompletedTaskDownload', START ----")
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "download",
+		ActionType:  "set is completed task download",
+		ChanRespons: chanRes,
+	}
+
+	return (<-chanRes).Error
+}
+
 //GetInfoTaskDownload получить всю информацию о задаче выполняемой пользователем
 func (sma *StoreMemoryApplication) GetInfoTaskDownload(clientID, taskID string) (*DownloadTasks, error) {
 	chanRes := make(chan chanResSettingsTask)
@@ -937,12 +981,17 @@ func (sma *StoreMemoryApplication) DelTaskDownload(clientID, taskID string) erro
 		return err
 	}
 
+	chanRes := make(chan chanResSettingsTask)
+
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
-		ClientID:   clientID,
-		TaskID:     taskID,
-		TaskType:   "download",
-		ActionType: "delete task",
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "download",
+		ActionType:  "delete task",
+		ChanRespons: chanRes,
 	}
+
+	<-chanRes
 
 	return nil
 }

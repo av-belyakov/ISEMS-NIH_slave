@@ -31,20 +31,34 @@ type ReadingFileParameters struct {
 	ChanCWTResText   chan<- configure.MsgWsTransmission
 }
 
+//TypeChannelMsgRes описывает тип сообщения получаемого от обработчика файла
+// ErrMsg - ошибка
+// CauseStoped - причина останова
+type TypeChannelMsgRes struct {
+	ErrMsg      error
+	CauseStoped string
+}
+
 //ReadingFile осуществляет чтение бинарного файла побайтно и передачу прочитанных байт в канал
-func ReadingFile(chanError chan<- error, rfp ReadingFileParameters, chanStop <-chan struct{}) {
+func ReadingFile(chanRes chan<- TypeChannelMsgRes, rfp ReadingFileParameters, chanStop <-chan struct{}) {
 	fmt.Println("START func 'ReadingFile'...")
+
+	tcmr := TypeChannelMsgRes{
+		CauseStoped: "completed",
+	}
 
 	file, err := os.Open(path.Join(rfp.PathDirName, rfp.FileName))
 	if err != nil {
-		chanError <- err
+		tcmr.ErrMsg = err
+		chanRes <- tcmr
 
 		return
 	}
 	defer func() {
-		chanError <- nil
+		//отправляем в канал пустое значение ошибки для удаления задачи
+		chanRes <- tcmr
 
-		close(chanError)
+		close(chanRes)
 		file.Close()
 
 		fmt.Println("/////////////////////// func 'ReadingFile', STOP FUCN AND CLOSE FILE //////////////")
@@ -71,6 +85,8 @@ DONE:
 		case <-chanStop:
 			fmt.Printf("func 'ReadingFile', Resived message 'STOP', Value fileIsReaded equal '%v'\n", fileIsReaded)
 
+			tcmr.CauseStoped = "force stop"
+
 			break DONE
 
 		default:
@@ -81,7 +97,7 @@ DONE:
 						fmt.Printf("func 'ReadingFile', ERROR %v\n", fmt.Sprint(err))
 					}
 
-					chanError <- err
+					tcmr.ErrMsg = err
 
 					break DONE
 				}
