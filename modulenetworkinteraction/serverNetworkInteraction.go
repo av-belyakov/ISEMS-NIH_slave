@@ -127,7 +127,7 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP, "server")
+	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP, "server", saveMessageApp)
 
 	fmt.Printf("connection success established, client ID %v, client IP %v\n", clientID, remoteIP)
 

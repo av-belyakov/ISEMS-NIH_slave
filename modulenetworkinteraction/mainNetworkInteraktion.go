@@ -47,7 +47,12 @@ func createClientID(str string) string {
 }
 
 //при разрыве соединения удаляет дескриптор соединения и изменяет статус клиента
-func connClose(c *websocket.Conn, sma *configure.StoreMemoryApplication, clientID, clientIP, requester string) {
+func connClose(
+	c *websocket.Conn,
+	sma *configure.StoreMemoryApplication,
+	clientID, clientIP, requester string,
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
+
 	fmt.Printf("________ CLOSE WSS LINK _________ IP %v\n", clientIP)
 
 	if c != nil {
@@ -55,6 +60,11 @@ func connClose(c *websocket.Conn, sma *configure.StoreMemoryApplication, clientI
 	}
 
 	sma.ChangeSourceConnectionStatus(clientID, false)
+
+	//отправляем запросы на останов передачи файлов для данного клиента
+	if err := sendMsgStopDownloadFiles(sma, clientID); err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}
 
 	if requester == "server" {
 		//удаляем параметры подключения клиента
@@ -64,8 +74,38 @@ func connClose(c *websocket.Conn, sma *configure.StoreMemoryApplication, clientI
 	//удаляем дескриптор соединения
 	sma.DelLinkWebsocketConnection(clientIP)
 
-	//удаляем все задачи по скачиванию файлов для данных клиентов
-	_ = sma.DelAllTaskDownload(clientID)
+	//удаляем все задачи по скачиванию файлов для данного клиента
+	//_ = sma.DelAllTaskDownload(clientID)
+}
+
+func sendMsgStopDownloadFiles(sma *configure.StoreMemoryApplication, clientID string) error {
+	ldt, err := sma.GetAllInfoTaskDownload(clientID)
+	if err != nil {
+		return err
+	}
+
+	for _, ti := range ldt {
+		//если задача не была завершена автоматически по мере выполнения
+		if !ti.IsTaskCompleted {
+			fmt.Println("func 'sendMsgStopDownloadFiles', отправляем в канал запрос на останов чтения файла ____1111111____")
+
+			if ti.ChanStopReadFile != nil {
+				fmt.Println("func 'sendMsgStopDownloadFiles', SEND STOP Download to --------> CHANNEL")
+
+				ti.ChanStopReadFile <- struct{}{}
+
+				fmt.Println("func 'sendMsgStopDownloadFiles', SUCCESS SENT STOP Download to --------> CHANNEL")
+
+				return nil
+			}
+
+			fmt.Println("func 'sendMsgStopDownloadFiles', запрос на останов чтения файла отправлен ____2222222222____")
+
+		}
+	}
+
+	//удаляем все задачи для данного клиента
+	return sma.DelAllTaskDownload(clientID)
 }
 
 //MainNetworkInteraction модуль сетевого взаимодействия

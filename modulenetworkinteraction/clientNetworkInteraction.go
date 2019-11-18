@@ -45,7 +45,7 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 			return
 		}
-		defer connClose(c, cs.StoreMemoryApplication, cs.ID, cs.IP, "client")
+		defer connClose(c, cs.StoreMemoryApplication, cs.ID, cs.IP, "client", saveMessageApp)
 
 		if res.StatusCode == 101 {
 			//изменяем статус подключения клиента

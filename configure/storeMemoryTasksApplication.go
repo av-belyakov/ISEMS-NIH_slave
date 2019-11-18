@@ -398,6 +398,13 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 					close(msg.ChanRespons)
 
+				case "get all task information":
+					msg.ChanRespons <- chanResSettingsTask{
+						Parameters: sma.clientTasks[msg.ClientID].downloadTasks,
+					}
+
+					close(msg.ChanRespons)
+
 				case "set is completed task download":
 					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
 						msg.ChanRespons <- chanResSettingsTask{
@@ -450,8 +457,13 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 				case "delete all tasks":
 					for taskID := range sma.clientTasks[msg.ClientID].downloadTasks {
+
+						fmt.Printf("func 'StoringMemoryTaskApplication', SECTION: 'dalete all task', task ID: '%v'\n", taskID)
+
 						delete(sma.clientTasks[msg.ClientID].downloadTasks, taskID)
 					}
+
+					fmt.Printf("func 'StoringMemoryTaskApplication', Task Info:(%v)\n", sma.clientTasks[msg.ClientID].downloadTasks)
 
 				}
 			}
@@ -509,8 +521,8 @@ func (sma *StoreMemoryApplication) checkForDownloadingTask(clientID, taskID stri
 	return nil
 }
 
-/* параметры приложения */
-/*----------------------*/
+/* параметры приложения
+------------------------*/
 
 //SetApplicationSetting устанавливает параметры приложения
 func (sma *StoreMemoryApplication) SetApplicationSetting(as ApplicationSettings) {
@@ -522,8 +534,8 @@ func (sma StoreMemoryApplication) GetApplicationSetting() ApplicationSettings {
 	return sma.applicationSettings
 }
 
-/* параметры клиента */
-/*--------------------*/
+/* параметры клиента
+---------------------*/
 
 //SetClientSetting устанавливает параметры клиента
 func (sma *StoreMemoryApplication) SetClientSetting(clientID string, settings ClientSettings) {
@@ -645,8 +657,8 @@ func (sma *StoreMemoryApplication) ChangeSourceConnectionStatus(clientID string,
 	return true
 }
 
-/* параметры сетевого соединения */
-/*-------------------------------*/
+/* параметры сетевого соединения
+---------------------------------*/
 
 //SendWsMessage используется для отправки сообщений через протокол websocket (применяется Mutex)
 func (wssc *WssConnection) SendWsMessage(t int, v []byte) error {
@@ -680,8 +692,10 @@ func (sma *StoreMemoryApplication) GetLinkWebsocketConnect(clientIP string) (*Ws
 	return &conn, ok
 }
 
-/* параметры выполняемых задач */
-/*-----------------------------*/
+/*
+параметры выполняемых задач
+		фильтрация
+----------------------------*/
 
 //AddTaskFiltration добавить задачу
 func (sma *StoreMemoryApplication) AddTaskFiltration(clientID, taskID string, ft *FiltrationTasks) {
@@ -882,6 +896,11 @@ func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) er
 	return (<-chanRes).Error
 }
 
+/*
+параметры выполняемых задач
+	скачивание файлов
+----------------------------*/
+
 //AddTaskDownload добавить задачу
 func (sma *StoreMemoryApplication) AddTaskDownload(clientID, taskID string, dt *DownloadTasks) {
 	sma.clientTasks[clientID].downloadTasks[taskID] = dt
@@ -953,6 +972,31 @@ func (sma *StoreMemoryApplication) GetInfoTaskDownload(clientID, taskID string) 
 	}
 
 	return nil, res.Error
+}
+
+//GetAllInfoTaskDownload получить информацию обо всех задачах по скачиванию файлов выполняемых пользователем
+func (sma *StoreMemoryApplication) GetAllInfoTaskDownload(clientID string) (map[string]*DownloadTasks, error) {
+	ldt := map[string]*DownloadTasks{}
+
+	if err := sma.checkExistClientID(clientID); err != nil {
+		return ldt, err
+	}
+
+	chanRes := make(chan chanResSettingsTask)
+
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskType:    "download",
+		ActionType:  "get all task information",
+		ChanRespons: chanRes,
+	}
+
+	res := <-chanRes
+	if listDownloadTask, ok := res.Parameters.(map[string]*DownloadTasks); ok {
+		return listDownloadTask, nil
+	}
+
+	return ldt, fmt.Errorf("error converting types")
 }
 
 //IncrementNumChunkSent увеличивает на еденицу кол-во переданных частей файла

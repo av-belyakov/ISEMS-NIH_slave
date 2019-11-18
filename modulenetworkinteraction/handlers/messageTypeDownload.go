@@ -155,5 +155,16 @@ func HandlerMessageTypeDownload(
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 		}
+
+		//выполняем удаление задачи при неуспешной передачи файла
+	case "file received with error":
+
+		fmt.Println("____________ func 'handlerMessageTypeDownloadFile', MESSAGE: 'file received with error'")
+
+		//удаляем задачу
+		if err := sma.DelTaskDownload(clientID, taskID); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+		}
 	}
 }
