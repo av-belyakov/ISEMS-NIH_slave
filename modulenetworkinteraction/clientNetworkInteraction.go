@@ -2,8 +2,6 @@ package modulenetworkinteraction
 
 /*
 * Модуль обеспечивающий websocket соединение в режиме клиента
-*
-* Версия 0.1, дата релиза 02.04.2019
 * */
 
 import (

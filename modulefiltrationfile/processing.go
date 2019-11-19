@@ -2,8 +2,6 @@ package modulefiltrationfile
 
 /*
 * Модуль выполняющий фильтрацию файлов сетевого трафика
-*
-* Версия 0.3, дата релиза 27.05.2019
 * */
 
 import (
@@ -37,7 +35,7 @@ func ProcessingFiltration(
 		ChanRes:  cwtResText,
 	}
 
-	d := "Инициализирована задача по фильтрации сетевого трафика, идет поиск файлов удовлетворяющих параметрам фильтрации"
+	d := "источник сообщает - задача инициализирована, идет поиск файлов удовлетворяющих параметрам фильтрации"
 	if err := np.SendMsgNotify("info", "filtration control", d, "start"); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
@@ -51,8 +49,8 @@ func ProcessingFiltration(
 
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		d := "Ошибка, невозможно создать список файлов удовлетворяющий параметрам фильтрации. Задача отклонена."
-		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
+		d := "источник сообщает - невозможно создать список файлов удовлетворяющий параметрам фильтрации"
+		if err := np.SendMsgNotify("danger", "filtration control", d, "stop"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -74,8 +72,8 @@ func ProcessingFiltration(
 	if err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprintf("incorrect parameters for filtering (client ID: %v, task ID: %v)", clientID, taskID))
 
-		d := "Невозможно начать выполнение фильтрации, принят некорректный идентификатор клиента или задачи. Задача отклонена."
-		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
+		d := "источник сообщает - невозможно начать выполнение фильтрации, принят некорректный идентификатор клиента или задачи"
+		if err := np.SendMsgNotify("danger", "filtration control", d, "stop"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -94,7 +92,7 @@ func ProcessingFiltration(
 
 	//проверяем количество файлов которые не были найдены при поиске их по индексам
 	if info.NumberErrorProcessedFiles > 0 {
-		d := "Внимание, фильтрация выполняется по файлам полученным при поиске по индексам. Однако, на диске были найдены не все файлы, перечисленные в индексах"
+		d := "источник сообщает - внимание, фильтрация выполняется по файлам полученным при поиске по индексам. Однако, на диске были найдены не все файлы, перечисленные в индексах"
 		if err := np.SendMsgNotify("warning", "filtration control", d, "start"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
@@ -104,8 +102,8 @@ func ProcessingFiltration(
 
 	//поверяем количество файлов по которым необходимо выполнить фильтрацию
 	if info.NumberFilesMeetFilterParameters == 0 {
-		d := "Внимание, фильтрация остановлена так как не найдены файлы удовлетворяющие заданным параметрам"
-		if err := np.SendMsgNotify("warning", "filtration control", d, "start"); err != nil {
+		d := "источник сообщает - внимание, фильтрация остановлена так как не найдены файлы удовлетворяющие заданным параметрам"
+		if err := np.SendMsgNotify("warning", "filtration control", d, "stop"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -126,8 +124,8 @@ func ProcessingFiltration(
 	if err := createDirectoryForFiltering(sma, clientID, taskID, rootDirStoringFiles); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		d := "Ошибка при создании директории для хранения отфильтрованных файлов. Задача отклонена."
-		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
+		d := "источник сообщает - ошибка при создании директории для хранения отфильтрованных файлов"
+		if err := np.SendMsgNotify("danger", "filtration control", d, "stop"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -148,8 +146,8 @@ func ProcessingFiltration(
 	if err := createFileReadme(sma, clientID, taskID); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		d := "Невозможно создать файл с информацией о параметрах фильтрации. Задача отклонена."
-		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
+		d := "источник сообщает - невозможно создать файл с информацией о параметрах фильтрации"
+		if err := np.SendMsgNotify("danger", "filtration control", d, "stop"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 

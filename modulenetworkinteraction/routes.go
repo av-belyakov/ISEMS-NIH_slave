@@ -2,8 +2,6 @@ package modulenetworkinteraction
 
 /*
 * Маршрутизация запросов поступающих через протокол websocket
-*
-* Версия 0.2, дата релиза 05.09.2019
 * */
 
 import (

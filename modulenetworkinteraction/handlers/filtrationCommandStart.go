@@ -1,11 +1,5 @@
 package handlers
 
-/*
-* Модуль выполняется при получении команды фильтрации 'start'
-*
-* Версия 0.1, дата релиза 14.05.2019
-* */
-
 import (
 	"encoding/json"
 	"errors"
@@ -53,7 +47,7 @@ func StartFiltration(
 		if msg, ok := common.CheckParametersFiltration(&mtfcJSON.Info.Options); !ok {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprintf("incorrect parameters for filtering (client ID: %v, task ID: %v)", clientID, taskID))
 
-			if err := np.SendMsgNotify("danger", "filtration control", msg, "start"); err != nil {
+			if err := np.SendMsgNotify("danger", "filtration control", msg, "stop"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
@@ -74,8 +68,8 @@ func StartFiltration(
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-			d := "Не было задано ни одной директории для фильтрации сетевого трафика или заданные директории не были найденны. Задача отклонена."
-			if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
+			d := "источник сообщает - не было задано ни одной директории для фильтрации сетевого трафика или заданные директории не были найденны"
+			if err := np.SendMsgNotify("danger", "filtration control", d, "stop"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
@@ -123,8 +117,8 @@ func StartFiltration(
 	if err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-		d := "Получено неверное значение, невозможно объединить список файлов, найденных в результате поиска по индексам. Задача отклонена."
-		if err := np.SendMsgNotify("danger", "filtration control", d, "start"); err != nil {
+		d := "источник сообщает - получено неверное значение, невозможно объединить список файлов, найденных в результате поиска по индексам"
+		if err := np.SendMsgNotify("danger", "filtration control", d, "stop"); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 

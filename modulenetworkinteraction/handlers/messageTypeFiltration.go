@@ -1,11 +1,5 @@
 package handlers
 
-/*
-* Модуль обработчик запросов по фильтрации
-*
-* Версия 0.1, дата релиза 15.05.2019
-* */
-
 import (
 	"encoding/json"
 	"fmt"
@@ -46,7 +40,7 @@ func HandlerMessageTypeFiltration(
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-			d := "Невозможно остановить выполнение фильтрации, не найдена задача с заданным идентификатором"
+			d := "источник сообщает - невозможно остановить выполнение фильтрации, не найдена задача с заданным идентификатором"
 			if err := np.SendMsgNotify("warning", "filtration control", d, "stop"); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}

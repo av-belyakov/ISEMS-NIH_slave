@@ -8,12 +8,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-/*
-* Описание типа в котором хранятся параметры и выполняемые задачи приложения
-*
-* Версия 0.32, дата релиза 22.10.2019
-* */
-
 //StoreMemoryApplication параметры и задачи приложения
 // map[string] = clientID
 type StoreMemoryApplication struct {

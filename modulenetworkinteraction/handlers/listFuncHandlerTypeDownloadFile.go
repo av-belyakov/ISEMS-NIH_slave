@@ -31,7 +31,7 @@ func startDownloadFile(
 	//проверяем, выполняется ли задача по выгрузке файла для данного клиента
 	if _, err = sma.GetInfoTaskDownload(clientID, taskID); err == nil {
 		//		_ = saveMessageApp.LogMessage("error", fmt.Sprintf("the download task for this client is already in progress (client ID: %v, task ID: %v)", clientID, taskID))
-		msgErr := "Невозможно начать выгрузку файла, задача по скачиванию файла для данного клиента уже выполняется."
+		msgErr := "источник сообщает - невозможно начать выгрузку файла, задача по скачиванию файла для данного клиента уже выполняется"
 
 		fmt.Printf("func 'HandlerMessageTypeDownload' ERROR: %v\n", fmt.Sprint(err))
 
@@ -70,7 +70,7 @@ func startDownloadFile(
 	fileSize, fileHex, err := common.GetFileParameters(path.Join(mtfcJSON.Info.PathDirStorage, mtfcJSON.Info.FileOptions.Name))
 	if (err != nil) || (fileSize != mtfcJSON.Info.FileOptions.Size) || (fileHex != mtfcJSON.Info.FileOptions.Hex) {
 		//errMsgLog := fmt.Sprintf("file upload cannot be started, the requested file is not found, or the file size and checksum do not match those accepted in the request (client ID: %v, task ID: %v)", clientID, taskID)
-		errMsgHuman := "Невозможно начать выгрузку файла, требуемый файл не найден или его размер и контрольная сумма не совпадают с принятыми в запросе."
+		errMsgHuman := "источник сообщает - невозможно начать выгрузку файла, требуемый файл не найден или его размер и контрольная сумма не совпадают с принятыми в запросе"
 
 		fmt.Println("Невозможно начать выгрузку файла, требуемый файл не найден или его размер и контрольная сумма не совпадают с принятыми в запросе.")
 
@@ -172,7 +172,7 @@ func readyDownloadFile(
 	ti, err := sma.GetInfoTaskDownload(clientID, taskID)
 	if err != nil {
 		//		_ = saveMessageApp.LogMessage("error", fmt.Sprintf("file download task not found for given ID (client ID: %v, task ID: %v)", clientID, taskID))
-		msgErr := "Невозможно начать выгрузку файла, не найдена задача по выгрузке файла для заданного ID."
+		msgErr := "источник сообщает - невозможно начать выгрузку файла, не найдена задача по выгрузке файла для заданного ID"
 
 		err = np.SendMsgNotify("danger", "download files", msgErr, "stop")
 
@@ -212,7 +212,7 @@ func readyDownloadFile(
 			if message.ErrMsg != nil {
 				fmt.Printf("func 'HandlerMessageTypeDownload', |||| ERROR: %v\n", fmt.Sprint(message.ErrMsg))
 
-				_ = np.SendMsgNotify("danger", "download files", "Выгрузка файла остановлена, ошибка чтения.", "stop")
+				_ = np.SendMsgNotify("danger", "download files", "выгрузка файла остановлена, ошибка чтения", "stop")
 
 				cwtResText <- configure.MsgWsTransmission{
 					ClientID: clientID,
