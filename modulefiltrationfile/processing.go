@@ -292,6 +292,8 @@ DONE:
 			if err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
+				fmt.Printf("func 'executeFiltration', ERROR:%v\n", err)
+
 				break DONE
 			}
 
@@ -351,6 +353,8 @@ DONE:
 
 		return
 	}
+
+	fmt.Printf("func 'executeFiltration', STOP EXECUTE DiR NAME:%v\n", dirName)
 
 	sendInChan.TypeProcessing = ti.Status
 	done <- sendInChan

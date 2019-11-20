@@ -57,23 +57,27 @@ func connClose(
 		c.Close()
 	}
 
-	sma.ChangeSourceConnectionStatus(clientID, false)
+	if err := sma.ChangeSourceConnectionStatus(clientID, false); err != nil {
+		fmt.Printf("func 'connClose', ERROR: %v\n", err)
+
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}
 
 	//отправляем запросы на останов передачи файлов для данного клиента
 	if err := sendMsgStopDownloadFiles(sma, clientID); err != nil {
+		fmt.Printf("func 'connClose', ERROR: %v\n", err)
+
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
 	if requester == "server" {
+		fmt.Println("func 'connClose'		//удаляем параметры подключения клиента")
 		//удаляем параметры подключения клиента
 		sma.DeleteClientSetting(clientID)
 	}
 
 	//удаляем дескриптор соединения
 	sma.DelLinkWebsocketConnection(clientIP)
-
-	//удаляем все задачи по скачиванию файлов для данного клиента
-	//_ = sma.DelAllTaskDownload(clientID)
 }
 
 func sendMsgStopDownloadFiles(sma *configure.StoreMemoryApplication, clientID string) error {
@@ -81,6 +85,8 @@ func sendMsgStopDownloadFiles(sma *configure.StoreMemoryApplication, clientID st
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("func 'sendMsgStopDownloadFiles', START ____________")
 
 	for _, ti := range ldt {
 		//если задача не была завершена автоматически по мере выполнения
@@ -101,6 +107,8 @@ func sendMsgStopDownloadFiles(sma *configure.StoreMemoryApplication, clientID st
 
 		}
 	}
+
+	fmt.Println("func 'sendMsgStopDownloadFiles', STOP ____________")
 
 	//удаляем все задачи для данного клиента
 	return sma.DelAllTaskDownload(clientID)

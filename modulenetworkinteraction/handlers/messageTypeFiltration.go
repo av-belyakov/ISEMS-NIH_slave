@@ -50,9 +50,7 @@ func HandlerMessageTypeFiltration(
 
 		fmt.Println("func 'messageTypeFiltration' RESIVED MSG 'STOP FILTRATION'")
 
-		if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{
-			"Status": "stop",
-		}); err != nil {
+		if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{"Status": "stop"}); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
@@ -68,7 +66,7 @@ func HandlerMessageTypeFiltration(
 		}
 	}
 
-	//при получении подтверждения о завершении фильтрации (не важно 'stop' или 'complete') удаляем задачу
+	//при получении подтверждения о завершении фильтрации удаляем задачу
 	if mtfcJSON.Info.Command == "confirm complete" {
 		fmt.Println("function 'messageTypeFiltration', resived message type 'confirm complete'")
 

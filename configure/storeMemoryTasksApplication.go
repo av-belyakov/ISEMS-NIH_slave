@@ -1,9 +1,7 @@
 package configure
 
 import (
-	"errors"
 	"fmt"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -136,64 +134,6 @@ func NewRepositorySMA() *StoreMemoryApplication {
 	go func() {
 		for msg := range sma.chanReqSettingsTask {
 			switch msg.TaskType {
-			case "client settings":
-				switch msg.ActionType {
-				case "get":
-					if err := sma.checkExistClientSetting(msg.ClientID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{Error: err}
-						close(msg.ChanRespons)
-
-						return
-					}
-
-					csi, _ := sma.clientSettings[msg.ClientID]
-					msg.ChanRespons <- chanResSettingsTask{Parameters: csi}
-
-					close(msg.ChanRespons)
-
-				case "get all":
-					msg.ChanRespons <- chanResSettingsTask{Parameters: sma.clientSettings}
-
-					close(msg.ChanRespons)
-
-				case "del":
-					delete(sma.clientSettings, msg.ClientID)
-
-					msg.ChanRespons <- chanResSettingsTask{}
-
-					close(msg.ChanRespons)
-
-				case "change connection":
-					if err := sma.checkExistClientSetting(msg.ClientID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{Error: err}
-						close(msg.ChanRespons)
-
-						return
-					}
-
-					status, ok := msg.Parameters.(bool)
-					if !ok {
-						msg.ChanRespons <- chanResSettingsTask{Error: fmt.Errorf("format conversion error")}
-						close(msg.ChanRespons)
-
-						return
-					}
-
-					cs := sma.clientSettings[msg.ClientID]
-					cs.ConnectionStatus = status
-
-					if status {
-						cs.DateLastConnected = time.Now().Unix()
-					} else {
-						cs.AccessIsAllowed = false
-					}
-					sma.clientSettings[msg.ClientID] = cs
-
-					msg.ChanRespons <- chanResSettingsTask{}
-
-					close(msg.ChanRespons)
-				}
-
 			case "check exist client id":
 				if _, ok := sma.clientTasks[msg.ClientID]; !ok {
 					msg.ChanRespons <- chanResSettingsTask{
@@ -209,257 +149,17 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 				close(msg.ChanRespons)
 
+			case "client settings":
+				msg.ChanRespons <- managemetRecordClientSettings(&sma, msg)
+				close(msg.ChanRespons)
+
 			case "filtration":
-				switch msg.ActionType {
-				case "get task information":
-					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-
-						close(msg.ChanRespons)
-
-						continue
-					}
-
-					msg.ChanRespons <- chanResSettingsTask{
-						Parameters: sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID],
-					}
-
-					close(msg.ChanRespons)
-
-				case "inc num proc files":
-					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-
-						close(msg.ChanRespons)
-
-						continue
-					}
-
-					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberProcessedFiles + 1
-					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberProcessedFiles = num
-
-					msg.ChanRespons <- chanResSettingsTask{
-						Parameters: num,
-					}
-
-					close(msg.ChanRespons)
-
-				case "inc num not proc files":
-					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-
-						close(msg.ChanRespons)
-
-						continue
-					}
-
-					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberErrorProcessedFiles + 1
-					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberErrorProcessedFiles = num
-
-					msg.ChanRespons <- chanResSettingsTask{
-						Parameters: num,
-					}
-
-					close(msg.ChanRespons)
-
-				case "inc num found files":
-					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-
-						close(msg.ChanRespons)
-
-						continue
-					}
-
-					num := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberFilesFoundResultFiltering + 1
-					sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberFilesFoundResultFiltering = num
-
-					if fileSize, ok := msg.Parameters.(int64); ok {
-						size := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].SizeFilesFoundResultFiltering + fileSize
-						sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].SizeFilesFoundResultFiltering = size
-					}
-
-					msg.ChanRespons <- chanResSettingsTask{
-						Parameters: num,
-					}
-
-					close(msg.ChanRespons)
-
-				case "add new chan to stop filtration":
-					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-
-						close(msg.ChanRespons)
-
-						continue
-					}
-
-					if csf, ok := msg.Parameters.(chan struct{}); ok {
-						lcsf := sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].ListChanStopFiltration
-
-						lcsf = append(lcsf, csf)
-						sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].ListChanStopFiltration = lcsf
-					}
-
-					msg.ChanRespons <- chanResSettingsTask{}
-
-					close(msg.ChanRespons)
-
-				case "delete task":
-					resMsg := chanResSettingsTask{}
-					if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
-						resMsg.Error = err
-					}
-
-					delete(sma.clientTasks[msg.ClientID].filtrationTasks, msg.TaskID)
-
-					msg.ChanRespons <- resMsg
-
-					close(msg.ChanRespons)
-				}
+				msg.ChanRespons <- managemetRecordTaskFiltration(&sma, msg)
+				close(msg.ChanRespons)
 
 			case "download":
-				switch msg.ActionType {
-				case "add chan stop read file":
-					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-
-						close(msg.ChanRespons)
-
-						continue
-					}
-
-					if csrf, ok := msg.Parameters.(chan struct{}); ok {
-
-						fmt.Println("*+**+**+*++**++**+*++***++ func 'storeMemoryTasksApplication', add chan stop read file *+*+*++**+")
-
-						tid := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID]
-						tid.ChanStopReadFile = csrf
-
-						sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID] = tid
-					}
-
-					fmt.Printf("*+**+**+*++**++**+*++***++ func 'storeMemoryTasksApplication', add chan stop read file AFTER: '%v' *+*+*++**+\n", sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID])
-
-					msg.ChanRespons <- chanResSettingsTask{}
-
-					close(msg.ChanRespons)
-
-				case "close chan stop read file":
-					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-
-						close(msg.ChanRespons)
-
-						continue
-					}
-
-					tid := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID]
-					chanStop := tid.ChanStopReadFile
-
-					tid.ChanStopReadFile = nil
-					sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID] = tid
-
-					msg.ChanRespons <- chanResSettingsTask{}
-
-					close(chanStop)
-					close(msg.ChanRespons)
-
-				case "get task information":
-					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-					} else {
-						msg.ChanRespons <- chanResSettingsTask{
-							Parameters: sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID],
-						}
-					}
-
-					close(msg.ChanRespons)
-
-				case "get all task information":
-					msg.ChanRespons <- chanResSettingsTask{
-						Parameters: sma.clientTasks[msg.ClientID].downloadTasks,
-					}
-
-					close(msg.ChanRespons)
-
-				case "set is completed task download":
-					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-
-						fmt.Printf("----- func 'storeMemoryTasksApplication', SECTION:'set is completed task download' ERROR: '%v' ----\n", err)
-
-						close(msg.ChanRespons)
-
-						continue
-					}
-
-					tid := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID]
-					tid.IsTaskCompleted = true
-					sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID] = tid
-
-					fmt.Printf("----- func 'storeMemoryTasksApplication', SECTION:'set is completed task download' IsTaskCompleted: '%v' ----- 'n", sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].IsTaskCompleted)
-
-					msg.ChanRespons <- chanResSettingsTask{}
-
-				case "inc num chunk sent":
-					if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
-						msg.ChanRespons <- chanResSettingsTask{
-							Error: err,
-						}
-
-						close(msg.ChanRespons)
-
-						continue
-					}
-
-					num := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].NumChunkSent + 1
-					sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].NumChunkSent = num
-
-					msg.ChanRespons <- chanResSettingsTask{
-						Parameters: num,
-					}
-
-					close(msg.ChanRespons)
-
-				case "delete task":
-					delete(sma.clientTasks[msg.ClientID].downloadTasks, msg.TaskID)
-
-					msg.ChanRespons <- chanResSettingsTask{}
-
-					close(msg.ChanRespons)
-
-					fmt.Printf("*+**+**+*++**++**+*++***++ func 'storeMemoryTasksApplication', DELETE task. AFTER list task:'%v'\n", sma.clientTasks)
-
-				case "delete all tasks":
-					for taskID := range sma.clientTasks[msg.ClientID].downloadTasks {
-
-						fmt.Printf("func 'StoringMemoryTaskApplication', SECTION: 'dalete all task', task ID: '%v'\n", taskID)
-
-						delete(sma.clientTasks[msg.ClientID].downloadTasks, taskID)
-					}
-
-					fmt.Printf("func 'StoringMemoryTaskApplication', Task Info:(%v)\n", sma.clientTasks[msg.ClientID].downloadTasks)
-
-				}
+				msg.ChanRespons <- managemetRecordTaskDownload(&sma, msg)
+				close(msg.ChanRespons)
 			}
 		}
 	}()
@@ -633,7 +333,7 @@ func (sma *StoreMemoryApplication) DeleteClientSetting(clientID string) {
 }
 
 //ChangeSourceConnectionStatus изменить состояние клиента
-func (sma *StoreMemoryApplication) ChangeSourceConnectionStatus(clientID string, status bool) bool {
+func (sma *StoreMemoryApplication) ChangeSourceConnectionStatus(clientID string, status bool) error {
 	chanRes := make(chan chanResSettingsTask)
 
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
@@ -644,11 +344,7 @@ func (sma *StoreMemoryApplication) ChangeSourceConnectionStatus(clientID string,
 		ChanRespons: chanRes,
 	}
 
-	if (<-chanRes).Error != nil {
-		return false
-	}
-
-	return true
+	return (<-chanRes).Error
 }
 
 /* параметры сетевого соединения
@@ -669,9 +365,7 @@ func (sma *StoreMemoryApplication) GetClientsListConnection() map[string]WssConn
 
 //AddLinkWebsocketConnect добавить линк соединения по websocket
 func (sma *StoreMemoryApplication) AddLinkWebsocketConnect(clientIP string, lwsc *websocket.Conn) {
-	sma.clientLink[clientIP] = WssConnection{
-		Link: lwsc,
-	}
+	sma.clientLink[clientIP] = WssConnection{Link: lwsc}
 }
 
 //DelLinkWebsocketConnection удаление дескриптора соединения при отключении источника
@@ -688,7 +382,7 @@ func (sma *StoreMemoryApplication) GetLinkWebsocketConnect(clientIP string) (*Ws
 
 /*
 параметры выполняемых задач
-		фильтрация
+		ФИЛЬТРАЦИЯ
 ----------------------------*/
 
 //AddTaskFiltration добавить задачу
@@ -728,42 +422,18 @@ func (sma *StoreMemoryApplication) GetInfoTaskFiltration(clientID, taskID string
 
 //SetInfoTaskFiltration устанавливает новое значение некоторых параметров
 func (sma *StoreMemoryApplication) SetInfoTaskFiltration(clientID, taskID string, settings map[string]interface{}) error {
-	for k, v := range settings {
-		switch k {
-		case "FileStorageDirectory":
-			if fsd, ok := v.(string); ok {
-				sma.clientTasks[clientID].filtrationTasks[taskID].FileStorageDirectory = fsd
-			}
+	chanRes := make(chan chanResSettingsTask)
 
-		case "NumberFilesMeetFilterParameters", "NumberProcessedFiles", "NumberErrorProcessedFiles":
-			if count, ok := v.(int); ok {
-				if k == "NumberFilesMeetFilterParameters" {
-					sma.clientTasks[clientID].filtrationTasks[taskID].NumberFilesMeetFilterParameters = count
-				}
-				if k == "NumberProcessedFiles" {
-					sma.clientTasks[clientID].filtrationTasks[taskID].NumberProcessedFiles = count
-				}
-				if k == "NumberErrorProcessedFiles" {
-					sma.clientTasks[clientID].filtrationTasks[taskID].NumberErrorProcessedFiles = count
-				}
-			}
-
-		case "SizeFilesMeetFilterParameters":
-			if size, ok := v.(int64); ok {
-				sma.clientTasks[clientID].filtrationTasks[taskID].SizeFilesMeetFilterParameters = size
-			}
-
-		case "Status":
-			if status, ok := v.(string); ok {
-				sma.clientTasks[clientID].filtrationTasks[taskID].Status = status
-			}
-
-		default:
-			return errors.New("you cannot change the value, undefined passed parameter")
-		}
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:    clientID,
+		TaskID:      taskID,
+		TaskType:    "filtration",
+		ActionType:  "set information task filtration",
+		Parameters:  settings,
+		ChanRespons: chanRes,
 	}
 
-	return nil
+	return (<-chanRes).Error
 }
 
 //IncrementNumProcessedFiles увеличивает кол-во обработанных файлов
@@ -892,7 +562,7 @@ func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) er
 
 /*
 параметры выполняемых задач
-	скачивание файлов
+	СКАЧИВАНИЕ ФАЙЛОВ
 ----------------------------*/
 
 //AddTaskDownload добавить задачу
@@ -1029,9 +699,7 @@ func (sma *StoreMemoryApplication) DelTaskDownload(clientID, taskID string) erro
 		ChanRespons: chanRes,
 	}
 
-	<-chanRes
-
-	return nil
+	return (<-chanRes).Error
 }
 
 //DelAllTaskDownload удаляет все задачи по скачиванию файлов выполняемые для заданного пользователя
@@ -1040,11 +708,14 @@ func (sma *StoreMemoryApplication) DelAllTaskDownload(clientID string) error {
 		return err
 	}
 
+	chanRes := make(chan chanResSettingsTask)
+
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
-		ClientID:   clientID,
-		TaskType:   "download",
-		ActionType: "delete all tasks",
+		ClientID:    clientID,
+		TaskType:    "download",
+		ActionType:  "delete all tasks",
+		ChanRespons: chanRes,
 	}
 
-	return nil
+	return (<-chanRes).Error
 }

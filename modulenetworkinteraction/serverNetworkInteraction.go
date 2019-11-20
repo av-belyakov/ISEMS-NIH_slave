@@ -130,7 +130,9 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	fmt.Printf("connection success established, client ID %v, client IP %v\n", clientID, remoteIP)
 
 	//изменяем состояние соединения для данного источника
-	_ = sws.StoreMemoryApplication.ChangeSourceConnectionStatus(clientID, true)
+	if err := sws.StoreMemoryApplication.ChangeSourceConnectionStatus(clientID, true); err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}
 
 	//добавляем линк соединения по websocket
 	sws.StoreMemoryApplication.AddLinkWebsocketConnect(remoteIP, c)

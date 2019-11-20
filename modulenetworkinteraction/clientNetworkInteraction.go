@@ -47,7 +47,9 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 		if res.StatusCode == 101 {
 			//изменяем статус подключения клиента
-			_ = cs.StoreMemoryApplication.ChangeSourceConnectionStatus(cs.ID, true)
+			if err := cs.StoreMemoryApplication.ChangeSourceConnectionStatus(cs.ID, true); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
 
 			//добавляем линк соединения
 			cs.StoreMemoryApplication.AddLinkWebsocketConnect(cs.IP, c)
