@@ -21,8 +21,6 @@ func HandlerMessageTypeDownload(
 	cwtResText chan<- configure.MsgWsTransmission,
 	cwtResBinary chan<- configure.MsgWsTransmission) {
 
-	fmt.Println("START function 'HandlerMessageTypeDownload'...")
-
 	fn := "HandlerMessageTypeDownload"
 
 	mtfcJSON := configure.MsgTypeDownloadControl{}
@@ -35,8 +33,6 @@ func HandlerMessageTypeDownload(
 
 		return
 	}
-
-	fmt.Printf("function 'HandlerMessageTypeDownload', RESIVED MSG '%v' FROM MASTER\n", mtfcJSON)
 
 	taskID := mtfcJSON.Info.TaskID
 
@@ -62,33 +58,19 @@ func HandlerMessageTypeDownload(
 
 	//обработка запроса на останов выгрузки файла
 	case "stop receiving files":
-		//		stopDownloadFile(sma, clientID, taskID, cwtResText)
-		fmt.Println("\t_______func 'handlerMessageTypeDownloadFile', запрос на останов выгрузки файла")
-
 		//проверяем наличие задачи в 'StoreMemoryApplication'
 		ti, err := sma.GetInfoTaskDownload(clientID, taskID)
 		if err != nil {
 			return
 		}
 
-		fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 1111111111")
-
 		//если задача не была завершена автоматически по мере выполнения
 		if !ti.IsTaskCompleted {
-			fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 1111122222")
-
 			if ti.ChanStopReadFile != nil {
-				fmt.Println("func 'handlerMessageTypeDownloadFile', SEND --------> CHANNEL")
-
 				ti.ChanStopReadFile <- struct{}{}
-
-				fmt.Println("func 'handlerMessageTypeDownloadFile', SUCCESS SENT --------> CHANNEL")
 
 				break
 			}
-
-			fmt.Println("func 'handlerMessageTypeDownloadFile', запрос на останов чтения файла отправлен в канал 2222222222")
-
 		}
 
 		//если задача была выполненна полностью но MASTER считает что задача должна быть остановлена
@@ -110,18 +92,11 @@ func HandlerMessageTypeDownload(
 			Data:     &resMsgJSON,
 		}
 
-		fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 222222233333")
-
 		//удаляем задачу так как она была принудительно остановлена
 		_ = sma.DelTaskDownload(clientID, taskID)
 
-		fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 33333333333")
-
 	//выполняем удаление файла при его успешной передаче
 	case "file successfully accepted":
-
-		fmt.Println("func 'handlerMessageTypeDownloadFile', MESSAGE: 'file successfully accepted'")
-
 		//проверяем наличие задачи в 'StoreMemoryApplication'
 		ti, err := sma.GetInfoTaskDownload(clientID, taskID)
 		if err != nil {
@@ -150,9 +125,6 @@ func HandlerMessageTypeDownload(
 
 		//выполняем удаление задачи при неуспешной передачи файла
 	case "file received with error":
-
-		fmt.Println("____________ func 'handlerMessageTypeDownloadFile', MESSAGE: 'file received with error'")
-
 		//удаляем задачу
 		if err := sma.DelTaskDownload(clientID, taskID); err != nil {
 			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{

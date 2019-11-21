@@ -28,8 +28,6 @@ func StartFiltration(
 	}
 	fn := "StartFiltration"
 
-	fmt.Printf("\tПринята задача по фильтрации сет. трафика с ID %v\n", taskID)
-
 	rejectMsgJSON, err := json.Marshal(configure.MsgTypeFiltration{
 		MsgType: "filtration",
 		Info: configure.DetailInfoMsgFiltration{
@@ -45,8 +43,6 @@ func StartFiltration(
 	}
 
 	if mtfcJSON.Info.NumberMessagesFrom[0] == 0 {
-		fmt.Println("\tпроверяем параметры фильтрации")
-
 		//проверяем параметры фильтрации (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
 		if msg, ok := common.CheckParametersFiltration(&mtfcJSON.Info.Options); !ok {
 			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
@@ -70,8 +66,6 @@ func StartFiltration(
 		}
 
 		as := sma.GetApplicationSetting()
-
-		fmt.Println("\tпроверяем наличие директорий переданных с сообщением типа 'Ping'")
 
 		//проверяем наличие директорий переданных с сообщением типа 'Ping'
 		newStorageFolders, err := checkExistDirectory(as.StorageFolders)
@@ -97,15 +91,11 @@ func StartFiltration(
 			return
 		}
 
-		fmt.Println("\tизменяем список директорий для фильтрации на реально существующие")
-
 		//изменяем список директорий для фильтрации на реально существующие
 		sma.SetApplicationSetting(configure.ApplicationSettings{
 			TypeAreaNetwork: as.TypeAreaNetwork,
 			StorageFolders:  newStorageFolders,
 		})
-
-		fmt.Println("\tи если параметры верны создаем новую задачу")
 
 		//и если параметры верны создаем новую задачу
 		sma.AddTaskFiltration(clientID, taskID, &configure.FiltrationTasks{
@@ -121,8 +111,6 @@ func StartFiltration(
 	}
 
 	if !mtfcJSON.Info.IndexIsFound {
-		fmt.Println("\tвыполнение фильтрации без индексов")
-
 		go modulefiltrationfile.ProcessingFiltration(cwtResText, sma, saveMessageApp, clientID, taskID, rootDirStoringFiles)
 
 		return

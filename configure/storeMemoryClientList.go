@@ -15,12 +15,6 @@ type SourceSetting struct {
 	CurrentTasks      map[string]string // задачи для данного источника,
 }
 
-//WssConnection дескриптор соединения по протоколу websocket
-/*type WssConnection struct {
-	Link *websocket.Conn
-	//mu   sync.Mutex
-}*/
-
 //sourcesListSetting настройки источников, ключ ID источника
 type sourcesListSetting map[string]SourceSetting
 

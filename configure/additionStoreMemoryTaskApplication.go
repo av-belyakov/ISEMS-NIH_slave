@@ -24,18 +24,12 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 		delete(sma.clientSettings, msg.ClientID)
 
 	case "change connection":
-		fmt.Println("func 'additionStoreMemoryTaskApplication', (managemetRecordClientSettings) - 'change connection' START")
 		if err := sma.checkExistClientSetting(msg.ClientID); err != nil {
-			fmt.Printf("func 'additionStoreMemoryTaskApplication', (managemetRecordClientSettings) - 'change connection' ERROR:%v\n", err)
-
 			return chanResSettingsTask{Error: err}
 		}
 
 		status, ok := msg.Parameters.(bool)
 		if !ok {
-
-			fmt.Println("func 'additionStoreMemoryTaskApplication', (managemetRecordClientSettings) - 'change connection' ERROR:'format conversion error'")
-
 			return chanResSettingsTask{Error: fmt.Errorf("format conversion error")}
 		}
 
@@ -48,8 +42,6 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 			cs.AccessIsAllowed = false
 		}
 		sma.clientSettings[msg.ClientID] = cs
-
-		fmt.Println("func 'additionStoreMemoryTaskApplication', (managemetRecordClientSettings) - 'change connection' STOP")
 	}
 
 	return chanResSettingsTask{}
@@ -104,16 +96,11 @@ func managemetRecordTaskFiltration(sma *StoreMemoryApplication, msg chanReqSetti
 
 	case "set information task filtration":
 		if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
-
-			fmt.Printf("func 'StoringMemoryTaskApplication', SECTION:'set information task filtration' Error:(%v)\n", err)
-
 			return chanResSettingsTask{Error: err}
 		}
 
 		settings, ok := msg.Parameters.(map[string]interface{})
 		if !ok {
-			fmt.Println("func 'StoringMemoryTaskApplication', SECTION:'set information task filtration' Error:type conversion error")
-
 			return chanResSettingsTask{Error: fmt.Errorf("type conversion error")}
 		}
 
@@ -148,9 +135,6 @@ func managemetRecordTaskFiltration(sma *StoreMemoryApplication, msg chanReqSetti
 				}
 
 			default:
-
-				fmt.Println("func 'StoringMemoryTaskApplication', SECTION:'set information task filtration' Error:you cannot change the value, undefined passed parameter")
-
 				return chanResSettingsTask{Error: fmt.Errorf("you cannot change the value, undefined passed parameter")}
 			}
 		}
@@ -190,16 +174,11 @@ func managemetRecordTaskDownload(sma *StoreMemoryApplication, msg chanReqSetting
 		}
 
 		if csrf, ok := msg.Parameters.(chan struct{}); ok {
-
-			fmt.Println("*+**+**+*++**++**+*++***++ func 'storeMemoryTasksApplication', add chan stop read file *+*+*++**+")
-
 			tid := sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID]
 			tid.ChanStopReadFile = csrf
 
 			sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID] = tid
 		}
-
-		fmt.Printf("*+**+**+*++**++**+*++***++ func 'storeMemoryTasksApplication', add chan stop read file AFTER: '%v' *+*+*++**+\n", sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID])
 
 	case "close chan stop read file":
 		if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
@@ -238,8 +217,6 @@ func managemetRecordTaskDownload(sma *StoreMemoryApplication, msg chanReqSetting
 		tid.IsTaskCompleted = true
 		sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID] = tid
 
-		fmt.Printf("----- func 'storeMemoryTasksApplication', SECTION:'set is completed task download' IsTaskCompleted: '%v' ----- 'n", sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID].IsTaskCompleted)
-
 	case "inc num chunk sent":
 		if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
 			return chanResSettingsTask{Error: err}
@@ -265,17 +242,9 @@ func managemetRecordTaskDownload(sma *StoreMemoryApplication, msg chanReqSetting
 		}
 
 		for taskID := range sma.clientTasks[msg.ClientID].downloadTasks {
-
-			fmt.Printf("func 'StoringMemoryTaskApplication', SECTION: 'delete all task', task ID: '%v'\n", taskID)
-
 			delete(sma.clientTasks[msg.ClientID].downloadTasks, taskID)
 		}
-
-		fmt.Printf("func 'StoringMemoryTaskApplication', SECTION:'delete all tasks' Download Task Info:(%v)\n", sma.clientTasks[msg.ClientID].downloadTasks)
-
 	}
-
-	fmt.Printf("func 'StoringMemoryTaskApplication', SECTION:'delete all tasks' Filtration Task Info:(%v)\n", sma.clientTasks[msg.ClientID].filtrationTasks)
 
 	return chanResSettingsTask{}
 }

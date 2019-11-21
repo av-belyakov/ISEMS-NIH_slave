@@ -75,13 +75,6 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 		AccessIsAllowed: true,
 	})
 
-	/*
-		fmt.Println("CLIENT IP:", remoteIP)
-		fmt.Println("CLIENT ID:", clientID)
-		sett, _ := ss.StoreMemoryApplication.GetClientSetting(clientID)
-		fmt.Println(sett)
-	*/
-
 	http.Redirect(w, req, "https://"+ss.IP+":"+ss.Port+"/wss", 301)
 }
 

@@ -1,7 +1,6 @@
 package moduledownloadfile
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -41,8 +40,6 @@ type TypeChannelMsgRes struct {
 
 //ReadingFile осуществляет чтение бинарного файла побайтно и передачу прочитанных байт в канал
 func ReadingFile(chanRes chan<- TypeChannelMsgRes, rfp ReadingFileParameters, chanStop <-chan struct{}) {
-	fmt.Println("START func 'ReadingFile'...")
-
 	tcmr := TypeChannelMsgRes{
 		CauseStoped: "completed",
 	}
@@ -60,22 +57,14 @@ func ReadingFile(chanRes chan<- TypeChannelMsgRes, rfp ReadingFileParameters, ch
 
 		close(chanRes)
 		file.Close()
-
-		fmt.Println("/////////////////////// func 'ReadingFile', STOP FUCN AND CLOSE FILE //////////////")
 	}()
 
 	chunkSize := (rfp.MaxChunkSize - len(rfp.StrHex))
-
-	fmt.Printf("START func 'ReadingFile', chunk size = %v\n", chunkSize)
 
 	var fileIsReaded error
 DONE:
 	for i := 0; i <= rfp.NumReadCycle; i++ {
 		bytesTransmitted := []byte(rfp.StrHex)
-
-		if i == 0 {
-			fmt.Printf("\tReader byteTransmitted = %v\n", len(bytesTransmitted))
-		}
 
 		if fileIsReaded == io.EOF {
 			break DONE
@@ -83,8 +72,6 @@ DONE:
 
 		select {
 		case <-chanStop:
-			fmt.Printf("func 'ReadingFile', Resived message 'STOP', Value fileIsReaded equal '%v'\n", fileIsReaded)
-
 			tcmr.CauseStoped = "force stop"
 
 			break DONE
@@ -93,10 +80,6 @@ DONE:
 			data, err := readNextBytes(file, chunkSize, i)
 			if err != nil {
 				if err != io.EOF {
-					if i == 0 {
-						fmt.Printf("func 'ReadingFile', ERROR %v\n", fmt.Sprint(err))
-					}
-
 					tcmr.ErrMsg = err
 
 					break DONE
@@ -107,11 +90,6 @@ DONE:
 
 			bytesTransmitted = append(bytesTransmitted, data...)
 
-			if (i == 0) || (i == 1) {
-				fmt.Printf("Reader chunk = %v, DATA = %v\n", len(bytesTransmitted), len(data))
-				fmt.Printf("func 'ReadingFile', send next byte... %v\n", bytesTransmitted[:67])
-			}
-
 			rfp.ChanCWTResBinary <- configure.MsgWsTransmission{
 				ClientID: rfp.ClientID,
 				Data:     &bytesTransmitted,
@@ -119,8 +97,6 @@ DONE:
 
 		}
 	}
-
-	fmt.Println("func 'ReadingFile', COMPLITE CYCLE READING FILE")
 }
 
 func readNextBytes(file *os.File, number, nextNum int) ([]byte, error) {

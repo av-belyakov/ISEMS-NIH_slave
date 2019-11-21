@@ -89,29 +89,16 @@ func sendMsgStopDownloadFiles(sma *configure.StoreMemoryApplication, clientID st
 		return err
 	}
 
-	fmt.Println("func 'sendMsgStopDownloadFiles', START ____________")
-
 	for _, ti := range ldt {
 		//если задача не была завершена автоматически по мере выполнения
 		if !ti.IsTaskCompleted {
-			fmt.Println("func 'sendMsgStopDownloadFiles', отправляем в канал запрос на останов чтения файла ____1111111____")
-
 			if ti.ChanStopReadFile != nil {
-				fmt.Println("func 'sendMsgStopDownloadFiles', SEND STOP Download to --------> CHANNEL")
-
 				ti.ChanStopReadFile <- struct{}{}
-
-				fmt.Println("func 'sendMsgStopDownloadFiles', SUCCESS SENT STOP Download to --------> CHANNEL")
 
 				return nil
 			}
-
-			fmt.Println("func 'sendMsgStopDownloadFiles', запрос на останов чтения файла отправлен ____2222222222____")
-
 		}
 	}
-
-	fmt.Println("func 'sendMsgStopDownloadFiles', STOP ____________")
 
 	//удаляем все задачи для данного клиента
 	return sma.DelAllTaskDownload(clientID)
@@ -178,9 +165,6 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 			case msgText := <-cwtResText:
 				c, err := getConnLink(msgText)
 				if err != nil {
-
-					fmt.Printf("func 'mainNetworkInteraction', ERROR: '%v', reseived text message 111\n", err)
-
 					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),
 						FuncName:    fn,
@@ -190,9 +174,6 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 				}
 
 				if err := c.SendWsMessage(1, *msgText.Data); err != nil {
-
-					fmt.Printf("func 'mainNetworkInteraction', ERROR: '%v', reseived text message 222\n", err)
-
 					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),
 						FuncName:    fn,

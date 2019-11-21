@@ -44,13 +44,8 @@ func ProcessingFiltration(
 		})
 	}
 
-	fmt.Println("//строим список файлов удовлетворяющих параметрам фильтрации")
-
 	//строим список файлов удовлетворяющих параметрам фильтрации
 	if err := getListFilesForFiltering(sma, clientID, taskID); err != nil {
-
-		fmt.Printf("func 'ProcessingFiltration' ERROR: %v\n", err)
-
 		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
@@ -77,8 +72,6 @@ func ProcessingFiltration(
 
 		return
 	}
-
-	fmt.Println("//получаем информацию о выполняемой задаче")
 
 	//получаем информацию о выполняемой задачи
 	info, err := sma.GetInfoTaskFiltration(clientID, taskID)
@@ -110,8 +103,6 @@ func ProcessingFiltration(
 		return
 	}
 
-	fmt.Println("//проверяем количество файлов которые не были найдены при поиске их по индексам")
-
 	//проверяем количество файлов которые не были найдены при поиске их по индексам
 	if info.NumberErrorProcessedFiles > 0 {
 		d := "источник сообщает - внимание, фильтрация выполняется по файлам полученным при поиске по индексам. Однако, на диске были найдены не все файлы, перечисленные в индексах"
@@ -122,8 +113,6 @@ func ProcessingFiltration(
 			})
 		}
 	}
-
-	fmt.Println("//поверяем количество файлов по которым необходимо выполнить фильтрацию")
 
 	//поверяем количество файлов по которым необходимо выполнить фильтрацию
 	if info.NumberFilesMeetFilterParameters == 0 {
@@ -148,8 +137,6 @@ func ProcessingFiltration(
 
 		return
 	}
-
-	fmt.Println("//создаем директорию для хранения отфильтрованных файлов")
 
 	//создаем директорию для хранения отфильтрованных файлов
 	if err := createDirectoryForFiltering(sma, clientID, taskID, rootDirStoringFiles); err != nil {
@@ -179,8 +166,6 @@ func ProcessingFiltration(
 
 		return
 	}
-
-	fmt.Println("//создаем файл README с описанием параметров фильтрации")
 
 	//создаем файл README с описанием параметров фильтрации
 	if err := createFileReadme(sma, clientID, taskID); err != nil {
@@ -213,12 +198,8 @@ func ProcessingFiltration(
 
 	as := sma.GetApplicationSetting()
 
-	fmt.Println("//формируем шаблон фильтрации")
-
 	//формируем шаблон фильтрации
 	patternScript := createPatternScript(info, as.TypeAreaNetwork)
-
-	fmt.Println("//изменяем статус задачи")
 
 	//изменяем статус задачи
 	_ = sma.SetInfoTaskFiltration(clientID, taskID, map[string]interface{}{
@@ -231,8 +212,6 @@ func ProcessingFiltration(
 		if len(info.ListFiles[dirName]) == 0 {
 			continue
 		}
-
-		fmt.Printf("//запуск фильтрации для каждой директории %v\n", dirName)
 
 		newChanStop := make(chan struct{})
 
@@ -253,8 +232,6 @@ func ProcessingFiltration(
 		FuncName:    fn,
 	})
 
-	fmt.Println("	//обработка информации о завершении фильтрации для каждой директории")
-
 	//обработка информации о завершении фильтрации для каждой директории
 	filteringComplete(sma, np, saveMessageApp, done)
 }
@@ -269,8 +246,6 @@ func executeFiltration(
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
 	chanStop <-chan struct{}) {
 
-	fmt.Printf("func 'executeFiltration' START, dir name: %v\n", dirName)
-
 	fn := "executeFiltration"
 
 DONE:
@@ -280,9 +255,6 @@ DONE:
 		select {
 		//выполнится если в канал придет запрос на останов фильтрации
 		case <-chanStop:
-
-			fmt.Println("func 'executeFiltration' ----- STOP -------")
-
 			break DONE
 
 		default:
@@ -353,8 +325,6 @@ DONE:
 					FuncName:    fn,
 				})
 
-				fmt.Printf("func 'executeFiltration', ERROR:%v\n", err)
-
 				break DONE
 			}
 
@@ -382,8 +352,6 @@ DONE:
 					},
 				}
 			}
-
-			fmt.Printf("отправлена информация о задаче с ID '%v', статус задачи - 'execute', task info: '%v'\n", np.TaskID, msgRes.Info)
 
 			resJSON, err := json.Marshal(msgRes)
 			if err != nil {
@@ -421,8 +389,6 @@ DONE:
 		return
 	}
 
-	fmt.Printf("func 'executeFiltration', STOP EXECUTE DiR NAME:%v\n", dirName)
-
 	sendInChan.TypeProcessing = ti.Status
 	done <- sendInChan
 }
@@ -433,8 +399,6 @@ func filteringComplete(
 	np common.NotifyParameters,
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
 	done chan chanDone) {
-
-	fmt.Println("func 'filteringComplete' START...")
 
 	defer close(done)
 
@@ -457,8 +421,6 @@ func filteringComplete(
 	for dirComplete < num {
 		responseDone = <-done
 
-		fmt.Printf("func 'filteringComplete' dirComplete = %v\n", dirComplete)
-
 		if np.TaskID == responseDone.TaskID {
 			dirComplete++
 		}
@@ -477,8 +439,6 @@ func filteringComplete(
 			FuncName:    fn,
 		})
 	}
-
-	fmt.Println("func 'filteringComplete' SEND MSG...")
 
 	//отправляем сообщение о завершении фильтрации и передаем СПИСОК ВСЕХ найденных в результате фильтрации файлов
 	if err := SendMessageFiltrationComplete(np.ChanRes, sma, np.ClientID, np.TaskID); err != nil {

@@ -136,7 +136,7 @@ func compressLogFile(filePath string, fileName string, fileSize int64) error {
 }
 
 //LogMessage сохраняет в лог файлах сообщения об ошибках или информационные сообщения
-func (pdllf *PathDirLocationLogFiles) LogMessage(tlm TypeLogMessage /*typeMessage, message string*/) (err error) {
+func (pdllf *PathDirLocationLogFiles) LogMessage(tlm TypeLogMessage) (err error) {
 	const logDirName = "isems-nih_slave_logs"
 	const logFileSize = 5000000
 

@@ -59,8 +59,6 @@ func HandlerMessageTypeFiltration(
 			return
 		}
 
-		fmt.Println("func 'messageTypeFiltration' RESIVED MSG 'STOP FILTRATION'")
-
 		if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{"Status": "stop"}); err != nil {
 			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
@@ -72,8 +70,6 @@ func HandlerMessageTypeFiltration(
 		//task.ChanStopFiltration <- struct{}{}
 		num := 1
 		for _, c := range task.ListChanStopFiltration {
-			fmt.Printf("func 'messageTypeFiltration' SEND msg to CHAN STOP %v\n", num)
-
 			c <- struct{}{}
 
 			num++
@@ -82,8 +78,6 @@ func HandlerMessageTypeFiltration(
 
 	//при получении подтверждения о завершении фильтрации удаляем задачу
 	if mtfcJSON.Info.Command == "confirm complete" {
-		fmt.Println("function 'messageTypeFiltration', resived message type 'confirm complete'")
-
 		if err := sma.DelTaskFiltration(clientID, mtfcJSON.Info.TaskID); err != nil {
 			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),

@@ -605,8 +605,6 @@ func (sma *StoreMemoryApplication) CloseChanStopReadFileTaskDownload(clientID, t
 func (sma *StoreMemoryApplication) SetIsCompletedTaskDownload(clientID, taskID string) error {
 	chanRes := make(chan chanResSettingsTask)
 
-	fmt.Println("----- func 'SetIsCompletedTaskDownload', START ----")
-
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
 		ClientID:    clientID,
 		TaskID:      taskID,

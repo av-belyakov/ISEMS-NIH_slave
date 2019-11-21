@@ -138,8 +138,6 @@ type currentListFilesFilteration struct {
 func searchFiles(result chan<- currentListFilesFilteration, disk string, currentTask *configure.FiltrationTasks) {
 	clff := currentListFilesFilteration{Path: disk}
 
-	fmt.Printf("func 'searchFiles' search file for DISK = %v\n", disk)
-
 	if currentTask.UseIndex {
 		for _, file := range currentTask.ListFiles[disk] {
 			fileInfo, err := os.Stat(path.Join(disk, file))
@@ -445,8 +443,6 @@ func SendMessageFiltrationComplete(
 
 	const sizeChunk = 100
 
-	fmt.Println("func 'SendMessageFiltrationComplete' START...")
-
 	taskInfo, err := sma.GetInfoTaskFiltration(clientID, taskID)
 	if err != nil {
 		return err
@@ -485,8 +481,6 @@ func SendMessageFiltrationComplete(
 			return err
 		}
 
-		fmt.Printf("func 'SendMessageFiltrationComplete' SEND ONE MESSAGE COMPLITE, TASK ID %v\n", taskID)
-
 		//сообщение о завершении процесса фильтрации
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
@@ -515,8 +509,6 @@ func SendMessageFiltrationComplete(
 		if err != nil {
 			return err
 		}
-
-		fmt.Printf("func 'SendMessageFiltrationComplete' SEND %v MESSAGE COMPLITE, TASK ID %v\n", i, taskID)
 
 		//сообщение о завершении процесса фильтрации
 		cwtResText <- configure.MsgWsTransmission{
