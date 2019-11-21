@@ -53,25 +53,28 @@ func connClose(
 
 	fmt.Printf("________ CLOSE WSS LINK _________ IP %v\n", clientIP)
 
+	fn := "connClose"
+
 	if c != nil {
 		c.Close()
 	}
 
 	if err := sma.ChangeSourceConnectionStatus(clientID, false); err != nil {
-		fmt.Printf("func 'connClose', ERROR: %v\n", err)
-
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 	}
 
 	//отправляем запросы на останов передачи файлов для данного клиента
 	if err := sendMsgStopDownloadFiles(sma, clientID); err != nil {
-		fmt.Printf("func 'connClose', ERROR: %v\n", err)
-
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 	}
 
 	if requester == "server" {
-		fmt.Println("func 'connClose'		//удаляем параметры подключения клиента")
 		//удаляем параметры подключения клиента
 		sma.DeleteClientSetting(clientID)
 	}
@@ -119,16 +122,24 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
+	fn := "MainNetworkInteraktion"
+
 	//читаем сертификат CA для того что бы клиент доверял сертификату переданному сервером
 	rootCA, err := ioutil.ReadFile(appc.LocalServerHTTPS.PathRootCA)
 	if err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: "root certificate was not added to the pool",
+			FuncName:    fn,
+		})
 	}
 
 	//создаем новый пул доверенных центров серификации и добавляем в него корневой сертификат
 	cp := x509.NewCertPool()
 	if ok := cp.AppendCertsFromPEM(rootCA); !ok {
-		_ = saveMessageApp.LogMessage("error", "root certificate was not added to the pool")
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 	}
 
 	conf := &tls.Config{
@@ -170,7 +181,10 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 
 					fmt.Printf("func 'mainNetworkInteraction', ERROR: '%v', reseived text message 111\n", err)
 
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+						Description: fmt.Sprint(err),
+						FuncName:    fn,
+					})
 
 					continue
 				}
@@ -179,19 +193,28 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 
 					fmt.Printf("func 'mainNetworkInteraction', ERROR: '%v', reseived text message 222\n", err)
 
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+						Description: fmt.Sprint(err),
+						FuncName:    fn,
+					})
 				}
 
 			case msgBinary := <-cwtResBinary:
 				c, err := getConnLink(msgBinary)
 				if err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+						Description: fmt.Sprint(err),
+						FuncName:    fn,
+					})
 
 					continue
 				}
 
 				if err := c.SendWsMessage(2, *msgBinary.Data); err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+						Description: fmt.Sprint(err),
+						FuncName:    fn,
+					})
 				}
 			}
 		}

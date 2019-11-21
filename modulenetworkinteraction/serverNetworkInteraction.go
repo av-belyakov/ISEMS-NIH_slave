@@ -24,6 +24,8 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
+	fn := "HandlerRequest"
+
 	bodyHTTPResponseError := []byte(`<!DOCTYPE html>
 	<html lang="en"
 	<head><meta charset="utf-8"><title>Server Nginx</title></head>
@@ -57,7 +59,10 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 		w.WriteHeader(400)
 		w.Write(bodyHTTPResponseError)
 
-		_ = saveMessageApp.LogMessage("error", "missing or incorrect identification token (сlient ipaddress "+req.RemoteAddr+")")
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprintf("missing or incorrect identification token (сlient ipaddress %v)", req.RemoteAddr),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -85,12 +90,17 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
+	fn := "ServerWss"
+
 	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
 
 	clientID, idIsExist := sws.StoreMemoryApplication.GetClientIDOnIP(remoteIP)
 	if !idIsExist {
 		w.WriteHeader(401)
-		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+remoteIP+" is prohibited")
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprintf("access for the user with ipaddress %v is prohibited", remoteIP),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -98,7 +108,10 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	//проверяем разрешено ли данному ip соединение с сервером wss
 	if !sws.StoreMemoryApplication.GetAccessIsAllowed(remoteIP) {
 		w.WriteHeader(401)
-		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+remoteIP+" is prohibited")
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprintf("access for the user with ipaddress %v is prohibited", remoteIP),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -123,7 +136,10 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 			c.Close()
 		}
 
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 	}
 	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP, "server", saveMessageApp)
 
@@ -131,7 +147,10 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 	//изменяем состояние соединения для данного источника
 	if err := sws.StoreMemoryApplication.ChangeSourceConnectionStatus(clientID, true); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 	}
 
 	//добавляем линк соединения по websocket
@@ -145,7 +164,10 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 		_, message, err := c.ReadMessage()
 		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 
 			break
 		}

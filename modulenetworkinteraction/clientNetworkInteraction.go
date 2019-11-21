@@ -23,6 +23,8 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
+	fn := "redirectPolicyFunc"
+
 	go func() {
 		header := http.Header{}
 		header.Add("Content-Type", "text/plain;charset=utf-8")
@@ -39,7 +41,10 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 		c, res, err := d.Dial("wss://"+cs.IP+":"+cs.Port+"/wss", header)
 		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 
 			return
 		}
@@ -48,18 +53,28 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 		if res.StatusCode == 101 {
 			//изменяем статус подключения клиента
 			if err := cs.StoreMemoryApplication.ChangeSourceConnectionStatus(cs.ID, true); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					Description: fmt.Sprint(err),
+					FuncName:    fn,
+				})
 			}
 
 			//добавляем линк соединения
 			cs.StoreMemoryApplication.AddLinkWebsocketConnect(cs.IP, c)
-			_ = saveMessageApp.LogMessage("info", fmt.Sprintf("connection with source IP %v success established", cs.IP))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				TypeMessage: "info",
+				Description: fmt.Sprintf("connection with source IP %v success established", cs.IP),
+				FuncName:    fn,
+			})
 
 			//обработчик запросов приходящих через websocket
 			for {
 				_, message, err := c.ReadMessage()
 				if err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+						Description: fmt.Sprint(err),
+						FuncName:    fn,
+					})
 
 					break
 				}
@@ -85,6 +100,8 @@ func ClientNetworkInteraction(
 
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
+
+	fn := "clientNetworkInteraction"
 
 	//читаем список доступных к подключению клиентов
 	for _, c := range appc.ToConnectServerHTTPS {
@@ -127,7 +144,10 @@ func ClientNetworkInteraction(
 
 				req, err := http.NewRequest("GET", "https://"+s.IP+":"+s.Port+"/", nil)
 				if err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+						Description: fmt.Sprint(err),
+						FuncName:    fn,
+					})
 
 					continue
 				}
@@ -142,7 +162,10 @@ func ClientNetworkInteraction(
 					strErr := fmt.Sprint(err)
 
 					if !strings.Contains(strErr, "stop redirect") {
-						_ = saveMessageApp.LogMessage("error", strErr)
+						_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+							Description: strErr,
+							FuncName:    fn,
+						})
 					}
 
 					continue

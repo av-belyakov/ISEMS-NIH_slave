@@ -23,9 +23,14 @@ func HandlerMessageTypePing(
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
 	cwtResText chan<- configure.MsgWsTransmission) {
 
+	fn := "HandlerMessageTypePing"
+
 	reqJSON := configure.MsgTypePing{}
 	if err := json.Unmarshal(*req, &reqJSON); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -42,7 +47,10 @@ func HandlerMessageTypePing(
 
 	cs, err := sma.GetClientSetting(clientID)
 	if err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprintf("unable to send message of type 'pong' client with ID %v does not exist", clientID))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprintf("unable to send message of type 'pong' client with ID %v does not exist", clientID),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -56,7 +64,10 @@ func HandlerMessageTypePing(
 		Info:    configure.DetailInfoMsgPing{},
 	})
 	if err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -74,7 +85,10 @@ func HandlerMessageTypePing(
 		}
 
 		if r.Error != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(r.Error))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(r.Error),
+				FuncName:    fn,
+			})
 		}
 	}
 }

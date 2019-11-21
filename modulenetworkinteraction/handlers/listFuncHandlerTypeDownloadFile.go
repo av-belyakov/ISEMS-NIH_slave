@@ -155,6 +155,8 @@ func readyDownloadFile(
 
 	fmt.Println("func 'HandlerMessageTypeDownload', MSG: '___ ready to receive file ___' проверяем наличие задачи в 'StoreMemoryApplication'")
 
+	fn := "readyDownloadFile"
+
 	rejectMsgJSON, err := json.Marshal(configure.MsgTypeDownloadControl{
 		MsgType: "download files",
 		Info: configure.DetailInfoMsgDownload{
@@ -163,7 +165,10 @@ func readyDownloadFile(
 		},
 	})
 	if err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -181,7 +186,10 @@ func readyDownloadFile(
 			Data:     &rejectMsgJSON,
 		}
 
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -227,7 +235,10 @@ func readyDownloadFile(
 			//если задача полностью выполненна
 			if message.CauseStoped == "completed" {
 				if err := sma.SetIsCompletedTaskDownload(clientID, taskID); err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+						Description: fmt.Sprint(err),
+						FuncName:    fn,
+					})
 				}
 
 				continue
@@ -244,7 +255,10 @@ func readyDownloadFile(
 			//если задача была завершена принудительно
 			resMsgJSON, err := json.Marshal(resMsg)
 			if err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					Description: fmt.Sprint(err),
+					FuncName:    fn,
+				})
 			}
 			cwtResText <- configure.MsgWsTransmission{
 				ClientID: clientID,
@@ -261,64 +275,6 @@ func readyDownloadFile(
 
 	return err
 }
-
-/*func stopDownloadFile(
-sma *configure.StoreMemoryApplication,
-clientID string,
-taskID string,
-cwtResText chan<- configure.MsgWsTransmission) {
-
-fmt.Println("\t_______func 'handlerMessageTypeDownloadFile', запрос на останов выгрузки файла")
-
-//проверяем наличие задачи в 'StoreMemoryApplication'
-if ti, err := sma.GetInfoTaskDownload(clientID, taskID); err == nil {
-	fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 111")
-
-	ti.ChanStopReadFile <- struct{}{}
-
-	fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 222")
-}
-
-/*if err != nil {
-	//_ = saveMessageApp.LogMessage("error", fmt.Sprintf("it is impossible to stop file transfer (client ID: %v, task ID: %v)", clientID, taskID))
-	msgErr := "Невозможно остановить выгрузку файла, не найдена задача по выгрузке файла для заданного ID."
-
-	fmt.Printf("func 'handlerMessageTypeDownloadFile', TASK IS NOT FOUND (ERROR: %v)\n", msgErr)
-
-	err = np.SendMsgNotify("warning", "download files", msgErr, "stop")
-
-	rejectTaskMsgJSON, err := createRejectMsgJSON(taskID)
-	if err != nil {
-		return err
-	}
-
-	cwtResText <- configure.MsgWsTransmission{
-		ClientID: clientID,
-		Data:     rejectTaskMsgJSON,
-	}
-
-	return err
-}
-
-fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 111")
-fmt.Printf("_-_-_-_-_-_- func 'handlerMessageTypeDownloadFile', CHAN STOP - '%v'\n", ti.ChanStopReadFile)
-
-if ti.ChanStopReadFile != nil {
-	//отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла
-	ti.ChanStopReadFile <- struct{}{}
-
-	fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 222")
-}
-
-fmt.Printf("func 'handlerMessageTypeDownloadFile', DELETE TASK WITH ID:'%v'\n", taskID)
-
-//удаляем задачу
-err = sma.DelTaskDownload(clientID, taskID)
-
-tti, _ := sma.GetInfoTaskDownload(clientID, taskID)
-fmt.Printf("|||||||||||------- func 'handlerMessageTypeDownloadFile', DELETE task '%v' in succesfull\n", tti)
-*/
-//}
 
 func createRejectMsgJSON(taskID string) (*[]byte, error) {
 	rejectMsgJSON, err := json.Marshal(configure.MsgTypeDownloadControl{

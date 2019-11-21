@@ -23,10 +23,15 @@ func HandlerMessageTypeDownload(
 
 	fmt.Println("START function 'HandlerMessageTypeDownload'...")
 
+	fn := "HandlerMessageTypeDownload"
+
 	mtfcJSON := configure.MsgTypeDownloadControl{}
 
 	if err := json.Unmarshal(*req, &mtfcJSON); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -45,7 +50,10 @@ func HandlerMessageTypeDownload(
 	//обработка запроса на выгрузку файла
 	case "give me the file":
 		if err := startDownloadFile(np, sma, mtfcJSON, clientID, appc.MaxSizeTransferredChunkFile, cwtResText); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 		}
 
 	//обработка сообщения 'готовность к приему файла'
@@ -92,7 +100,10 @@ func HandlerMessageTypeDownload(
 			},
 		})
 		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 		}
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
@@ -106,27 +117,6 @@ func HandlerMessageTypeDownload(
 
 		fmt.Println("func 'handlerMessageTypeDownloadFile', отправляем в канал полученный в разделе 'ready to receive file' запрос на останов чтения файла 33333333333")
 
-		//если задача еще не была запущена
-		/*resMsgJSON, err := json.Marshal(configure.MsgTypeDownloadControl{
-			MsgType: "download files",
-			Info: configure.DetailInfoMsgDownload{
-				TaskID:  taskID,
-				Command: "file transfer stopped successfully",
-			},
-		})
-		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}
-		cwtResText <- configure.MsgWsTransmission{
-			ClientID: clientID,
-			Data:     &resMsgJSON,
-		}
-
-		fmt.Println("func 'handlerMessageTypeDownloadFile', sent MSG 'file transfer stopped successfully' ----> Master")
-
-		//удаляем задачу так как она была принудительно остановлена
-		_ = sma.DelTaskDownload(clientID, taskID)*/
-
 	//выполняем удаление файла при его успешной передаче
 	case "file successfully accepted":
 
@@ -135,19 +125,27 @@ func HandlerMessageTypeDownload(
 		//проверяем наличие задачи в 'StoreMemoryApplication'
 		ti, err := sma.GetInfoTaskDownload(clientID, taskID)
 		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 
 			break
 		}
 
 		if err := os.Remove(path.Join(ti.DirectiryPathStorage, ti.FileName)); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 		}
 
 		//удаляем задачу
 		if err := sma.DelTaskDownload(clientID, taskID); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 		}
 
 		//выполняем удаление задачи при неуспешной передачи файла
@@ -157,8 +155,10 @@ func HandlerMessageTypeDownload(
 
 		//удаляем задачу
 		if err := sma.DelTaskDownload(clientID, taskID); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 		}
 	}
 }

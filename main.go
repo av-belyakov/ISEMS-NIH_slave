@@ -167,19 +167,21 @@ func init() {
 	appConfig.LocalServerHTTPS.PathCertFile = appConfig.RootDir + appConfig.LocalServerHTTPS.PathCertFile
 	appConfig.LocalServerHTTPS.PathPrivateKeyFile = appConfig.RootDir + appConfig.LocalServerHTTPS.PathPrivateKeyFile
 
-	//создаем основную директорию куда будут сохраняться обработанные файлы (при фильтрации)
+	//создаем основную директорию куда будут сохраняться обработанные при выполнении фильтрации файлы
 	if err = createStoreDirectory(appConfig.DirectoryStoringProcessedFiles.Raw); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{Description: fmt.Sprint(err)})
 	}
 
 	//создаем основную директорию куда будут сохраняться обработанные файлы (при выделении объектов)
 	if err = createStoreDirectory(appConfig.DirectoryStoringProcessedFiles.Object); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{Description: fmt.Sprint(err)})
 	}
 
 	//получаем номер версии приложения
 	if err = getVersionApp(&appConfig); err != nil {
-		_ = saveMessageApp.LogMessage("error", "it is impossible to obtain the version number of the application")
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: "it is impossible to obtain the version number of the application",
+		})
 	}
 
 	//проверяем размер передаваемой части файла
@@ -196,4 +198,15 @@ func main() {
 	log.Printf("START application ISEMS-NIH_slave version %q\n", appConfig.VersionApp)
 
 	modulenetworkinteraction.MainNetworkInteraction(&appConfig, sma)
+
+	defer func() {
+		if err := recover(); err != nil {
+			saveMessageApp := savemessageapp.New()
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				TypeMessage: "error",
+				Description: fmt.Sprintf("STOP 'main' function, Error:'%v'", err),
+				FuncName:    "main",
+			})
+		}
+	}()
 }

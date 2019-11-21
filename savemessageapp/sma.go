@@ -26,6 +26,11 @@ type pathConfig struct {
 	PathLogFiles string `json:"pathLogFiles"`
 }
 
+//TypeLogMessage описание типа для записи логов
+type TypeLogMessage struct {
+	TypeMessage, Description, FuncName string
+}
+
 //New конструктор для огранизации записи лог-файлов
 func New() *PathDirLocationLogFiles {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -131,17 +136,27 @@ func compressLogFile(filePath string, fileName string, fileSize int64) error {
 }
 
 //LogMessage сохраняет в лог файлах сообщения об ошибках или информационные сообщения
-func (pdllf *PathDirLocationLogFiles) LogMessage(typeMessage, message string) (err error) {
+func (pdllf *PathDirLocationLogFiles) LogMessage(tlm TypeLogMessage /*typeMessage, message string*/) (err error) {
 	const logDirName = "isems-nih_slave_logs"
-	const logFileSize = 50000000
+	const logFileSize = 5000000
 
 	fileNameTypeMessage := map[string]string{
 		"error": "error_slave.log",
 		"info":  "info_slave.log",
 	}
 
-	if typeMessage == "" || message == "" {
-		return errors.New("'typeMessage' or 'message' empty variable")
+	if tlm.TypeMessage == "" && tlm.Description == "" {
+		return errors.New("fields 'TypeMessage' or 'Description' empty variable")
+	}
+
+	typeMessage := tlm.TypeMessage
+	if typeMessage == "" {
+		typeMessage = "error"
+	}
+
+	funcName := ""
+	if tlm.FuncName != "" {
+		funcName = fmt.Sprintf(" (function '%s')", tlm.FuncName)
 	}
 
 	if err = createLogsDirectory(pdllf.pathLogFiles, logDirName); err != nil {
@@ -168,7 +183,7 @@ func (pdllf *PathDirLocationLogFiles) LogMessage(typeMessage, message string) (e
 		}
 	}()
 
-	strMsg := fmt.Sprintf("%s %s [%s %s] - %s\n", tns[0], tns[1], tns[2], tns[3], message)
+	strMsg := fmt.Sprintf("%s %s [%s %s] - %s%s\n", tns[0], tns[1], tns[2], tns[3], tlm.Description, funcName)
 
 	if _, err = writer.WriteString(strMsg); err != nil {
 		return err

@@ -30,7 +30,10 @@ func RouteWssConnect(
 
 	for msg := range cwtReq {
 		if err := json.Unmarshal(*msg.Data, &mtJSON); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    "RouteWssConnect",
+			})
 		}
 
 		fmt.Printf("func 'RouteWssConnect', reseived MSG:'%v'\n", mtJSON)

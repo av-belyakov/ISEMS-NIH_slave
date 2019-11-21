@@ -186,6 +186,8 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
+	fn := "getListFilesForFiltering"
+
 	currentTask, err := sma.GetInfoTaskFiltration(clientID, taskID)
 	if err != nil {
 		return err
@@ -217,12 +219,18 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 		resultFoundFile := <-result
 
 		if resultFoundFile.ErrMsg != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(resultFoundFile.ErrMsg))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(resultFoundFile.ErrMsg),
+				FuncName:    fn,
+			})
 		}
 
 		if resultFoundFile.Files != nil {
 			if _, err := sma.AddFileToListFilesFiltrationTask(clientID, taskID, map[string][]string{resultFoundFile.Path: resultFoundFile.Files}); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(resultFoundFile.ErrMsg))
+				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					Description: fmt.Sprint(resultFoundFile.ErrMsg),
+					FuncName:    fn,
+				})
 			}
 		}
 

@@ -17,10 +17,15 @@ func HandlerMessageTypeFiltration(
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
 	cwtResText chan<- configure.MsgWsTransmission) {
 
+	fn := "HandlerMessageTypeFiltration"
+
 	mtfcJSON := configure.MsgTypeFiltrationControl{}
 
 	if err := json.Unmarshal(*req, &mtfcJSON); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 
 		return
 	}
@@ -32,17 +37,23 @@ func HandlerMessageTypeFiltration(
 	}
 
 	if mtfcJSON.Info.Command == "start" {
-		go StartFiltration(cwtResText, sma, &mtfcJSON, clientID, directoryStoringProcessedFiles)
+		go StartFiltration(cwtResText, sma, &mtfcJSON, clientID, directoryStoringProcessedFiles, saveMessageApp)
 	}
 
 	if mtfcJSON.Info.Command == "stop" {
 		task, err := sma.GetInfoTaskFiltration(clientID, mtfcJSON.Info.TaskID)
 		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 
 			d := "источник сообщает - невозможно остановить выполнение фильтрации, не найдена задача с заданным идентификатором"
 			if err := np.SendMsgNotify("warning", "filtration control", d, "stop"); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					Description: fmt.Sprint(err),
+					FuncName:    fn,
+				})
 			}
 
 			return
@@ -51,7 +62,10 @@ func HandlerMessageTypeFiltration(
 		fmt.Println("func 'messageTypeFiltration' RESIVED MSG 'STOP FILTRATION'")
 
 		if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{"Status": "stop"}); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 		}
 
 		//отправляем запрос на останов задачи по фильтрации файлов
@@ -71,7 +85,10 @@ func HandlerMessageTypeFiltration(
 		fmt.Println("function 'messageTypeFiltration', resived message type 'confirm complete'")
 
 		if err := sma.DelTaskFiltration(clientID, mtfcJSON.Info.TaskID); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
 		}
 	}
 }

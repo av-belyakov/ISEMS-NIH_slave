@@ -22,6 +22,8 @@ func GetSystemInformation(
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
+	fn := "GetSystemInformation"
+
 	var sysInfo SysInfo
 
 	chanErrMsg := make(chan error)
@@ -37,17 +39,26 @@ func GetSystemInformation(
 
 	//загрузка оперативной памяти
 	if err := sysInfo.CreateRandomAccessMemory(); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 	}
 
 	//загрузка ЦПУ
 	if err := sysInfo.CreateLoadCPU(); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 	}
 
 	//свободное дисковое пространство
 	if err := sysInfo.CreateDiskSpace(); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 	}
 
 	numGoProg := 2
@@ -56,7 +67,10 @@ DONE:
 	for {
 		select {
 		case errMsg := <-chanErrMsg:
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(errMsg))
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(errMsg),
+				FuncName:    fn,
+			})
 
 		case <-done:
 			numGoProg--
@@ -72,7 +86,10 @@ DONE:
 
 	resjson, err := json.Marshal(sysInfo)
 	if err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
 	}
 
 	//рассылаем всем клиентам ожидающим телеметрию
