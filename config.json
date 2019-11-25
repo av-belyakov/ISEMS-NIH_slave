@@ -34,7 +34,7 @@
     "directoryStoringProcessedFiles_comments": "директории для хранения обработанных файлов",
     "pathLogFiles": "/var/log",
     "pathLogFiles_comments": "место расположение лог-файла приложения",
-    "refreshIntervalTelemetryInfo": 10,
+    "refreshIntervalTelemetryInfo": 120,
     "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации",
     "maxSizeTransferredChunkFile": 4096,
     "maxSizeTransferredChunkFile_comments": "максимальный размер передаваемого кусочка файла"

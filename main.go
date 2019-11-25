@@ -192,13 +192,6 @@ func init() {
 }
 
 func main() {
-	//создаем новый репозиторий для хранения информации, в том числе о задачах
-	sma := configure.NewRepositorySMA()
-
-	log.Printf("START application ISEMS-NIH_slave version %q\n", appConfig.VersionApp)
-
-	modulenetworkinteraction.MainNetworkInteraction(&appConfig, sma)
-
 	defer func() {
 		if err := recover(); err != nil {
 			saveMessageApp := savemessageapp.New()
@@ -209,4 +202,11 @@ func main() {
 			})
 		}
 	}()
+
+	//создаем новый репозиторий для хранения информации, в том числе о задачах
+	sma := configure.NewRepositorySMA()
+
+	log.Printf("START application ISEMS-NIH_slave version %q\n", appConfig.VersionApp)
+
+	modulenetworkinteraction.MainNetworkInteraction(&appConfig, sma)
 }
