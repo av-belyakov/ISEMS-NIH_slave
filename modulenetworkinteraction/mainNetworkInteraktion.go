@@ -207,6 +207,10 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	//запуск телеметрии
 	go telemetry.TransmissionTelemetry(cwtResText, appc, sma)
 
+	if appc.ForLocalUse {
+		go UnixSocketInteraction(appc, sma, saveMessageApp)
+	}
+
 	/* запуск приложения в режиме 'СЕРВЕР' */
 	if appc.IsServer {
 		ServerNetworkInteraction(cwtReq, appc, sma)

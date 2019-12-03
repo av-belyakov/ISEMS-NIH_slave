@@ -108,11 +108,14 @@ func HandlerMessageTypeDownload(
 			break
 		}
 
-		if err := os.Remove(path.Join(ti.DirectiryPathStorage, ti.FileName)); err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-				Description: fmt.Sprint(err),
-				FuncName:    fn,
-			})
+		//удаляем файл только если приложение НЕ использует Unix socket наряду с WebSocket
+		if !appc.ForLocalUse {
+			if err := os.Remove(path.Join(ti.DirectiryPathStorage, ti.FileName)); err != nil {
+				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					Description: fmt.Sprint(err),
+					FuncName:    fn,
+				})
+			}
 		}
 
 		//удаляем задачу

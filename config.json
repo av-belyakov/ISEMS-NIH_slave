@@ -14,7 +14,7 @@
     ],
     "toConnectServerHTTPS_comments": "параметры для соединения с серверами 'ISEMS-NIH_master'",
     "timeReconnect": 20,
-    "timeReconnect_comments": "актуально только в режиме isServer = false, тогда с заданным интервалом времени будут попытки соединения с адресом мастера",
+    "timeReconnect_comments": "актуально только в режиме isServer равен 'false', тогда с заданным интервалом времени будут попытки соединения с адресом мастера",
     "localServerHTTPS": {
         "ip": "127.0.0.1",
         "port": 13444,
@@ -37,5 +37,9 @@
     "refreshIntervalTelemetryInfo": 120,
     "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации",
     "maxSizeTransferredChunkFile": 4096,
-    "maxSizeTransferredChunkFile_comments": "максимальный размер передаваемого кусочка файла"
+    "maxSizeTransferredChunkFile_comments": "максимальный размер передаваемого кусочка файла",
+    "forLocalUse": true,
+    "forLocalUse_comments": "устанавливается в 'true' если планируется осуществлять взаимодействие с приложением ещё и через Unix сокет",
+    "nameUnixSocket": "isems-nih",
+    "nameUnixSocket_comments": "актуально только если параметр 'forLocalUse' равен 'true'"
 }
