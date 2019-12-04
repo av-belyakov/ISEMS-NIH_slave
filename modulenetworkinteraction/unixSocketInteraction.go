@@ -2,6 +2,7 @@ package modulenetworkinteraction
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"path"
@@ -10,17 +11,36 @@ import (
 	"ISEMS-NIH_slave/savemessageapp"
 )
 
+func handlerReqUnixSocket(conn net.Conn) {
+	for {
+		buf := make([]byte, 512)
+		nr, err := conn.Read(buf)
+		if err != nil {
+			return
+		}
+
+		data := string(buf[0:nr])
+
+		fmt.Printf("server reseived message: '%v'\n", data)
+
+		_, err = conn.Write([]byte("give my valid token..."))
+		if err != nil {
+			fmt.Printf("Error writing socket: '%v'\n", err)
+		}
+	}
+}
+
 //UnixSocketInteraction модуль взаимодействия через Unix сокет
 func UnixSocketInteraction(appc *configure.AppConfig, sma *configure.StoreMemoryApplication, saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 	fmt.Println("func 'UnixSocketInteraction' START...")
-
-	fmt.Printf("file Unix socket:'%v'\n", appc.NameUnixSocket)
+	fmt.Printf("file Unix socket:'%v'\n", appc.ToConnectUnixSocket)
 
 	funcName := "UnixSocketInteraction"
+	pathSocket := path.Join("/tmp", appc.ToConnectUnixSocket.SocketName)
 
-	_ = os.RemoveAll(path.Join("/tmp", appc.NameUnixSocket))
+	_ = os.RemoveAll(pathSocket)
 
-	l, err := net.Listen("unix", path.Join("/tmp", appc.NameUnixSocket))
+	l, err := net.Listen("unix", pathSocket)
 	if err != nil {
 
 		fmt.Printf("func 'UnixSocketInteraction', ERROR: %v\n", err)
@@ -43,6 +63,8 @@ func UnixSocketInteraction(appc *configure.AppConfig, sma *configure.StoreMemory
 			})
 		}
 
-		fmt.Printf("func 'UnixSocketInteraction' CONNECT: '%v'\n", conn.RemoteAddr().Network())
+		log.Printf("func 'UnixSocketInteraction' CONNECT: '%v'\n", conn.RemoteAddr().Network())
+
+		go handlerReqUnixSocket(conn)
 	}
 }

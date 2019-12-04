@@ -16,7 +16,7 @@ package configure
 // TimeReconnect - актуально только в режиме isServer = false, тогда с заданным интервалом времени будут попытки соединения с адресом мастера
 // MaxSizeTransferredChunkFile - максимальный размер передаваемого кусочка файла
 // ForLocalUse - устанавливается в true если планируется осуществлять взаимодействие с приложением ещё и через Unix сокет
-// NameUnixSocket - название файла используемого как Unix сокет
+// toConnectUnixSocket - хранилище параметров для Unix сокет соединения
 type AppConfig struct {
 	VersionApp                     string
 	RootDir                        string
@@ -29,7 +29,7 @@ type AppConfig struct {
 	TimeReconnect                  int
 	MaxSizeTransferredChunkFile    int
 	ForLocalUse                    bool
-	NameUnixSocket                 string
+	ToConnectUnixSocket            settingsToConnectUnixSocket
 }
 
 //settingsToConnectServerHTTPS настройки сервера с которым устанавливается подключение в режиме клиента
@@ -52,4 +52,9 @@ type settingsLocalServerHTTPS struct {
 //settingsDirectoryStoreFiles настройки с путями к директориям для хранения файлов
 type settingsDirectoryStoreFiles struct {
 	Raw, Object string
+}
+
+//settingsToConnectUnixSocket хранилище параметров для Unix сокет соединения
+type settingsToConnectUnixSocket struct {
+	SocketName, Token string
 }

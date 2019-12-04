@@ -40,6 +40,9 @@
     "maxSizeTransferredChunkFile_comments": "максимальный размер передаваемого кусочка файла",
     "forLocalUse": true,
     "forLocalUse_comments": "устанавливается в 'true' если планируется осуществлять взаимодействие с приложением ещё и через Unix сокет",
-    "nameUnixSocket": "isems-nih",
-    "nameUnixSocket_comments": "актуально только если параметр 'forLocalUse' равен 'true'"
+    "toConnectUnixSocket": {
+        "socketName": "isems-nih",
+        "token": "sndosodjwjd99329eh93hfh9h93h9f"
+    },
+    "toConnectUnixSocket_comment": "актуально только если параметр 'forLocalUse' равен 'true'"
 }
