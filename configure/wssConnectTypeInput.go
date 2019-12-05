@@ -22,6 +22,11 @@ type MsgTypePing struct {
 
 /* ПАРАМЕТРЫ ФИЛЬТРАЦИИ */
 
+//TypeUnixSocketInteraction получить токен (для Unix сокетов)
+type TypeUnixSocketInteraction struct {
+	Token string `json:"token"`
+}
+
 //MsgTypeFiltrationControl сообщение для запуска процесса фильтрации
 type MsgTypeFiltrationControl struct {
 	MsgType string                    `json:"messageType"`

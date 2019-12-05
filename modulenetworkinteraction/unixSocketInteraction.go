@@ -1,6 +1,7 @@
 package modulenetworkinteraction
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -11,7 +12,9 @@ import (
 	"ISEMS-NIH_slave/savemessageapp"
 )
 
-func handlerReqUnixSocket(conn net.Conn) {
+func handlerReqUnixSocket(conn net.Conn, appc *configure.AppConfig, saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
+	funcName := "handlerReqUnixSocket"
+
 	for {
 		buf := make([]byte, 512)
 		nr, err := conn.Read(buf)
@@ -19,11 +22,40 @@ func handlerReqUnixSocket(conn net.Conn) {
 			return
 		}
 
-		data := string(buf[0:nr])
+		data := buf[0:nr]
 
-		fmt.Printf("server reseived message: '%v'\n", data)
+		tusi := configure.TypeUnixSocketInteraction{}
+		if err := json.Unmarshal(data, &tusi); err != nil {
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    funcName,
+			})
+		}
 
-		_, err = conn.Write([]byte("give my valid token..."))
+		//проверяем токен
+		if tusi.Token != appc.ToConnectUnixSocket.Token {
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: "invalid token received",
+				FuncName:    funcName,
+			})
+
+			_, err = conn.Write([]byte("Error: invalid token received"))
+
+			return
+		}
+
+		//получаем параметры фильтрации
+		mtfc := configure.MsgTypeFiltrationControl{}
+		if err := json.Unmarshal(data, &mtfc); err != nil {
+			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    funcName,
+			})
+		}
+
+		fmt.Printf("Unix socket client transmited - '%v'\n", mtfc)
+
+		_, err = conn.Write([]byte("Token is valide, task START..."))
 		if err != nil {
 			fmt.Printf("Error writing socket: '%v'\n", err)
 		}
@@ -65,6 +97,6 @@ func UnixSocketInteraction(appc *configure.AppConfig, sma *configure.StoreMemory
 
 		log.Printf("func 'UnixSocketInteraction' CONNECT: '%v'\n", conn.RemoteAddr().Network())
 
-		go handlerReqUnixSocket(conn)
+		go handlerReqUnixSocket(conn, appc, saveMessageApp)
 	}
 }
