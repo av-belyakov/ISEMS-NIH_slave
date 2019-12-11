@@ -23,6 +23,8 @@ func HandlerMessageTypePing(
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
 	cwtResText chan<- configure.MsgWsTransmission) {
 
+	fmt.Println("func 'HandlerMessageTypePing', START...")
+
 	fn := "HandlerMessageTypePing"
 
 	reqJSON := configure.MsgTypePing{}
@@ -40,10 +42,20 @@ func HandlerMessageTypePing(
 		typeAreaNetwork = "pppoe"
 	}
 
-	sma.SetApplicationSetting(configure.ApplicationSettings{
-		TypeAreaNetwork: typeAreaNetwork,
-		StorageFolders:  reqJSON.Info.StorageFolders,
-	})
+	//проверяем были ли ранее установлены параметры приложения
+	as := sma.GetApplicationSetting()
+
+	fmt.Printf("func 'HandlerMessageTypePing', проверяем были ли ранее установлены параметры приложения, '%v'\n", as)
+
+	if len(as.StorageFolders) == 0 {
+
+		fmt.Println("func 'HandlerMessageTypePing', устанавливаем параметры приложения")
+
+		sma.SetApplicationSetting(configure.ApplicationSettings{
+			TypeAreaNetwork: typeAreaNetwork,
+			StorageFolders:  reqJSON.Info.StorageFolders,
+		})
+	}
 
 	cs, err := sma.GetClientSetting(clientID)
 	if err != nil {

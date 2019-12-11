@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	"github.com/gorilla/websocket"
 
@@ -163,6 +164,18 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 		for {
 			select {
 			case msgText := <-cwtResText:
+				//если запрос пришел через unix socket
+				if strings.Contains(msgText.ClientID, "unix_socket") {
+					if c, ok := sma.GetLinkUnixSocketConnect(msgText.ClientID); ok {
+						if _, err := (*c.Link).Write(*msgText.Data); err != nil {
+							sma.DelLinkUnixSocketConnection(msgText.ClientID)
+						}
+					}
+
+					continue
+				}
+
+				//выполняется только если запрос пришел через WebSocket
 				c, err := getConnLink(msgText)
 				if err != nil {
 					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
@@ -208,7 +221,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	go telemetry.TransmissionTelemetry(cwtResText, appc, sma)
 
 	if appc.ForLocalUse {
-		go UnixSocketInteraction(appc, sma, saveMessageApp)
+		go UnixSocketInteraction(cwtReq, appc, sma, saveMessageApp)
 	}
 
 	/* запуск приложения в режиме 'СЕРВЕР' */

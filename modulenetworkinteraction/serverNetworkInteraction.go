@@ -87,8 +87,8 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
 
-	clientID, idIsExist := sws.StoreMemoryApplication.GetClientIDOnIP(remoteIP)
-	if !idIsExist {
+	clientID, isExistID := sws.StoreMemoryApplication.GetClientIDOnIP(remoteIP)
+	if !isExistID {
 		w.WriteHeader(401)
 		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprintf("access for the user with ipaddress %v is prohibited", remoteIP),

@@ -2,6 +2,7 @@ package configure
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/gorilla/websocket"
 )
@@ -9,11 +10,12 @@ import (
 //StoreMemoryApplication параметры и задачи приложения
 // map[string] = clientID
 type StoreMemoryApplication struct {
-	applicationSettings ApplicationSettings
-	clientSettings      map[string]ClientSettings
-	clientTasks         map[string]TasksList
-	clientLink          map[string]WssConnection
-	chanReqSettingsTask chan chanReqSettingsTask
+	applicationSettings  ApplicationSettings
+	clientSettings       map[string]ClientSettings
+	clientTasks          map[string]TasksList
+	clientLinkWss        map[string]WssConnection
+	clientLinkUnixSocket map[string]UnixSocketConnection
+	chanReqSettingsTask  chan chanReqSettingsTask
 }
 
 //ApplicationSettings параметры приложения
@@ -51,6 +53,11 @@ type TasksList struct {
 type WssConnection struct {
 	Link *websocket.Conn
 	//mu   sync.Mutex
+}
+
+//UnixSocketConnection дескриптор соединения через unix socket
+type UnixSocketConnection struct {
+	Link *net.Conn
 }
 
 //FiltrationTasks описание параметров задач по фильтрации
@@ -127,7 +134,8 @@ func NewRepositorySMA() *StoreMemoryApplication {
 	sma.applicationSettings = ApplicationSettings{}
 	sma.clientSettings = map[string]ClientSettings{}
 	sma.clientTasks = map[string]TasksList{}
-	sma.clientLink = map[string]WssConnection{}
+	sma.clientLinkWss = map[string]WssConnection{}
+	sma.clientLinkUnixSocket = map[string]UnixSocketConnection{}
 
 	sma.chanReqSettingsTask = make(chan chanReqSettingsTask)
 
@@ -360,22 +368,39 @@ func (wssc *WssConnection) SendWsMessage(t int, v []byte) error {
 
 //GetClientsListConnection получить список всех соединений
 func (sma *StoreMemoryApplication) GetClientsListConnection() map[string]WssConnection {
-	return sma.clientLink
+	return sma.clientLinkWss
 }
 
 //AddLinkWebsocketConnect добавить линк соединения по websocket
 func (sma *StoreMemoryApplication) AddLinkWebsocketConnect(clientIP string, lwsc *websocket.Conn) {
-	sma.clientLink[clientIP] = WssConnection{Link: lwsc}
+	sma.clientLinkWss[clientIP] = WssConnection{Link: lwsc}
 }
 
 //DelLinkWebsocketConnection удаление дескриптора соединения при отключении источника
 func (sma *StoreMemoryApplication) DelLinkWebsocketConnection(clientIP string) {
-	delete(sma.clientLink, clientIP)
+	delete(sma.clientLinkWss, clientIP)
 }
 
 //GetLinkWebsocketConnect получить линк соединения по websocket
 func (sma *StoreMemoryApplication) GetLinkWebsocketConnect(clientIP string) (*WssConnection, bool) {
-	conn, ok := sma.clientLink[clientIP]
+	conn, ok := sma.clientLinkWss[clientIP]
+
+	return &conn, ok
+}
+
+//AddLinkUnixSocketConnect добавить линк соединения через unix socket
+func (sma *StoreMemoryApplication) AddLinkUnixSocketConnect(clientID string, c *net.Conn) {
+	sma.clientLinkUnixSocket[clientID] = UnixSocketConnection{Link: c}
+}
+
+//DelLinkUnixSocketConnection удаление дескриптора соединения при отключении источника
+func (sma *StoreMemoryApplication) DelLinkUnixSocketConnection(clientID string) {
+	delete(sma.clientLinkUnixSocket, clientID)
+}
+
+//GetLinkUnixSocketConnect получить линк соединения по websocket
+func (sma *StoreMemoryApplication) GetLinkUnixSocketConnect(clientID string) (*UnixSocketConnection, bool) {
+	conn, ok := sma.clientLinkUnixSocket[clientID]
 
 	return &conn, ok
 }

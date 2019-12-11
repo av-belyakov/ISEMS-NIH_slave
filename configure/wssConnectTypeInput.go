@@ -4,14 +4,10 @@ package configure
 * Типы JSON сообщений принимаемых от клиента
 * */
 
-//DetailInfoMsgPing подробная информация
-// EnableTelemetry - включить телеметрию
-// StorageFolders - директория для хранения файлов
-// TypeAreaNetwork - тип сети
-type DetailInfoMsgPing struct {
-	EnableTelemetry bool     `json:"enableTelemetry"`
-	StorageFolders  []string `json:"storageFolders"`
-	TypeAreaNetwork string   `json:"typeAreaNetwork"`
+//TypeUnixSocketInteraction получить токен (для unix socket)
+type TypeUnixSocketInteraction struct {
+	Token    string `json:"token"`
+	ClientID string `json:"clientID"`
 }
 
 //MsgTypePing сообщение типа ping
@@ -20,12 +16,17 @@ type MsgTypePing struct {
 	Info    DetailInfoMsgPing `json:"info"`
 }
 
-/* ПАРАМЕТРЫ ФИЛЬТРАЦИИ */
-
-//TypeUnixSocketInteraction получить токен (для Unix сокетов)
-type TypeUnixSocketInteraction struct {
-	Token string `json:"token"`
+//DetailInfoMsgPing подробная информация
+// EnableTelemetry - включить телеметрию
+// StorageFolders - директории для хранения файлов
+// TypeAreaNetwork - тип сети
+type DetailInfoMsgPing struct {
+	EnableTelemetry bool     `json:"enableTelemetry"`
+	StorageFolders  []string `json:"storageFolders"`
+	TypeAreaNetwork string   `json:"typeAreaNetwork"`
 }
+
+/* ПАРАМЕТРЫ ФИЛЬТРАЦИИ */
 
 //MsgTypeFiltrationControl сообщение для запуска процесса фильтрации
 type MsgTypeFiltrationControl struct {

@@ -12,9 +12,9 @@ import (
 //CheckParametersFiltration проверяет параметры фильтрации
 func CheckParametersFiltration(fccpf *configure.FiltrationControlCommonParametersFiltration) (string, bool) {
 	//проверяем наличие ID источника
-	if fccpf.ID == 0 {
+	/*if fccpf.ID == 0 {
 		return "источник сообщает - отсутствует идентификатор источника", false
-	}
+	}*/
 
 	//проверяем временной интервал
 	isZero := ((fccpf.DateTime.Start == 0) || (fccpf.DateTime.End == 0))
