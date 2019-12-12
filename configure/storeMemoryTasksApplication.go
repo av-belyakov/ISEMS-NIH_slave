@@ -388,6 +388,11 @@ func (sma *StoreMemoryApplication) GetLinkWebsocketConnect(clientIP string) (*Ws
 	return &conn, ok
 }
 
+//GetClientsListUnixSocketConnection получить список всех соединений
+func (sma *StoreMemoryApplication) GetClientsListUnixSocketConnection() map[string]UnixSocketConnection {
+	return sma.clientLinkUnixSocket
+}
+
 //AddLinkUnixSocketConnect добавить линк соединения через unix socket
 func (sma *StoreMemoryApplication) AddLinkUnixSocketConnect(clientID string, c *net.Conn) {
 	sma.clientLinkUnixSocket[clientID] = UnixSocketConnection{Link: c}

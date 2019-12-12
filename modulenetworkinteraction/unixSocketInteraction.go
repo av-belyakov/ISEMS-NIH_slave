@@ -19,7 +19,7 @@ func handlerReqUnixSocket(
 	appc *configure.AppConfig,
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 
-	funcName := "handlerReqUnixSocket"
+	fn := "handlerReqUnixSocket"
 
 	for {
 		buf := make([]byte, 512)
@@ -34,18 +34,16 @@ func handlerReqUnixSocket(
 		if err := json.Unmarshal(message, &tusi); err != nil {
 			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
-				FuncName:    funcName,
+				FuncName:    fn,
 			})
 		}
-
-		fmt.Println("func 'UnixSocketInteraction', проверяем наличие поля ClientID")
 
 		/* все сообщения приходящие через Unix Socket должны содержать поле ClientID */
 		if tusi.ClientID == "" {
 			msgErr := "the client ID is missing. the message is not correct."
 			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: msgErr,
-				FuncName:    funcName,
+				FuncName:    fn,
 			})
 
 			_, err = (*conn).Write([]byte(fmt.Sprintf("Error: %v", msgErr)))
@@ -56,23 +54,14 @@ func handlerReqUnixSocket(
 
 		clientID := fmt.Sprintf("unix_socket:%v", tusi.ClientID)
 
-		fmt.Printf("func 'UnixSocketInteraction', field 'ClientID' equal '%v'\n", clientID)
-		fmt.Println("func 'UnixSocketInteraction', проверяем наличие настроек пользователя")
-
 		//проверяем наличие настроек пользователя
 		_, err = sma.GetClientSetting(clientID)
 		if err != nil {
-
-			fmt.Println("func 'UnixSocketInteraction', Настроек нет, проверяем токен пользователя")
-
 			if tusi.Token != appc.ToConnectUnixSocket.Token {
-
-				fmt.Println("func 'UnixSocketInteraction', токен не валидный, разрыв соединения")
-
 				msgErr := "invalid token received"
 				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: msgErr,
-					FuncName:    funcName,
+					FuncName:    fn,
 				})
 
 				_, err = (*conn).Write([]byte(fmt.Sprintf("Error: %v", msgErr)))
@@ -81,22 +70,25 @@ func handlerReqUnixSocket(
 				return
 			}
 
-			fmt.Println("func 'UnixSocketInteraction', токен валидный, добавляем информацию об авторизованном пользователе")
-
 			//добавляем информацию об авторизованном пользователе (здесь же создаются хранилища для отслеживания выполняемых задач)
 			sma.SetClientSetting(clientID, configure.ClientSettings{
 				IP:              "local",
 				Port:            "unix_socket",
+				Token:           appc.ToConnectUnixSocket.Token,
 				AccessIsAllowed: true,
 			})
 
-			fmt.Println("func 'UnixSocketInteraction', добавляем дескриптор соединения для данного пользователя")
-
-			//добавляем дескриптор соединения для данного пользователя
-			sma.AddLinkUnixSocketConnect(clientID, conn)
+			//изменяем статус соединения
+			if err := sma.ChangeSourceConnectionStatus(clientID, true); err != nil {
+				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					Description: fmt.Sprint(err),
+					FuncName:    fn,
+				})
+			}
 		}
 
-		fmt.Println("func 'UnixSocketInteraction', Отправляем запрос через канал обработчику")
+		//добавляем дескриптор соединения для данного пользователя
+		sma.AddLinkUnixSocketConnect(clientID, conn)
 
 		cwtReq <- configure.MsgWsTransmission{
 			ClientID: clientID,
@@ -114,36 +106,18 @@ func UnixSocketInteraction(
 
 	fmt.Println("func 'UnixSocketInteraction' START...")
 
-	funcName := "UnixSocketInteraction"
+	fn := "UnixSocketInteraction"
 	pathSocket := path.Join("/tmp", appc.ToConnectUnixSocket.SocketName)
 
 	_ = os.RemoveAll(pathSocket)
-	/*
-		l, err := net.Listen("unix", pathSocket)
-		if err != nil {
-
-			fmt.Printf("func 'UnixSocketInteraction', ERROR: %v\n", err)
-
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-				Description: fmt.Sprint(err),
-				FuncName:    funcName,
-			})
-
-			return
-		}
-		defer l.Close()
-	*/
 
 	l, err := net.ListenUnix("unix", &net.UnixAddr{
 		Name: pathSocket,
 	})
 	if err != nil {
-
-		fmt.Printf("func 'UnixSocketInteraction', ERROR: %v\n", err)
-
 		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
-			FuncName:    funcName,
+			FuncName:    fn,
 		})
 
 		return
@@ -155,7 +129,7 @@ func UnixSocketInteraction(
 		if err != nil {
 			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
-				FuncName:    funcName,
+				FuncName:    fn,
 			})
 		}
 

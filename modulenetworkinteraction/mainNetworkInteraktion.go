@@ -52,7 +52,7 @@ func connClose(
 	clientID, clientIP, requester string,
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 
-	fmt.Printf("________ CLOSE WSS LINK _________ IP %v\n", clientIP)
+	fmt.Printf("CLOSE WSS LINK WITH IP '%v'\n", clientIP)
 
 	fn := "connClose"
 
@@ -168,6 +168,9 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 				if strings.Contains(msgText.ClientID, "unix_socket") {
 					if c, ok := sma.GetLinkUnixSocketConnect(msgText.ClientID); ok {
 						if _, err := (*c.Link).Write(*msgText.Data); err != nil {
+
+							fmt.Printf("func '%v', ERROR: %v\n", fn, err)
+
 							sma.DelLinkUnixSocketConnection(msgText.ClientID)
 						}
 					}

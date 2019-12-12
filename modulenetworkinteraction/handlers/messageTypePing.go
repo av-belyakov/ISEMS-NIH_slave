@@ -67,6 +67,8 @@ func HandlerMessageTypePing(
 		return
 	}
 
+	fmt.Printf("---- Настройки приложения: '%v'\n", sma.GetApplicationSetting())
+
 	cs.SendsTelemetry = reqJSON.Info.EnableTelemetry
 
 	sma.SetClientSetting(clientID, cs)
