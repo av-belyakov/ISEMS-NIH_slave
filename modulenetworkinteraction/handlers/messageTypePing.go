@@ -24,8 +24,6 @@ func HandlerMessageTypePing(
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
 	cwtResText chan<- configure.MsgWsTransmission) {
 
-	fmt.Println("func 'HandlerMessageTypePing', START...")
-
 	fn := "HandlerMessageTypePing"
 
 	reqJSON := configure.MsgTypePing{}
@@ -38,8 +36,6 @@ func HandlerMessageTypePing(
 		return
 	}
 
-	fmt.Printf("func 'HandlerMessageTypePing', RESRIVED MSG TYPE PING: %v\n", reqJSON)
-
 	typeAreaNetwork := "ip"
 	if strings.ToLower(reqJSON.Info.TypeAreaNetwork) == "pppoe" {
 		typeAreaNetwork = "pppoe"
@@ -48,12 +44,7 @@ func HandlerMessageTypePing(
 	//проверяем были ли ранее установлены параметры приложения
 	as := sma.GetApplicationSetting()
 
-	fmt.Printf("func 'HandlerMessageTypePing', проверяем были ли ранее установлены параметры приложения, '%v'\n", as)
-
 	if len(as.StorageFolders) == 0 {
-
-		fmt.Println("func 'HandlerMessageTypePing', устанавливаем параметры приложения")
-
 		sma.SetApplicationSetting(configure.ApplicationSettings{
 			TypeAreaNetwork: typeAreaNetwork,
 			StorageFolders:  reqJSON.Info.StorageFolders,
@@ -70,8 +61,6 @@ func HandlerMessageTypePing(
 		return
 	}
 
-	fmt.Printf("---- Настройки приложения: '%v'\n", sma.GetApplicationSetting())
-
 	cs.SendsTelemetry = reqJSON.Info.EnableTelemetry
 
 	sma.SetClientSetting(clientID, cs)
@@ -83,21 +72,6 @@ func HandlerMessageTypePing(
 			AppReleaseDate: appc.DateCreateApp,
 		},
 	})
-
-	fmt.Printf("sending message type PONG: %q\n", resJSON)
-
-	/*resJSON, err := json.Marshal(configure.MsgTypePing{
-		MsgType: "pong",
-		Info:    configure.DetailInfoMsgPing{},
-	})
-	if err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-			Description: fmt.Sprint(err),
-			FuncName:    fn,
-		})
-
-		return
-	}*/
 
 	cwtResText <- configure.MsgWsTransmission{
 		ClientID: clientID,
