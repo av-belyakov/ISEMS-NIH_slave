@@ -19,6 +19,8 @@ type StoreMemoryApplication struct {
 }
 
 //ApplicationSettings параметры приложения
+// TypeAreaNetwork - тип протокола канального уровня (ip/pppoe)
+// StorageFolders - директории для хранения файлов
 type ApplicationSettings struct {
 	TypeAreaNetwork string
 	StorageFolders  []string

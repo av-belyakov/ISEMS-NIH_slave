@@ -6,6 +6,7 @@ package configure
 
 //AppConfig настройки приложения
 // VersionApp - версия приложения
+// DateCreateApp - дата создания приложения
 // RootDir - корневая директория приложения
 // IsServer - запуск приложения как сервер (true), как клиент (false)
 // ToConnectServerHTTPS - параметры для соединения с сервером 'Master'
@@ -19,6 +20,7 @@ package configure
 // toConnectUnixSocket - хранилище параметров для Unix сокет соединения
 type AppConfig struct {
 	VersionApp                     string
+	DateCreateApp                  string
 	RootDir                        string
 	IsServer                       bool
 	ToConnectServerHTTPS           []settingsToConnectServerHTTPS

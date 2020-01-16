@@ -19,7 +19,7 @@ type MsgTypePing struct {
 //DetailInfoMsgPing подробная информация
 // EnableTelemetry - включить телеметрию
 // StorageFolders - директории для хранения файлов
-// TypeAreaNetwork - тип сети
+// TypeAreaNetwork - тип протокола канального уровня (ip/pppoe)
 type DetailInfoMsgPing struct {
 	EnableTelemetry bool     `json:"enableTelemetry"`
 	StorageFolders  []string `json:"storageFolders"`

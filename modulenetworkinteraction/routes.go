@@ -38,7 +38,7 @@ func RouteWssConnect(
 
 		switch mtJSON.MsgType {
 		case "ping":
-			go handlers.HandlerMessageTypePing(sma, msg.Data, msg.ClientID, saveMessageApp, cwtResText)
+			go handlers.HandlerMessageTypePing(sma, msg.Data, msg.ClientID, appc, saveMessageApp, cwtResText)
 
 		case "filtration":
 			handlers.HandlerMessageTypeFiltration(sma, msg.Data, msg.ClientID, appc.DirectoryStoringProcessedFiles.Raw, saveMessageApp, cwtResText)

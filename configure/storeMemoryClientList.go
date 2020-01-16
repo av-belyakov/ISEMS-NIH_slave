@@ -5,14 +5,21 @@ package configure
 * */
 
 //SourceSetting параметры источника
+// ConnectionStatus - статус соединения источника
+// IP - ip адрес источника
+// Port - порт источника
+// DateLastConnected - дата последнего соединения формат Unix timestamp
+// Token - уникальный токен для авторизации
+// AccessIsAllowed - разрешен ли доступ, по умолчанию false (при проверке токена ставится true если он верен)
+// CurrentTasks - задачи для данного источника,
 type SourceSetting struct {
 	ConnectionStatus  bool
 	IP                string
 	Port              string
-	DateLastConnected int64 //Unix time
+	DateLastConnected int64
 	Token             string
-	AccessIsAllowed   bool              //разрешен ли доступ, по умолчанию false (при проверке токена ставится true если он верен)
-	CurrentTasks      map[string]string // задачи для данного источника,
+	AccessIsAllowed   bool
+	CurrentTasks      map[string]string
 }
 
 //sourcesListSetting настройки источников, ключ ID источника

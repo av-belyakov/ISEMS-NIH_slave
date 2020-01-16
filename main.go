@@ -46,15 +46,15 @@ func readConfigApp(fileName string, appc *configure.AppConfig) error {
 }
 
 //getVersionApp получает версию приложения из файла README.md
-func getVersionApp(appc *configure.AppConfig) error {
+func getVersionDateApp(appc *configure.AppConfig) error {
 	failureMessage := "version not found"
 	content, err := ioutil.ReadFile(appc.RootDir + "README.md")
 	if err != nil {
 		return err
 	}
 
-	//Application ISEMS-NIH master, v0.1
-	pattern := `^Application\sISEMS-NIH\s(master|slave),\sv\d+\.\d+\.\d+`
+	//Application ISEMS-NIH slave, v1.3.4 (12.12.2019)
+	pattern := `^Application\sISEMS-NIH\s(master|slave),\sv\d+\.\d+\.\d+\s\(\d+\.\d+\.\d+\)`
 	rx := regexp.MustCompile(pattern)
 	numVersion := rx.FindString(string(content))
 
@@ -64,12 +64,16 @@ func getVersionApp(appc *configure.AppConfig) error {
 	}
 
 	s := strings.Split(numVersion, " ")
-	if len(s) < 3 {
+
+	if len(s) < 4 {
 		appc.VersionApp = failureMessage
 		return nil
 	}
 
 	appc.VersionApp = s[3]
+	appc.DateCreateApp = strings.TrimFunc(s[4], func(char rune) bool {
+		return ((string(char) == "(") || (string(char) == ")"))
+	})
 
 	return nil
 }
@@ -177,8 +181,8 @@ func init() {
 		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{Description: fmt.Sprint(err)})
 	}
 
-	//получаем номер версии приложения
-	if err = getVersionApp(&appConfig); err != nil {
+	//получаем номер версии приложения и дату последней ревизии
+	if err = getVersionDateApp(&appConfig); err != nil {
 		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: "it is impossible to obtain the version number of the application",
 		})
@@ -206,7 +210,7 @@ func main() {
 	//создаем новый репозиторий для хранения информации, в том числе о задачах
 	sma := configure.NewRepositorySMA()
 
-	log.Printf("START application ISEMS-NIH_slave version %q\n", appConfig.VersionApp)
+	log.Printf("START application ISEMS-NIH_slave version %q, release date %q\n", appConfig.VersionApp, appConfig.DateCreateApp)
 
 	modulenetworkinteraction.MainNetworkInteraction(&appConfig, sma)
 }

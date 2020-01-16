@@ -20,6 +20,7 @@ func HandlerMessageTypePing(
 	sma *configure.StoreMemoryApplication,
 	req *[]byte,
 	clientID string,
+	appc *configure.AppConfig,
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles,
 	cwtResText chan<- configure.MsgWsTransmission) {
 
@@ -36,6 +37,8 @@ func HandlerMessageTypePing(
 
 		return
 	}
+
+	fmt.Printf("func 'HandlerMessageTypePing', RESRIVED MSG TYPE PING: %v\n", reqJSON)
 
 	typeAreaNetwork := "ip"
 	if strings.ToLower(reqJSON.Info.TypeAreaNetwork) == "pppoe" {
@@ -73,7 +76,17 @@ func HandlerMessageTypePing(
 
 	sma.SetClientSetting(clientID, cs)
 
-	resJSON, err := json.Marshal(configure.MsgTypePing{
+	resJSON, err := json.Marshal(configure.MsgTypePong{
+		MsgType: "pong",
+		Info: configure.DetailInfoMsgPong{
+			AppVersion:     appc.VersionApp,
+			AppReleaseDate: appc.DateCreateApp,
+		},
+	})
+
+	fmt.Printf("sending message type PONG: %q\n", resJSON)
+
+	/*resJSON, err := json.Marshal(configure.MsgTypePing{
 		MsgType: "pong",
 		Info:    configure.DetailInfoMsgPing{},
 	})
@@ -84,7 +97,7 @@ func HandlerMessageTypePing(
 		})
 
 		return
-	}
+	}*/
 
 	cwtResText <- configure.MsgWsTransmission{
 		ClientID: clientID,

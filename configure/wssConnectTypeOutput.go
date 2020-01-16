@@ -4,7 +4,21 @@ package configure
 * Типы JSON сообщений отправляемых клиенту
 * */
 
-//MsgTypeFiltration сообщение типа ping
+//MsgTypePong сообщение типа pong
+type MsgTypePong struct {
+	MsgType string            `json:"messageType"`
+	Info    DetailInfoMsgPong `json:"info"`
+}
+
+//DetailInfoMsgPong подробная информация
+// AppVersion - версия приложения
+// AppReleaseDate - дата релиза версии приложения
+type DetailInfoMsgPong struct {
+	AppVersion     string `json:"av"`
+	AppReleaseDate string `json:"ard"`
+}
+
+//MsgTypeFiltration сообщение сообщение о ходе фильтрации
 type MsgTypeFiltration struct {
 	MsgType string                  `json:"messageType"`
 	Info    DetailInfoMsgFiltration `json:"info"`

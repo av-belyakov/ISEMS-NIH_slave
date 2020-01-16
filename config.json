@@ -38,8 +38,8 @@
     "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации",
     "maxSizeTransferredChunkFile": 4096,
     "maxSizeTransferredChunkFile_comments": "максимальный размер передаваемого кусочка файла",
-    "forLocalUse": true,
-    "forLocalUse_comments": "устанавливается в 'true' если планируется осуществлять взаимодействие с приложением ещё и через Unix сокет",
+    "forLocalUse": false,
+    "forLocalUse_comments": "устанавливается в 'true' если планируется осуществлять взаимодействие с приложением ещё и через Unix сокет, при этом скачиваемые с источника файлы не удаляются из папки",
     "toConnectUnixSocket": {
         "socketName": "isems-nih",
         "token": "sndosodjwjd99329eh93hfh9h93h9f"
