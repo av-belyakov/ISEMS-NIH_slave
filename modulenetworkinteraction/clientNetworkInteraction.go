@@ -59,6 +59,8 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 				})
 			}
 
+			fmt.Printf("-= connection with source IP %v success established =-\n", cs.IP)
+
 			//добавляем линк соединения
 			cs.StoreMemoryApplication.AddLinkWebsocketConnect(cs.IP, c)
 			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
@@ -66,6 +68,9 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 				Description: fmt.Sprintf("connection with source IP %v success established", cs.IP),
 				FuncName:    fn,
 			})
+
+			fmt.Println("проверяем список всех соединений по Websocket")
+			fmt.Println(cs.StoreMemoryApplication.GetClientsListConnection())
 
 			//обработчик запросов приходящих через websocket
 			for {

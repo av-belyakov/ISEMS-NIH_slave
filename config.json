@@ -2,13 +2,13 @@
     "isServer": false,
     "isServer_comments": "запуск приложения как сервер (true), как клиент (false)",
     "toConnectServerHTTPS": [{
-            "ip": "127.0.0.1",
+            "ip": "192.168.13.3",
             "port": 13313,
-            "token": "eg773gg7dd26fe6ffd82y733a"
+            "token": "29a3716509d82851cd664794868562"
         },
         {
-            "ip": "192.168.13.3",
-            "port": 13999,
+            "ip": "127.0.0.1",
+            "port": 13333,
             "token": "f3y8y7te7t278gf6f26f62fd6"
         }
     ],

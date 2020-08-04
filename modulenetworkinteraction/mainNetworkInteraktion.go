@@ -110,7 +110,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	//инициализируем функцию конструктор для записи лог-файлов
 	saveMessageApp := savemessageapp.New()
 
-	fn := "MainNetworkInteraktion"
+	fn := "MainNetworkInteraction"
 
 	//читаем сертификат CA для того что бы клиент доверял сертификату переданному сервером
 	rootCA, err := ioutil.ReadFile(appc.LocalServerHTTPS.PathRootCA)
@@ -143,19 +143,18 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	//инициализируем канал для приема текстовых данных через websocket соединение
 	cwtReq := make(chan configure.MsgWsTransmission)
 
-	//обработка ответов поступающих изнутри приложения
-	//через канал cwtRes
+	//обработка ответов поступающих изнутри приложения через канал cwtRes
 	go func() {
 		getConnLink := func(msg configure.MsgWsTransmission) (*configure.WssConnection, error) {
 			s, err := sma.GetClientSetting(msg.ClientID)
 			if err != nil {
-				return nil, fmt.Errorf("the ip address cannot be found by the given client ID %v", msg.ClientID)
+				return nil, fmt.Errorf("the ip address cannot be found by the given client ID '%v'", msg.ClientID)
 			}
 
 			//получаем линк websocket соединения
 			c, ok := sma.GetLinkWebsocketConnect(s.IP)
 			if !ok {
-				return nil, fmt.Errorf("no connection found at websocket link ip address %v", s.IP)
+				return nil, fmt.Errorf("no connection found at websocket link ip address '%v'", s.IP)
 			}
 
 			return c, nil
