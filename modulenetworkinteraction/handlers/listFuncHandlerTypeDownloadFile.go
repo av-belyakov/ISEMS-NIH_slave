@@ -26,10 +26,15 @@ func startDownloadFile(
 		return err
 	}
 
+	fmt.Println("func 'startDownloadFile', проверяем, выполняется ли задача по выгрузке файла для данного клиента")
+
 	//проверяем, выполняется ли задача по выгрузке файла для данного клиента
 	if _, err = sma.GetInfoTaskDownload(clientID, taskID); err == nil {
 		msgErr := "источник сообщает - невозможно начать выгрузку файла, задача по скачиванию файла для данного клиента уже выполняется"
 		err = np.SendMsgNotify("danger", "download files", msgErr, "stop")
+
+		fmt.Println("func 'startDownloadFile', ERROR 111")
+		fmt.Println(err)
 
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
@@ -38,6 +43,8 @@ func startDownloadFile(
 
 		return err
 	}
+
+	fmt.Println("func 'startDownloadFile', проверяем параметры запроса")
 
 	//проверяем параметры запроса
 	msgErr, ok := common.CheckParametersDownloadFile(mtfcJSON.Info)
@@ -45,6 +52,8 @@ func startDownloadFile(
 
 		err = np.SendMsgNotify("danger", "download files", msgErr, "stop")
 
+		fmt.Println("func 'startDownloadFile', ERROR 222, некорректный запрос")
+
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
 			Data:     rejectTaskMsgJSON,
@@ -53,11 +62,16 @@ func startDownloadFile(
 		return err
 	}
 
+	fmt.Println("func 'startDownloadFile', проверяем наличие файла, его размер и хеш-сумму")
+
 	//проверяем наличие файла, его размер и хеш-сумму
 	fileSize, fileHex, err := common.GetFileParameters(path.Join(mtfcJSON.Info.PathDirStorage, mtfcJSON.Info.FileOptions.Name))
 	if (err != nil) || (fileSize != mtfcJSON.Info.FileOptions.Size) || (fileHex != mtfcJSON.Info.FileOptions.Hex) {
 		errMsgHuman := "источник сообщает - невозможно начать выгрузку файла, требуемый файл не найден или его размер и контрольная сумма не совпадают с принятыми в запросе"
 		err = np.SendMsgNotify("danger", "download files", errMsgHuman, "stop")
+
+		fmt.Println("func 'startDownloadFile', ERROR 333")
+		fmt.Println(err)
 
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
@@ -72,6 +86,8 @@ func startDownloadFile(
 
 	//получаем кол-во частей файла
 	numChunk := common.CountNumberParts(fileSize, chunkSize)
+
+	fmt.Println("func 'startDownloadFile', получаем кол-во частей файла")
 
 	responseMsgJSON, err := json.Marshal(configure.MsgTypeDownloadControl{
 		MsgType: "download files",
@@ -91,6 +107,8 @@ func startDownloadFile(
 		return err
 	}
 
+	fmt.Println("func 'startDownloadFile', создаем новую задачу по выгрузке файла в 'StoreMemoryApplication'")
+
 	//создаем новую задачу по выгрузке файла в 'StoreMemoryApplication'
 	sma.AddTaskDownload(clientID, taskID, &configure.DownloadTasks{
 		FileName:             mtfcJSON.Info.FileOptions.Name,
@@ -101,6 +119,8 @@ func startDownloadFile(
 		StrHex:               strHex,
 		DirectiryPathStorage: mtfcJSON.Info.PathDirStorage,
 	})
+
+	fmt.Println("func 'startDownloadFile', отправляем сообщение типа 'ready for the transfer', кол-во частей файла и их размер")
 
 	//отправляем сообщение типа 'ready for the transfer', кол-во частей файла и их размер
 	cwtResText <- configure.MsgWsTransmission{

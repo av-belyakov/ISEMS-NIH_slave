@@ -45,7 +45,14 @@ func HandlerMessageTypeDownload(
 	switch mtfcJSON.Info.Command {
 	//обработка запроса на выгрузку файла
 	case "give me the file":
+
+		fmt.Printf("func 'HandlerMessageTypeDownload', command: '%v'\n", mtfcJSON.Info.Command)
+
 		if err := startDownloadFile(np, sma, mtfcJSON, clientID, appc.MaxSizeTransferredChunkFile, cwtResText); err != nil {
+
+			fmt.Println("func 'HandlerMessageTypeDownload', ERROR")
+			fmt.Println(err)
+
 			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
@@ -54,6 +61,9 @@ func HandlerMessageTypeDownload(
 
 	//обработка сообщения 'готовность к приему файла'
 	case "ready to receive file":
+
+		fmt.Printf("func 'HandlerMessageTypeDownload', command: '%v'\n", mtfcJSON.Info.Command)
+
 		readyDownloadFile(np, sma, clientID, taskID, saveMessageApp, cwtResText, cwtResBinary)
 
 	//обработка запроса на останов выгрузки файла
