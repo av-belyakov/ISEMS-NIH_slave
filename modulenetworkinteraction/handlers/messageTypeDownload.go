@@ -21,6 +21,8 @@ func HandlerMessageTypeDownload(
 	cwtResText chan<- configure.MsgWsTransmission,
 	cwtResBinary chan<- configure.MsgWsTransmission) {
 
+	fmt.Println("func 'HandlerMessageTypeDownload', START...")
+
 	fn := "HandlerMessageTypeDownload"
 
 	mtfcJSON := configure.MsgTypeDownloadControl{}
@@ -62,6 +64,7 @@ func HandlerMessageTypeDownload(
 	//обработка сообщения 'готовность к приему файла'
 	case "ready to receive file":
 
+		fmt.Println("func 'HandlerMessageTypeDownload', обработка сообщения 'готовность к приему файла'")
 		fmt.Printf("func 'HandlerMessageTypeDownload', command: '%v'\n", mtfcJSON.Info.Command)
 
 		readyDownloadFile(np, sma, clientID, taskID, saveMessageApp, cwtResText, cwtResBinary)
