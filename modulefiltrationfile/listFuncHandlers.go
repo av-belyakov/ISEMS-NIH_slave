@@ -256,9 +256,20 @@ func createPatternScript(filtrationParameters *configure.FiltrationTasks, typeAr
 	var pAnd, patterns string
 
 	listTypeArea := map[string]string{
-		"ip":    "",
-		"pppoe": "(pppoes && ip) && ",
+		"ip":           "",
+		"pppoe":        "(pppoes && ip) && ",
+		"vlan + pppoe": "(vlan && pppoes && ip) && ",
+		"pppoe + vlan": "(pppoes && vlan && ip) && ",
 	}
+
+	/*
+			listTypeArea := map[int]string{
+			1: " ",
+			2: " '(pppoes && ip)' and ",
+			3: " '(vlan && pppoes && ip)' and ",
+			4: " '(pppoes && vlan && ip)' and ",
+		}
+	*/
 
 	rangeFunc := func(s []string, pattern, typeElem string) string {
 		countAny := len(s)
