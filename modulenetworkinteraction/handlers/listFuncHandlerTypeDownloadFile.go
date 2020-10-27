@@ -26,16 +26,11 @@ func startDownloadFile(
 		return err
 	}
 
-	fmt.Println("func 'startDownloadFile', проверяем, выполняется ли задача по выгрузке файла для данного клиента")
-
 	//проверяем, выполняется ли задача по выгрузке файла для данного клиента
 	if _, err = sma.GetInfoTaskDownload(clientID, taskID); err == nil {
 		msgErr := "источник сообщает - невозможно начать выгрузку файла, задача по скачиванию файла для данного клиента уже выполняется"
 		err = np.SendMsgNotify("danger", "download files", msgErr, "stop")
 
-		fmt.Println("func 'startDownloadFile', ERROR 111")
-		fmt.Println(err)
-
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
 			Data:     rejectTaskMsgJSON,
@@ -43,16 +38,11 @@ func startDownloadFile(
 
 		return err
 	}
-
-	fmt.Println("func 'startDownloadFile', проверяем параметры запроса")
 
 	//проверяем параметры запроса
 	msgErr, ok := common.CheckParametersDownloadFile(mtfcJSON.Info)
 	if !ok {
-
 		err = np.SendMsgNotify("danger", "download files", msgErr, "stop")
-
-		fmt.Println("func 'startDownloadFile', ERROR 222, некорректный запрос")
 
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
@@ -61,17 +51,12 @@ func startDownloadFile(
 
 		return err
 	}
-
-	fmt.Println("func 'startDownloadFile', проверяем наличие файла, его размер и хеш-сумму")
 
 	//проверяем наличие файла, его размер и хеш-сумму
 	fileSize, fileHex, err := common.GetFileParameters(path.Join(mtfcJSON.Info.PathDirStorage, mtfcJSON.Info.FileOptions.Name))
 	if (err != nil) || (fileSize != mtfcJSON.Info.FileOptions.Size) || (fileHex != mtfcJSON.Info.FileOptions.Hex) {
 		errMsgHuman := "источник сообщает - невозможно начать выгрузку файла, требуемый файл не найден или его размер и контрольная сумма не совпадают с принятыми в запросе"
 		err = np.SendMsgNotify("danger", "download files", errMsgHuman, "stop")
-
-		fmt.Println("func 'startDownloadFile', ERROR 333")
-		fmt.Println(err)
 
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
@@ -86,8 +71,6 @@ func startDownloadFile(
 
 	//получаем кол-во частей файла
 	numChunk := common.CountNumberParts(fileSize, chunkSize)
-
-	fmt.Println("func 'startDownloadFile', получаем кол-во частей файла")
 
 	responseMsgJSON, err := json.Marshal(configure.MsgTypeDownloadControl{
 		MsgType: "download files",
@@ -107,8 +90,6 @@ func startDownloadFile(
 		return err
 	}
 
-	fmt.Println("func 'startDownloadFile', создаем новую задачу по выгрузке файла в 'StoreMemoryApplication'")
-
 	//создаем новую задачу по выгрузке файла в 'StoreMemoryApplication'
 	sma.AddTaskDownload(clientID, taskID, &configure.DownloadTasks{
 		FileName:             mtfcJSON.Info.FileOptions.Name,
@@ -119,8 +100,6 @@ func startDownloadFile(
 		StrHex:               strHex,
 		DirectiryPathStorage: mtfcJSON.Info.PathDirStorage,
 	})
-
-	fmt.Println("func 'startDownloadFile', отправляем сообщение типа 'ready for the transfer', кол-во частей файла и их размер")
 
 	//отправляем сообщение типа 'ready for the transfer', кол-во частей файла и их размер
 	cwtResText <- configure.MsgWsTransmission{
@@ -140,8 +119,6 @@ func readyDownloadFile(
 	cwtResText chan<- configure.MsgWsTransmission,
 	cwtResBinary chan<- configure.MsgWsTransmission) (err error) {
 
-	fmt.Println("func 'readyDownloadFile', START...")
-
 	fn := "readyDownloadFile"
 
 	rejectMsgJSON, err := json.Marshal(configure.MsgTypeDownloadControl{
@@ -159,8 +136,6 @@ func readyDownloadFile(
 
 		return
 	}
-
-	fmt.Println("func 'readyDownloadFile', проверяем наличие задачи в 'StoreMemoryApplication'")
 
 	//проверяем наличие задачи в 'StoreMemoryApplication'
 	ti, err := sma.GetInfoTaskDownload(clientID, taskID)
@@ -184,12 +159,8 @@ func readyDownloadFile(
 	chanStopReadFile := make(chan struct{})
 	chanResponse := make(chan moduledownloadfile.TypeChannelMsgRes)
 
-	fmt.Println("func 'readyDownloadFile', добавляем канал для останова чтения и передачи файла")
-
 	//добавляем канал для останова чтения и передачи файла
 	err = sma.AddChanStopReadFileTaskDownload(clientID, taskID, chanStopReadFile)
-
-	fmt.Println("func 'readyDownloadFile', запускаем передачу файла (добавляем в начале каждого кусочка строку '<id тип передачи>:<id задачи>:<хеш файла>')")
 
 	//запускаем передачу файла (добавляем в начале каждого кусочка строку '<id тип передачи>:<id задачи>:<хеш файла>')
 	go moduledownloadfile.ReadingFile(chanResponse,
@@ -219,9 +190,6 @@ func readyDownloadFile(
 
 			//если задача полностью выполненна
 			if message.CauseStoped == "completed" {
-
-				fmt.Println("func 'readyDownloadFile', если задача полностью выполненна")
-
 				if err := sma.SetIsCompletedTaskDownload(clientID, taskID); err != nil {
 					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),

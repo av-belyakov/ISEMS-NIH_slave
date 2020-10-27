@@ -36,9 +36,6 @@ func RouteWssConnect(
 			})
 		}
 
-		fmt.Println("func 'RouteWssConnect', new received")
-		fmt.Println(mtJSON)
-
 		switch mtJSON.MsgType {
 		case "ping":
 			go handlers.HandlerMessageTypePing(sma, msg.Data, msg.ClientID, appc, saveMessageApp, cwtResText)

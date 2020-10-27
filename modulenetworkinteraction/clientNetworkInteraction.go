@@ -69,8 +69,8 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 				FuncName:    fn,
 			})
 
-			fmt.Println("проверяем список всех соединений по Websocket")
-			fmt.Println(cs.StoreMemoryApplication.GetClientsListConnection())
+			//fmt.Println("проверяем список всех соединений по Websocket")
+			//fmt.Println(cs.StoreMemoryApplication.GetClientsListConnection())
 
 			//обработчик запросов приходящих через websocket
 			for {
