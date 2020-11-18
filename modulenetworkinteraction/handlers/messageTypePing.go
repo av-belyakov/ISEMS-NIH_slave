@@ -28,7 +28,7 @@ func HandlerMessageTypePing(
 
 	reqJSON := configure.MsgTypePing{}
 	if err := json.Unmarshal(*req, &reqJSON); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -53,7 +53,7 @@ func HandlerMessageTypePing(
 
 	cs, err := sma.GetClientSetting(clientID)
 	if err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprintf("unable to send message of type 'pong' client with ID %v does not exist", clientID),
 			FuncName:    fn,
 		})
@@ -86,7 +86,7 @@ func HandlerMessageTypePing(
 		}
 
 		if r.Error != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(r.Error),
 				FuncName:    fn,
 			})

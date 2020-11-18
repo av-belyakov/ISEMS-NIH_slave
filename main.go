@@ -28,6 +28,7 @@ type SettingsLocalServerHTTPS struct {
 }
 
 var appConfig configure.AppConfig
+var saveMessageApp *savemessageapp.PathDirLocationLogFiles
 
 //ReadConfig читает конфигурационный файл и сохраняет данные в appConfig
 func readConfigApp(fileName string, appc *configure.AppConfig) error {
@@ -135,7 +136,10 @@ func init() {
 	var err error
 
 	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
+	saveMessageApp, err = savemessageapp.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//проверяем наличие tcpdump
 	func() {
@@ -173,17 +177,17 @@ func init() {
 
 	//создаем основную директорию куда будут сохраняться обработанные при выполнении фильтрации файлы
 	if err = createStoreDirectory(appConfig.DirectoryStoringProcessedFiles.Raw); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{Description: fmt.Sprint(err)})
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{Description: fmt.Sprint(err)})
 	}
 
 	//создаем основную директорию куда будут сохраняться обработанные файлы (при выделении объектов)
 	if err = createStoreDirectory(appConfig.DirectoryStoringProcessedFiles.Object); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{Description: fmt.Sprint(err)})
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{Description: fmt.Sprint(err)})
 	}
 
 	//получаем номер версии приложения и дату последней ревизии
 	if err = getVersionDateApp(&appConfig); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: "it is impossible to obtain the version number of the application",
 		})
 	}
@@ -198,8 +202,7 @@ func init() {
 func main() {
 	defer func() {
 		if err := recover(); err != nil {
-			saveMessageApp := savemessageapp.New()
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				TypeMessage: "error",
 				Description: fmt.Sprintf("STOP 'main' function, Error:'%v'", err),
 				FuncName:    "main",
@@ -212,5 +215,5 @@ func main() {
 
 	log.Printf("START application ISEMS-NIH_slave version %q, release date %q\n", appConfig.VersionApp, appConfig.DateCreateApp)
 
-	modulenetworkinteraction.MainNetworkInteraction(&appConfig, sma)
+	modulenetworkinteraction.MainNetworkInteraction(&appConfig, sma, saveMessageApp)
 }

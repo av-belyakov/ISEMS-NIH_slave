@@ -129,7 +129,7 @@ func readyDownloadFile(
 		},
 	})
 	if err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -148,7 +148,7 @@ func readyDownloadFile(
 			Data:     &rejectMsgJSON,
 		}
 
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -191,7 +191,7 @@ func readyDownloadFile(
 			//если задача полностью выполненна
 			if message.CauseStoped == "completed" {
 				if err := sma.SetIsCompletedTaskDownload(clientID, taskID); err != nil {
-					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),
 						FuncName:    fn,
 					})
@@ -211,7 +211,7 @@ func readyDownloadFile(
 			//если задача была завершена принудительно
 			resMsgJSON, err := json.Marshal(resMsg)
 			if err != nil {
-				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: fmt.Sprint(err),
 					FuncName:    fn,
 				})

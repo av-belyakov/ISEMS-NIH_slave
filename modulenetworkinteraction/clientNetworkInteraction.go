@@ -20,9 +20,6 @@ import (
 )
 
 func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request) error {
-	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
-
 	fn := "redirectPolicyFunc"
 
 	go func() {
@@ -41,19 +38,19 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 		c, res, err := d.Dial("wss://"+cs.IP+":"+cs.Port+"/wss", header)
 		if err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			cs.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
 
 			return
 		}
-		defer connClose(c, cs.StoreMemoryApplication, cs.ID, cs.IP, "client", saveMessageApp)
+		defer connClose(c, cs.StoreMemoryApplication, cs.ID, cs.IP, "client", cs.SaveMessageApp)
 
 		if res.StatusCode == 101 {
 			//изменяем статус подключения клиента
 			if err := cs.StoreMemoryApplication.ChangeSourceConnectionStatus(cs.ID, true); err != nil {
-				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				cs.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: fmt.Sprint(err),
 					FuncName:    fn,
 				})
@@ -63,7 +60,7 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 
 			//добавляем линк соединения
 			cs.StoreMemoryApplication.AddLinkWebsocketConnect(cs.IP, c)
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			cs.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				TypeMessage: "info",
 				Description: fmt.Sprintf("connection with source IP %v success established", cs.IP),
 				FuncName:    fn,
@@ -76,7 +73,7 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 			for {
 				_, message, err := c.ReadMessage()
 				if err != nil {
-					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					cs.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),
 						FuncName:    fn,
 					})
@@ -101,10 +98,8 @@ func ClientNetworkInteraction(
 	cwtReq chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
 	sma *configure.StoreMemoryApplication,
-	conf *tls.Config) {
-
-	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
+	conf *tls.Config,
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 
 	fn := "clientNetworkInteraction"
 
@@ -139,12 +134,13 @@ func ClientNetworkInteraction(
 					Port:                   s.Port,
 					StoreMemoryApplication: sma,
 					Cwt:                    cwtReq,
+					SaveMessageApp:         saveMessageApp,
 				}
 				client.CheckRedirect = cs.redirectPolicyFunc
 
 				req, err := http.NewRequest("GET", "https://"+s.IP+":"+s.Port+"/", nil)
 				if err != nil {
-					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),
 						FuncName:    fn,
 					})
@@ -162,7 +158,7 @@ func ClientNetworkInteraction(
 					strErr := fmt.Sprint(err)
 
 					if !strings.Contains(strErr, "stop redirect") {
-						_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+						saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 							Description: strErr,
 							FuncName:    fn,
 						})

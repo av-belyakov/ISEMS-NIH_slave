@@ -180,10 +180,7 @@ func searchFiles(result chan<- currentListFilesFilteration, disk string, current
 
 //getListFilesForFiltering формирует и сохранаяет список файлов удовлетворяющих временному диапазону
 // или найденных при поиске по индексам
-func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, taskID string) error {
-	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
-
+func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, taskID string, saveMessageApp *savemessageapp.PathDirLocationLogFiles) error {
 	fn := "getListFilesForFiltering"
 
 	currentTask, err := sma.GetInfoTaskFiltration(clientID, taskID)
@@ -217,7 +214,7 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 		resultFoundFile := <-result
 
 		if resultFoundFile.ErrMsg != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(resultFoundFile.ErrMsg),
 				FuncName:    fn,
 			})
@@ -225,7 +222,7 @@ func getListFilesForFiltering(sma *configure.StoreMemoryApplication, clientID, t
 
 		if resultFoundFile.Files != nil {
 			if _, err := sma.AddFileToListFilesFiltrationTask(clientID, taskID, map[string][]string{resultFoundFile.Path: resultFoundFile.Files}); err != nil {
-				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: fmt.Sprint(resultFoundFile.ErrMsg),
 					FuncName:    fn,
 				})

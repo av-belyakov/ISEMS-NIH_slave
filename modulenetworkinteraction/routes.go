@@ -30,7 +30,7 @@ func RouteWssConnect(
 
 	for msg := range cwtReq {
 		if err := json.Unmarshal(*msg.Data, &mtJSON); err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    "RouteWssConnect",
 			})

@@ -17,10 +17,8 @@ import (
 func GetSystemInformation(
 	cwtResText chan<- configure.MsgWsTransmission,
 	cl []string,
-	sma *configure.StoreMemoryApplication) {
-
-	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
+	sma *configure.StoreMemoryApplication,
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 
 	fn := "GetSystemInformation"
 
@@ -39,7 +37,7 @@ func GetSystemInformation(
 
 	//загрузка оперативной памяти
 	if err := sysInfo.CreateRandomAccessMemory(); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -47,7 +45,7 @@ func GetSystemInformation(
 
 	//загрузка ЦПУ
 	if err := sysInfo.CreateLoadCPU(); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -55,7 +53,7 @@ func GetSystemInformation(
 
 	//свободное дисковое пространство
 	if err := sysInfo.CreateDiskSpace(); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -67,7 +65,7 @@ DONE:
 	for {
 		select {
 		case errMsg := <-chanErrMsg:
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(errMsg),
 				FuncName:    fn,
 			})
@@ -86,7 +84,7 @@ DONE:
 
 	resjson, err := json.Marshal(sysInfo)
 	if err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})

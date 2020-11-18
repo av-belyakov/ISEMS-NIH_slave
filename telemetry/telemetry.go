@@ -8,13 +8,15 @@ import (
 	"time"
 
 	"ISEMS-NIH_slave/configure"
+	"ISEMS-NIH_slave/savemessageapp"
 )
 
 //TransmissionTelemetry передача телеметрии
 func TransmissionTelemetry(
 	cwtResText chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
-	sma *configure.StoreMemoryApplication) {
+	sma *configure.StoreMemoryApplication,
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 
 	ticker := time.NewTicker(time.Duration(appc.RefreshIntervalTelemetryInfo) * time.Second)
 	for range ticker.C {
@@ -36,6 +38,6 @@ func TransmissionTelemetry(
 			continue
 		}
 
-		go GetSystemInformation(cwtResText, cl, sma)
+		go GetSystemInformation(cwtResText, cl, sma, saveMessageApp)
 	}
 }

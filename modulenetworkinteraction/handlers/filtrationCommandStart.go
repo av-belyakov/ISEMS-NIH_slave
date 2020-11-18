@@ -36,7 +36,7 @@ func StartFiltration(
 		},
 	})
 	if err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -45,13 +45,13 @@ func StartFiltration(
 	if mtfcJSON.Info.NumberMessagesFrom[0] == 0 {
 		//проверяем параметры фильтрации (ТОЛЬКО ДЛЯ ПЕРВОГО СООБЩЕНИЯ)
 		if msg, ok := common.CheckParametersFiltration(&mtfcJSON.Info.Options); !ok {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprintf("incorrect parameters for filtering (client ID: %v, task ID: %v)", clientID, taskID),
 				FuncName:    fn,
 			})
 
 			if err := np.SendMsgNotify("danger", "filtration control", msg, "stop"); err != nil {
-				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: fmt.Sprint(err),
 					FuncName:    fn,
 				})
@@ -70,14 +70,14 @@ func StartFiltration(
 		//проверяем наличие директорий переданных с сообщением типа 'Ping'
 		newStorageFolders, err := checkExistDirectory(as.StorageFolders)
 		if err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
 
 			d := "источник сообщает - не было задано ни одной директории для фильтрации сетевого трафика или заданные директории не были найденны"
 			if err := np.SendMsgNotify("danger", "filtration control", d, "stop"); err != nil {
-				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: fmt.Sprint(err),
 					FuncName:    fn,
 				})
@@ -119,14 +119,14 @@ func StartFiltration(
 	//объединение списков файлов для задачи (выполняемой на основе индексов)
 	layoutListCompleted, err := common.MergingFileListForTaskFiltration(sma, mtfcJSON, clientID)
 	if err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
 
 		d := "источник сообщает - получено неверное значение, невозможно объединить список файлов, найденных в результате поиска по индексам"
 		if err := np.SendMsgNotify("danger", "filtration control", d, "stop"); err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})

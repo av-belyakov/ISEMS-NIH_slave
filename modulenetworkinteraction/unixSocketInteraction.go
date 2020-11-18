@@ -32,7 +32,7 @@ func handlerReqUnixSocket(
 
 		tusi := configure.TypeUnixSocketInteraction{}
 		if err := json.Unmarshal(message, &tusi); err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
@@ -41,7 +41,7 @@ func handlerReqUnixSocket(
 		/* все сообщения приходящие через Unix Socket должны содержать поле ClientID */
 		if tusi.ClientID == "" {
 			msgErr := "the client ID is missing. the message is not correct."
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: msgErr,
 				FuncName:    fn,
 			})
@@ -59,7 +59,7 @@ func handlerReqUnixSocket(
 		if err != nil {
 			if tusi.Token != appc.ToConnectUnixSocket.Token {
 				msgErr := "invalid token received"
-				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: msgErr,
 					FuncName:    fn,
 				})
@@ -80,7 +80,7 @@ func handlerReqUnixSocket(
 
 			//изменяем статус соединения
 			if err := sma.ChangeSourceConnectionStatus(clientID, true); err != nil {
-				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: fmt.Sprint(err),
 					FuncName:    fn,
 				})
@@ -115,7 +115,7 @@ func UnixSocketInteraction(
 		Name: pathSocket,
 	})
 	if err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -127,7 +127,7 @@ func UnixSocketInteraction(
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})

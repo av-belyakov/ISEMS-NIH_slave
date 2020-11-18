@@ -22,7 +22,7 @@ func HandlerMessageTypeFiltration(
 	mtfcJSON := configure.MsgTypeFiltrationControl{}
 
 	if err := json.Unmarshal(*req, &mtfcJSON); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -43,14 +43,14 @@ func HandlerMessageTypeFiltration(
 	if mtfcJSON.Info.Command == "stop" {
 		task, err := sma.GetInfoTaskFiltration(clientID, mtfcJSON.Info.TaskID)
 		if err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
 
 			d := "источник сообщает - невозможно остановить выполнение фильтрации, не найдена задача с заданным идентификатором"
 			if err := np.SendMsgNotify("warning", "filtration control", d, "stop"); err != nil {
-				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: fmt.Sprint(err),
 					FuncName:    fn,
 				})
@@ -60,7 +60,7 @@ func HandlerMessageTypeFiltration(
 		}
 
 		if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{"Status": "stop"}); err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
@@ -79,7 +79,7 @@ func HandlerMessageTypeFiltration(
 	//при получении подтверждения о завершении фильтрации удаляем задачу
 	if mtfcJSON.Info.Command == "confirm complete" {
 		if err := sma.DelTaskFiltration(clientID, mtfcJSON.Info.TaskID); err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})

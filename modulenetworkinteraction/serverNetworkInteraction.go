@@ -21,9 +21,6 @@ import (
 
 //HandlerRequest обработчик HTTPS запросов
 func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request) {
-	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
-
 	fn := "HandlerRequest"
 
 	bodyHTTPResponseError := []byte(`<!DOCTYPE html>
@@ -59,7 +56,7 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 		w.WriteHeader(400)
 		w.Write(bodyHTTPResponseError)
 
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		ss.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprintf("missing or incorrect identification token (сlient ipaddress %v)", req.RemoteAddr),
 			FuncName:    fn,
 		})
@@ -80,9 +77,6 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 
 //ServerWss webSocket запросов
 func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Request) {
-	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
-
 	fn := "ServerWss"
 
 	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
@@ -90,7 +84,7 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	clientID, isExistID := sws.StoreMemoryApplication.GetClientIDOnIP(remoteIP)
 	if !isExistID {
 		w.WriteHeader(401)
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprintf("access for the user with ipaddress %v is prohibited", remoteIP),
 			FuncName:    fn,
 		})
@@ -101,7 +95,7 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	//проверяем разрешено ли данному ip соединение с сервером wss
 	if !sws.StoreMemoryApplication.GetAccessIsAllowed(remoteIP) {
 		w.WriteHeader(401)
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprintf("access for the user with ipaddress %v is prohibited", remoteIP),
 			FuncName:    fn,
 		})
@@ -129,18 +123,24 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 			c.Close()
 		}
 
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
 	}
-	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP, "server", saveMessageApp)
+	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP, "server", sws.SaveMessageApp)
 
 	fmt.Printf("connection success established, client ID %v, client IP %v\n", clientID, remoteIP)
 
+	sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		TypeMessage: "info",
+		Description: fmt.Sprintf("connection success established, client ID %v, client IP %v\n", clientID, remoteIP),
+		FuncName:    fn,
+	})
+
 	//изменяем состояние соединения для данного источника
 	if err := sws.StoreMemoryApplication.ChangeSourceConnectionStatus(clientID, true); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -157,7 +157,7 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 		_, message, err := c.ReadMessage()
 		if err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
@@ -176,7 +176,8 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 func ServerNetworkInteraction(
 	cwtReq chan<- configure.MsgWsTransmission,
 	appc *configure.AppConfig,
-	sma *configure.StoreMemoryApplication) {
+	sma *configure.StoreMemoryApplication,
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 
 	log.Printf("START application ISEMS-NIH_slave version %q, the application is running as a \"SERVER\", ip %v, port %v\n", appc.VersionApp, appc.LocalServerHTTPS.IP, appc.LocalServerHTTPS.Port)
 
@@ -185,10 +186,12 @@ func ServerNetworkInteraction(
 		Port:                   strconv.Itoa(appc.LocalServerHTTPS.Port),
 		Token:                  appc.LocalServerHTTPS.AuthenticationToken,
 		StoreMemoryApplication: sma,
+		SaveMessageApp:         saveMessageApp,
 	}
 
 	sws := serverWebsocketSetting{
 		StoreMemoryApplication: sma,
+		SaveMessageApp:         saveMessageApp,
 		Cwt:                    cwtReq,
 	}
 

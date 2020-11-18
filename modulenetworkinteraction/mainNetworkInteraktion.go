@@ -25,16 +25,19 @@ import (
 type serverSetting struct {
 	IP, Port, Token        string
 	StoreMemoryApplication *configure.StoreMemoryApplication
+	SaveMessageApp         *savemessageapp.PathDirLocationLogFiles
 }
 
 type serverWebsocketSetting struct {
 	StoreMemoryApplication *configure.StoreMemoryApplication
 	Cwt                    chan<- configure.MsgWsTransmission
+	SaveMessageApp         *savemessageapp.PathDirLocationLogFiles
 }
 
 type clientSetting struct {
 	ID, IP, Port           string
 	StoreMemoryApplication *configure.StoreMemoryApplication
+	SaveMessageApp         *savemessageapp.PathDirLocationLogFiles
 	Cwt                    chan<- configure.MsgWsTransmission
 }
 
@@ -54,14 +57,21 @@ func connClose(
 
 	fmt.Printf("CLOSE WSS LINK WITH IP '%v'\n", clientIP)
 
+	saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		TypeMessage: "info",
+		Description: fmt.Sprintf("close wss link with ip '%v'", clientIP),
+		FuncName:    "connClose",
+	})
+
 	fn := "connClose"
 
 	if c != nil {
 		c.Close()
 	}
 
+	//изменение статуса соединения
 	if err := sma.ChangeSourceConnectionStatus(clientID, false); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -69,16 +79,21 @@ func connClose(
 
 	//отправляем запросы на останов передачи файлов для данного клиента
 	if err := sendMsgStopDownloadFiles(sma, clientID); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
 	}
 
-	if requester == "server" {
+	/*
+	   А здесь похоже не надо удалять информацию о клиенте
+	   по тому что задача теряется!!!
+	*/
+
+	/*if requester == "server" {
 		//удаляем параметры подключения клиента
 		sma.DeleteClientSetting(clientID)
-	}
+	}*/
 
 	//удаляем дескриптор соединения
 	sma.DelLinkWebsocketConnection(clientIP)
@@ -106,16 +121,13 @@ func sendMsgStopDownloadFiles(sma *configure.StoreMemoryApplication, clientID st
 }
 
 //MainNetworkInteraction модуль сетевого взаимодействия
-func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemoryApplication) {
-	//инициализируем функцию конструктор для записи лог-файлов
-	saveMessageApp := savemessageapp.New()
-
+func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemoryApplication, saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 	fn := "MainNetworkInteraction"
 
 	//читаем сертификат CA для того что бы клиент доверял сертификату переданному сервером
 	rootCA, err := ioutil.ReadFile(appc.LocalServerHTTPS.PathRootCA)
 	if err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: "root certificate was not added to the pool",
 			FuncName:    fn,
 		})
@@ -124,7 +136,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	//создаем новый пул доверенных центров серификации и добавляем в него корневой сертификат
 	cp := x509.NewCertPool()
 	if ok := cp.AppendCertsFromPEM(rootCA); !ok {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -145,10 +157,10 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 
 	//обработка ответов поступающих изнутри приложения через канал cwtRes
 	go func() {
-		getConnLink := func(msg configure.MsgWsTransmission) (*configure.WssConnection, error) {
-			s, err := sma.GetClientSetting(msg.ClientID)
+		getConnLink := func(clientID string) (*configure.WssConnection, error) {
+			s, err := sma.GetClientSetting(clientID)
 			if err != nil {
-				return nil, fmt.Errorf("the ip address cannot be found by the given client ID '%v'", msg.ClientID)
+				return nil, fmt.Errorf("the ip address cannot be found by the given client ID '%v'", clientID)
 			}
 
 			//получаем линк websocket соединения
@@ -178,9 +190,9 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 				}
 
 				//выполняется только если запрос пришел через WebSocket
-				c, err := getConnLink(msgText)
+				c, err := getConnLink(msgText.ClientID)
 				if err != nil {
-					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),
 						FuncName:    fn,
 					})
@@ -189,16 +201,16 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 				}
 
 				if err := c.SendWsMessage(1, *msgText.Data); err != nil {
-					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),
 						FuncName:    fn,
 					})
 				}
 
 			case msgBinary := <-cwtResBinary:
-				c, err := getConnLink(msgBinary)
+				c, err := getConnLink(msgBinary.ClientID)
 				if err != nil {
-					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),
 						FuncName:    fn,
 					})
@@ -207,7 +219,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 				}
 
 				if err := c.SendWsMessage(2, *msgBinary.Data); err != nil {
-					_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 						Description: fmt.Sprint(err),
 						FuncName:    fn,
 					})
@@ -220,7 +232,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 	go RouteWssConnect(cwtResText, cwtResBinary, appc, sma, saveMessageApp, cwtReq)
 
 	//запуск телеметрии
-	go telemetry.TransmissionTelemetry(cwtResText, appc, sma)
+	go telemetry.TransmissionTelemetry(cwtResText, appc, sma, saveMessageApp)
 
 	if appc.ForLocalUse {
 		go UnixSocketInteraction(cwtReq, appc, sma, saveMessageApp)
@@ -228,11 +240,11 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 
 	/* запуск приложения в режиме 'СЕРВЕР' */
 	if appc.IsServer {
-		ServerNetworkInteraction(cwtReq, appc, sma)
+		ServerNetworkInteraction(cwtReq, appc, sma, saveMessageApp)
 
 		return
 	}
 
 	/* запуск приложения в режиме 'КЛИЕНТА' */
-	ClientNetworkInteraction(cwtReq, appc, sma, conf)
+	ClientNetworkInteraction(cwtReq, appc, sma, conf, saveMessageApp)
 }

@@ -26,7 +26,7 @@ func HandlerMessageTypeDownload(
 	mtfcJSON := configure.MsgTypeDownloadControl{}
 
 	if err := json.Unmarshal(*req, &mtfcJSON); err != nil {
-		_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
 		})
@@ -46,7 +46,7 @@ func HandlerMessageTypeDownload(
 	//обработка запроса на выгрузку файла
 	case "give me the file":
 		if err := startDownloadFile(np, sma, mtfcJSON, clientID, appc.MaxSizeTransferredChunkFile, cwtResText); err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
@@ -82,7 +82,7 @@ func HandlerMessageTypeDownload(
 			},
 		})
 		if err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
@@ -100,7 +100,7 @@ func HandlerMessageTypeDownload(
 		//проверяем наличие задачи в 'StoreMemoryApplication'
 		ti, err := sma.GetInfoTaskDownload(clientID, taskID)
 		if err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
@@ -111,7 +111,7 @@ func HandlerMessageTypeDownload(
 		//удаляем файл только если приложение НЕ использует Unix socket наряду с WebSocket
 		if !appc.ForLocalUse {
 			if err := os.Remove(path.Join(ti.DirectiryPathStorage, ti.FileName)); err != nil {
-				_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 					Description: fmt.Sprint(err),
 					FuncName:    fn,
 				})
@@ -120,17 +120,17 @@ func HandlerMessageTypeDownload(
 
 		//удаляем задачу
 		if err := sma.DelTaskDownload(clientID, taskID); err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})
 		}
 
-		//выполняем удаление задачи при неуспешной передачи файла
+	//выполняем удаление задачи при неуспешной передачи файла
 	case "file received with error":
 		//удаляем задачу
 		if err := sma.DelTaskDownload(clientID, taskID); err != nil {
-			_ = saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,
 			})

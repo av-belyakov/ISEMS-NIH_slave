@@ -131,15 +131,14 @@ type chanResSettingsTask struct {
 
 //NewRepositorySMA создание нового репозитория
 func NewRepositorySMA() *StoreMemoryApplication {
-	sma := StoreMemoryApplication{}
-
-	sma.applicationSettings = ApplicationSettings{}
-	sma.clientSettings = map[string]ClientSettings{}
-	sma.clientTasks = map[string]TasksList{}
-	sma.clientLinkWss = map[string]WssConnection{}
-	sma.clientLinkUnixSocket = map[string]UnixSocketConnection{}
-
-	sma.chanReqSettingsTask = make(chan chanReqSettingsTask)
+	sma := StoreMemoryApplication{
+		applicationSettings:  ApplicationSettings{},
+		clientSettings:       map[string]ClientSettings{},
+		clientTasks:          map[string]TasksList{},
+		clientLinkWss:        map[string]WssConnection{},
+		clientLinkUnixSocket: map[string]UnixSocketConnection{},
+		chanReqSettingsTask:  make(chan chanReqSettingsTask),
+	}
 
 	go func() {
 		for msg := range sma.chanReqSettingsTask {
