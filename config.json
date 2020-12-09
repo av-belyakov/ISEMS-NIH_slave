@@ -16,9 +16,9 @@
     "timeReconnect": 20,
     "timeReconnect_comments": "актуально только в режиме isServer равен 'false', тогда с заданным интервалом времени будут попытки соединения с адресом мастера",
     "localServerHTTPS": {
-        "ip": "127.0.0.1",
+        "ip": "192.168.13.3",
         "port": 13444,
-        "authenticationToken": "eg773gg7dd26fe6ffd82y733a",
+        "authenticationToken": "a3b918467b83a3251c502c95a922",
         "authenticationToken_comments": "идентификационный токен",
         "pathCertFile": "keys/isems_nih_slave.crt",
         "pathCertFile_comments": "ОТНОСИТЕЛЬНЫЙ путь до файла с сертификатом",

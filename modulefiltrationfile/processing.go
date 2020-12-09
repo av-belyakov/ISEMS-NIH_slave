@@ -350,12 +350,6 @@ DONE:
 					Size: fileSize,
 					Hex:  fileHex,
 				}
-				/*msgRes.Info.FoundFilesInformation = map[string]*configure.InputFilesInformation{
-					file: &configure.InputFilesInformation{
-						Size: fileSize,
-						Hex:  fileHex,
-					},
-				}*/
 			}
 
 			resJSON, err := json.Marshal(msgRes)

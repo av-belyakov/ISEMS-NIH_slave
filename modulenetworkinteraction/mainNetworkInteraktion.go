@@ -38,6 +38,7 @@ type clientSetting struct {
 	ID, IP, Port           string
 	StoreMemoryApplication *configure.StoreMemoryApplication
 	SaveMessageApp         *savemessageapp.PathDirLocationLogFiles
+	TLSConf                *tls.Config
 	Cwt                    chan<- configure.MsgWsTransmission
 }
 

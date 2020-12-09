@@ -31,9 +31,9 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 		d := websocket.Dialer{
 			HandshakeTimeout:  (time.Duration(1) * time.Second),
 			EnableCompression: false,
-			TLSClientConfig: &tls.Config{
+			TLSClientConfig:   cs.TLSConf, /*&tls.Config{
 				InsecureSkipVerify: true,
-			},
+			},*/
 		}
 
 		c, res, err := d.Dial("wss://"+cs.IP+":"+cs.Port+"/wss", header)
@@ -133,6 +133,7 @@ func ClientNetworkInteraction(
 					IP:                     s.IP,
 					Port:                   s.Port,
 					StoreMemoryApplication: sma,
+					TLSConf:                conf,
 					Cwt:                    cwtReq,
 					SaveMessageApp:         saveMessageApp,
 				}
