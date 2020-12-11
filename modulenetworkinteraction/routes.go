@@ -36,6 +36,8 @@ func RouteWssConnect(
 			})
 		}
 
+		fmt.Printf("func 'RouteWssConnect', received messge '%v'\n", mtJSON)
+
 		switch mtJSON.MsgType {
 		case "ping":
 			go handlers.HandlerMessageTypePing(sma, msg.Data, msg.ClientID, appc, saveMessageApp, cwtResText)
@@ -45,6 +47,9 @@ func RouteWssConnect(
 
 		case "download files":
 			handlers.HandlerMessageTypeDownload(sma, msg.Data, msg.ClientID, appc, saveMessageApp, cwtResText, cwtResBinary)
+
+		case "telemetry":
+			go handlers.HandlerMessageTypeTelemetry(sma, msg.Data, msg.ClientID, saveMessageApp, cwtResText)
 		}
 	}
 }

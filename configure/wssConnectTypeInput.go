@@ -26,6 +26,20 @@ type DetailInfoMsgPing struct {
 	TypeAreaNetwork string   `json:"typeAreaNetwork"`
 }
 
+/* ПАРАМЕТРЫ ЗАПРОСА ТЕЛЕМЕТРИИ */
+
+//MsgTypeTelemetryRequest запрос телеметрии
+type MsgTypeTelemetryRequest struct {
+	MsgType string                          `json:"messageType"`
+	Info    MsgTypeTelemetrySettingsRequest `json:"info"`
+}
+
+//MsgTypeTelemetrySettingsRequest настройки запроса телеметрии
+type MsgTypeTelemetrySettingsRequest struct {
+	TaskID  string `json:"id"`
+	Command string `json:"c"`
+}
+
 /* ПАРАМЕТРЫ ФИЛЬТРАЦИИ */
 
 //MsgTypeFiltrationControl сообщение для запуска процесса фильтрации
