@@ -5,6 +5,8 @@ package telemetry
 * */
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"ISEMS-NIH_slave/configure"
@@ -18,16 +20,19 @@ func TransmissionTelemetry(
 	sma *configure.StoreMemoryApplication,
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 
-	ticker := time.NewTicker(time.Duration(appc.RefreshIntervalTelemetryInfo) * time.Second)
-	for range ticker.C {
+	fn := "TransmissionTelemetry"
+	chanSysInfo := make(chan SysInfo)
+	getListClients := func() ([]string, error) {
+		cl := []string{}
+		err := fmt.Errorf("there are no clients waiting to receive telemetry")
+
 		settingsAllClient := sma.GetAllClientSettings()
 
 		count := len(settingsAllClient)
 		if count == 0 {
-			continue
+			return cl, err
 		}
 
-		cl := make([]string, 0, count)
 		for clientID, s := range settingsAllClient {
 			if s.SendsTelemetry {
 				cl = append(cl, clientID)
@@ -35,9 +40,48 @@ func TransmissionTelemetry(
 		}
 
 		if len(cl) == 0 {
-			continue
+			return cl, err
 		}
 
-		go GetSystemInformation(cwtResText, cl, sma, saveMessageApp)
+		return cl, nil
+	}
+
+	go func() {
+		for si := range chanSysInfo {
+			cl, err := getListClients()
+			if err != nil {
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					Description: fmt.Sprint(err),
+					FuncName:    fn,
+				})
+
+				continue
+			}
+
+			resJSON, err := json.Marshal(si)
+			if err != nil {
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					Description: fmt.Sprint(err),
+					FuncName:    fn,
+				})
+
+				continue
+			}
+
+			//рассылаем всем клиентам ожидающим телеметрию
+			for _, clientID := range cl {
+				cwtResText <- configure.MsgWsTransmission{
+					ClientID: clientID,
+					Data:     &resJSON,
+				}
+			}
+		}
+	}()
+
+	ticker := time.NewTicker(time.Duration(appc.RefreshIntervalTelemetryInfo) * time.Second)
+	for range ticker.C {
+		if _, err := getListClients(); err == nil {
+			go GetSystemInformation(chanSysInfo, sma, saveMessageApp)
+		}
 	}
 }

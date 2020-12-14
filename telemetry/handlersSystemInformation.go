@@ -14,17 +14,11 @@ import (
 	"strings"
 )
 
-//Memory содержит информацию об используемой ПО
-type Memory struct {
-	Total int `json:"total"`
-	Used  int `json:"used"`
-	Free  int `json:"free"`
-}
-
-//CurrentDisk начальное и конечное время для файлов сет. трафика
-type CurrentDisk struct {
-	DateMin int `json:"dateMin"`
-	DateMax int `json:"dateMax"`
+//SysInfo полная системная информация подготовленная к отправке
+type SysInfo struct {
+	MessageType string              `json:"messageType"`
+	TaskID      string              `json:"taskID"`
+	Info        DetailedInformation `json:"info"`
 }
 
 //DetailedInformation системная информация
@@ -37,10 +31,17 @@ type DetailedInformation struct {
 	LoadNetwork        map[string]map[string]int `json:"loadNetwork"`
 }
 
-//SysInfo полная системная информация подготовленная к отправке
-type SysInfo struct {
-	MessageType string              `json:"messageType"`
-	Info        DetailedInformation `json:"info"`
+//Memory содержит информацию об используемой ПО
+type Memory struct {
+	Total int `json:"total"`
+	Used  int `json:"used"`
+	Free  int `json:"free"`
+}
+
+//CurrentDisk начальное и конечное время для файлов сет. трафика
+type CurrentDisk struct {
+	DateMin int `json:"dateMin"`
+	DateMax int `json:"dateMax"`
 }
 
 //AnswerNetIface содержит информацию по сетевому интерфейсу
@@ -208,19 +209,21 @@ func getLoadingNetworkInterface(result chan<- AnswerNetIface, iface string) {
 			},
 			err,
 		}
-	} else {
-		arrayValue := strings.Split(string(stdout), "\n")
-		tx, _ := strconv.Atoi(arrayValue[0])
-		rx, _ := strconv.Atoi(arrayValue[1])
 
-		result <- AnswerNetIface{
-			iface,
-			map[string]int{
-				"TX": tx,
-				"RX": rx,
-			},
-			nil,
-		}
+		return
+	}
+
+	arrayValue := strings.Split(string(stdout), "\n")
+	tx, _ := strconv.Atoi(arrayValue[0])
+	rx, _ := strconv.Atoi(arrayValue[1])
+
+	result <- AnswerNetIface{
+		iface,
+		map[string]int{
+			"TX": tx,
+			"RX": rx,
+		},
+		nil,
 	}
 }
 
@@ -240,6 +243,7 @@ func (sysInfo *SysInfo) CreateLoadNetworkInterface(done chan<- struct{}, errMsg 
 		if listInterfaceString[id] == "lo" || listInterfaceString[id] == "" {
 			continue
 		}
+
 		listIface = append(listIface, listInterfaceString[id])
 	}
 

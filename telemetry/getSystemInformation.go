@@ -5,7 +5,6 @@ package telemetry
 * */
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -15,8 +14,9 @@ import (
 
 //GetSystemInformation позволяет получить системную информацию
 func GetSystemInformation(
-	cwtResText chan<- configure.MsgWsTransmission,
-	cl []string,
+	/*cwtResText chan<- configure.MsgWsTransmission,
+	cl []string,*/
+	chanSysInfo chan<- SysInfo,
 	sma *configure.StoreMemoryApplication,
 	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
 
@@ -82,19 +82,5 @@ DONE:
 	sysInfo.Info.CurrentDateTime = time.Now().Unix() * 1000
 	sysInfo.MessageType = "telemetry"
 
-	resjson, err := json.Marshal(sysInfo)
-	if err != nil {
-		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-			Description: fmt.Sprint(err),
-			FuncName:    fn,
-		})
-	}
-
-	//рассылаем всем клиентам ожидающим телеметрию
-	for _, clientID := range cl {
-		cwtResText <- configure.MsgWsTransmission{
-			ClientID: clientID,
-			Data:     &resjson,
-		}
-	}
+	chanSysInfo <- sysInfo
 }

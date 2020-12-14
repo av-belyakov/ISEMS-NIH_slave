@@ -6,6 +6,7 @@ import (
 
 	"ISEMS-NIH_slave/configure"
 	"ISEMS-NIH_slave/savemessageapp"
+	"ISEMS-NIH_slave/telemetry"
 )
 
 //HandlerMessageTypeTelemetry обработчик сообщений типа 'telemetry'
@@ -21,7 +22,6 @@ func HandlerMessageTypeTelemetry(
 	fmt.Printf("func '%v', START...\n", fn)
 
 	mttrJSON := configure.MsgTypeTelemetryRequest{}
-
 	if err := json.Unmarshal(*req, &mttrJSON); err != nil {
 		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
@@ -33,15 +33,27 @@ func HandlerMessageTypeTelemetry(
 
 	fmt.Printf("received reguest '%v'\n", mttrJSON)
 
-	/*
-	   Сюда доходит запрос на получения телеметрии с ISEMS-NIH_master
-	   Теперь нужно выполнить обработку этого запроса и отправить модулю ISEMS-NIH_master
+	if mttrJSON.Info.Command == "give me telemetry" {
+		chanSysInfo := make(chan telemetry.SysInfo)
 
-	   В модуле ISEMS-NIH_master нужно обработать полученный ответ от конкретного источника,
-	   удалить его из списка StoreMemoryTasks и отправить клиенту API
+		go telemetry.GetSystemInformation(chanSysInfo, sma, saveMessageApp)
 
-	   при этом если в списке источников StoreMemoryTasks будет пусто то изменить статус
-	   задачи на 'выполненная', для последующего удаления задачи из StoreMemoryTasks
-	*/
+		si := <-chanSysInfo
 
+		si.TaskID = mttrJSON.Info.TaskID
+		resJSON, err := json.Marshal(si)
+		if err != nil {
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprint(err),
+				FuncName:    fn,
+			})
+
+			return
+		}
+
+		cwtResText <- configure.MsgWsTransmission{
+			ClientID: clientID,
+			Data:     &resJSON,
+		}
+	}
 }

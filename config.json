@@ -35,7 +35,7 @@
     "pathLogFiles": "/var/log",
     "pathLogFiles_comments": "место расположение лог-файла приложения",
     "refreshIntervalTelemetryInfo": 120,
-    "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации",
+    "refreshIntervalTelemetryInfo_comments": "интервал обновления системной информации в секундах",
     "maxSizeTransferredChunkFile": 4096,
     "maxSizeTransferredChunkFile_comments": "максимальный размер передаваемого кусочка файла",
     "forLocalUse": false,
