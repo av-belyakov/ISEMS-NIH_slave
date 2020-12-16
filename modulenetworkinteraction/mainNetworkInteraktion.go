@@ -194,7 +194,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 				c, err := getConnLink(msgText.ClientID)
 				if err != nil {
 					saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-						Description: fmt.Sprint(err),
+						Description: fmt.Sprintf("text message, %v", err),
 						FuncName:    fn,
 					})
 
@@ -203,7 +203,7 @@ func MainNetworkInteraction(appc *configure.AppConfig, sma *configure.StoreMemor
 
 				if err := c.SendWsMessage(1, *msgText.Data); err != nil {
 					saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-						Description: fmt.Sprint(err),
+						Description: fmt.Sprintf("binary message, %v", err),
 						FuncName:    fn,
 					})
 				}

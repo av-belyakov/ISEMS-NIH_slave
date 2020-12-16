@@ -29,6 +29,7 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 		}
 
 		status, ok := msg.Parameters.(bool)
+
 		if !ok {
 			return chanResSettingsTask{Error: fmt.Errorf("format conversion error")}
 		}
@@ -41,6 +42,7 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 		} else {
 			cs.AccessIsAllowed = false
 		}
+
 		sma.clientSettings[msg.ClientID] = cs
 	}
 
@@ -100,6 +102,7 @@ func managemetRecordTaskFiltration(sma *StoreMemoryApplication, msg chanReqSetti
 		}
 
 		settings, ok := msg.Parameters.(map[string]interface{})
+
 		if !ok {
 			return chanResSettingsTask{Error: fmt.Errorf("type conversion error")}
 		}
@@ -116,9 +119,11 @@ func managemetRecordTaskFiltration(sma *StoreMemoryApplication, msg chanReqSetti
 					if k == "NumberFilesMeetFilterParameters" {
 						sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberFilesMeetFilterParameters = count
 					}
+
 					if k == "NumberProcessedFiles" {
 						sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberProcessedFiles = count
 					}
+
 					if k == "NumberErrorProcessedFiles" {
 						sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID].NumberErrorProcessedFiles = count
 					}
@@ -195,6 +200,7 @@ func managemetRecordTaskDownload(sma *StoreMemoryApplication, msg chanReqSetting
 
 	case "get task information":
 		var crst chanResSettingsTask
+
 		if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
 			crst.Error = err
 		} else {

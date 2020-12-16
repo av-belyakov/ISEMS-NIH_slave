@@ -12,7 +12,7 @@ import (
 
 type checkingTaskResult struct {
 	isComplete bool
-	Error      error
+	err        error
 }
 
 //HandlerMessageTypePing обработчик сообщений типа 'Ping'
@@ -82,12 +82,14 @@ func HandlerMessageTypePing(
 
 	for r := range chanCheckTask {
 		if r.isComplete {
+			fmt.Printf("func '%v', filtration task was found, task status '%v', information about it was sent\n", fn, r.isComplete)
+
 			break
 		}
 
-		if r.Error != nil {
+		if r.err != nil {
 			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-				Description: fmt.Sprint(r.Error),
+				Description: fmt.Sprint(r.err),
 				FuncName:    fn,
 			})
 		}
@@ -106,25 +108,46 @@ func checkingExecuteTaskFiltration(
 		//получаем все выполняемые данным пользователем задачи
 		taskList, ok := sma.GetListTasksFiltration(clientID)
 		if !ok {
+
+			fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed not found, client id not found")
+
 			c <- checkingTaskResult{
 				isComplete: true,
 			}
 		}
 
 		if len(taskList) == 0 {
+
+			fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed not found, task list is empty")
+
 			c <- checkingTaskResult{
 				isComplete: true,
 			}
 		}
 
 		for taskID, info := range taskList {
+
+			fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed FOUND")
+
 			if info.Status == "stop" || info.Status == "complete" {
+
+				fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed FOUND and not 'stop' or 'complete', SEND message to CLIENT (ISEMS-NIH_master)")
+
 				//отправляем сообщение о завершении фильтрации и передаем СПИСОК ВСЕХ найденных в результате фильтрации файлов
 				if err := modulefiltrationfile.SendMessageFiltrationComplete(cwtResText, sma, clientID, taskID); err != nil {
 					c <- checkingTaskResult{
-						Error: err,
+						err: err,
 					}
 				}
+
+				ib, _ := sma.GetListTasksFiltration(clientID)
+				fmt.Printf("func 'checkingExecuteTaskFiltration', list task filtration BEFORE delete: '%v'\n", ib)
+
+				//удаляем задачу
+				sma.DelTaskFiltration(clientID, taskID)
+
+				ia, _ := sma.GetListTasksFiltration(clientID)
+				fmt.Printf("func 'checkingExecuteTaskFiltration', list task filtration AFTER delete: '%v'\n", ia)
 			}
 		}
 

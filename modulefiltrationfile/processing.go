@@ -202,9 +202,7 @@ func ProcessingFiltration(
 	patternScript := createPatternScript(info, as.TypeAreaNetwork)
 
 	//изменяем статус задачи
-	_ = sma.SetInfoTaskFiltration(clientID, taskID, map[string]interface{}{
-		"Status": "execute",
-	})
+	_ = sma.SetInfoTaskFiltration(clientID, taskID, map[string]interface{}{"Status": "execute"})
 
 	done := make(chan chanDone, len(info.ListFiles))
 
@@ -430,9 +428,7 @@ func filteringComplete(
 		tp = "complete"
 	}
 
-	if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{
-		"Status": tp,
-	}); err != nil {
+	if err := sma.SetInfoTaskFiltration(np.ClientID, np.TaskID, map[string]interface{}{"Status": tp}); err != nil {
 		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 			Description: fmt.Sprint(err),
 			FuncName:    fn,
