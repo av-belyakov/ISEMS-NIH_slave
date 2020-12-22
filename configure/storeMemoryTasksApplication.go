@@ -27,6 +27,7 @@ type ApplicationSettings struct {
 }
 
 //ClientSettings настройки индивидуальные для клиента
+// ID - уникальный идентификатор источника
 // ConnectionStatus - статус соединения
 // IP - ip адрес
 // Port - сетевой порт
@@ -35,6 +36,7 @@ type ApplicationSettings struct {
 // AccessIsAllowed - разрешен ли доступ
 // SendsTelemetry - включина ли телеметрия
 type ClientSettings struct {
+	ID                string
 	ConnectionStatus  bool
 	IP                string
 	Port              string
@@ -119,9 +121,9 @@ type DownloadTasks struct {
 }
 
 type chanReqSettingsTask struct {
-	ClientID, TaskID, TaskType, ActionType string
-	ChanRespons                            chan chanResSettingsTask
-	Parameters                             interface{}
+	ClientID, ClientIP, TaskID, TaskType, ActionType string
+	ChanRespons                                      chan chanResSettingsTask
+	Parameters                                       interface{}
 }
 
 type chanResSettingsTask struct {
@@ -160,7 +162,6 @@ func NewRepositorySMA() *StoreMemoryApplication {
 
 			case "client settings":
 				msg.ChanRespons <- managemetRecordClientSettings(&sma, msg)
-				close(msg.ChanRespons)
 
 			case "filtration":
 				msg.ChanRespons <- managemetRecordTaskFiltration(&sma, msg)
@@ -242,19 +243,24 @@ func (sma StoreMemoryApplication) GetApplicationSetting() ApplicationSettings {
 
 //SetClientSetting устанавливает параметры клиента
 func (sma *StoreMemoryApplication) SetClientSetting(clientID string, settings ClientSettings) {
-	sma.clientSettings[clientID] = settings
+	chanRes := make(chan chanResSettingsTask)
+	defer close(chanRes)
 
-	if _, ok := sma.clientTasks[clientID]; !ok {
-		sma.clientTasks[clientID] = TasksList{
-			filtrationTasks: map[string]*FiltrationTasks{},
-			downloadTasks:   map[string]*DownloadTasks{},
-		}
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		TaskType:    "client settings",
+		ActionType:  "set",
+		ClientID:    clientID,
+		Parameters:  settings,
+		ChanRespons: chanRes,
 	}
+
+	<-chanRes
 }
 
 //GetClientSetting передает параметры клиента
 func (sma *StoreMemoryApplication) GetClientSetting(clientID string) (ClientSettings, error) {
 	chanRes := make(chan chanResSettingsTask)
+	defer close(chanRes)
 
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
 		TaskType:    "client settings",
@@ -276,6 +282,7 @@ func (sma *StoreMemoryApplication) GetClientSetting(clientID string) (ClientSett
 //GetAllClientSettings получить настройки для всех клиентов
 func (sma *StoreMemoryApplication) GetAllClientSettings() map[string]ClientSettings {
 	chanRes := make(chan chanResSettingsTask)
+	defer close(chanRes)
 
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
 		TaskType:    "client settings",
@@ -291,45 +298,57 @@ func (sma *StoreMemoryApplication) GetAllClientSettings() map[string]ClientSetti
 }
 
 //searchClientSettingsByIP поиск параметров клиента по его ip адресу
-func (sma *StoreMemoryApplication) searchClientSettingsByIP(clientIP string) (string, ClientSettings, bool) {
+func (sma *StoreMemoryApplication) searchClientSettingsByIP(clientIP string) (ClientSettings, error) {
 	chanRes := make(chan chanResSettingsTask)
+	defer close(chanRes)
 
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
 		TaskType:    "client settings",
 		ActionType:  "get all",
+		ClientIP:    clientIP,
 		ChanRespons: chanRes,
 	}
 
-	if lcs, ok := (<-chanRes).Parameters.(map[string]ClientSettings); ok {
-		for id, cs := range lcs {
-			if cs.IP == clientIP {
-				return id, cs, true
-			}
-		}
+	res := <-chanRes
+
+	if res.Error != nil {
+		return ClientSettings{}, res.Error
 	}
 
-	return "", ClientSettings{}, false
+	if cs, ok := res.Parameters.(ClientSettings); ok {
+
+		//		fmt.Printf("func 'searchClientSettingsByIP', lcs: (%v)\n", cs)
+
+		return cs, nil
+	}
+
+	return ClientSettings{}, fmt.Errorf("type conversion error (func 'searchClientSettingsByIP')")
 }
 
 //GetClientIDOnIP получить ID источника по его IP
-func (sma *StoreMemoryApplication) GetClientIDOnIP(clientIP string) (string, bool) {
-	id, _, ok := sma.searchClientSettingsByIP(clientIP)
+func (sma *StoreMemoryApplication) GetClientIDOnIP(clientIP string) (string, error) {
+	cs, err := sma.searchClientSettingsByIP(clientIP)
 
-	return id, ok
+	return cs.ID, err
 }
 
 //GetAccessIsAllowed возвращает значение подтверждающее или отклоняющее права доступа источника
-func (sma *StoreMemoryApplication) GetAccessIsAllowed(clientIP string) bool {
-	if _, cs, ok := sma.searchClientSettingsByIP(clientIP); ok {
-		return cs.AccessIsAllowed
+func (sma *StoreMemoryApplication) GetAccessIsAllowed(clientIP string) (bool, error) {
+
+	fmt.Printf("func 'GetAccessIsAllowed', START...")
+
+	cs, err := sma.searchClientSettingsByIP(clientIP)
+	if err != nil {
+		return false, err
 	}
 
-	return false
+	return cs.AccessIsAllowed, nil
 }
 
 //DeleteClientSetting удаляет параметры клиента
 func (sma *StoreMemoryApplication) DeleteClientSetting(clientID string) {
 	chanRes := make(chan chanResSettingsTask)
+	defer close(chanRes)
 
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
 		TaskType:    "client settings",
@@ -344,6 +363,7 @@ func (sma *StoreMemoryApplication) DeleteClientSetting(clientID string) {
 //ChangeSourceConnectionStatus изменить состояние клиента
 func (sma *StoreMemoryApplication) ChangeSourceConnectionStatus(clientID string, status bool) error {
 	chanRes := make(chan chanResSettingsTask)
+	defer close(chanRes)
 
 	sma.chanReqSettingsTask <- chanReqSettingsTask{
 		TaskType:    "client settings",

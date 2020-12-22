@@ -1,5 +1,5 @@
 {
-    "isServer": false,
+    "isServer": true,
     "isServer_comments": "запуск приложения как сервер (true), как клиент (false)",
     "toConnectServerHTTPS": [{
             "ip": "192.168.13.3",

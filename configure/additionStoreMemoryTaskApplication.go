@@ -7,7 +7,28 @@ import (
 
 //managemetRecordClientSetting управление учетом настроек клиетов
 func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSettingsTask) chanResSettingsTask {
+	funcName := "(func 'managemetRecordClientSettings')"
+
 	switch msg.ActionType {
+	case "set":
+		settings, ok := msg.Parameters.(ClientSettings)
+		if !ok {
+			return chanResSettingsTask{
+				Error: fmt.Errorf("type conversion error %v", funcName),
+			}
+		}
+
+		sma.clientSettings[msg.ClientID] = settings
+
+		if _, ok := sma.clientTasks[msg.ClientID]; !ok {
+			sma.clientTasks[msg.ClientID] = TasksList{
+				filtrationTasks: map[string]*FiltrationTasks{},
+				downloadTasks:   map[string]*DownloadTasks{},
+			}
+		}
+
+		return chanResSettingsTask{}
+
 	case "get":
 		if err := sma.checkExistClientSetting(msg.ClientID); err != nil {
 			return chanResSettingsTask{Error: err}
@@ -18,10 +39,32 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 		return chanResSettingsTask{Parameters: csi}
 
 	case "get all":
-		return chanResSettingsTask{Parameters: sma.clientSettings}
+		for id, cs := range sma.clientSettings {
+			if cs.IP == msg.ClientIP {
+				return chanResSettingsTask{
+					Error: nil,
+					Parameters: ClientSettings{
+						ID:                id,
+						IP:                cs.ID,
+						Port:              cs.Port,
+						ConnectionStatus:  cs.ConnectionStatus,
+						Token:             cs.Token,
+						DateLastConnected: cs.DateLastConnected,
+						AccessIsAllowed:   cs.AccessIsAllowed,
+						SendsTelemetry:    cs.SendsTelemetry,
+					},
+				}
+			}
+		}
+
+		return chanResSettingsTask{
+			Error: fmt.Errorf("information for client c ip address '%v' not found (func 'managemetRecordClientSettings')", msg.ClientIP),
+		}
 
 	case "del":
 		delete(sma.clientSettings, msg.ClientID)
+
+		return chanResSettingsTask{}
 
 	case "change connection":
 		if err := sma.checkExistClientSetting(msg.ClientID); err != nil {
@@ -44,6 +87,8 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 		}
 
 		sma.clientSettings[msg.ClientID] = cs
+
+		return chanResSettingsTask{}
 	}
 
 	return chanResSettingsTask{}

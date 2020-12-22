@@ -81,11 +81,11 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
 
-	clientID, isExistID := sws.StoreMemoryApplication.GetClientIDOnIP(remoteIP)
-	if !isExistID {
+	clientID, err := sws.StoreMemoryApplication.GetClientIDOnIP(remoteIP)
+	if err != nil {
 		w.WriteHeader(401)
 		sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-			Description: fmt.Sprintf("access for the user with ipaddress %v is prohibited", remoteIP),
+			Description: fmt.Sprintf("access for the user with ip address %v is prohibited", remoteIP),
 			FuncName:    fn,
 		})
 
@@ -93,10 +93,21 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	}
 
 	//проверяем разрешено ли данному ip соединение с сервером wss
-	if !sws.StoreMemoryApplication.GetAccessIsAllowed(remoteIP) {
+	accessIsAllowed, err := sws.StoreMemoryApplication.GetAccessIsAllowed(remoteIP)
+	if err != nil {
 		w.WriteHeader(401)
 		sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-			Description: fmt.Sprintf("access for the user with ipaddress %v is prohibited", remoteIP),
+			Description: fmt.Sprint(err),
+			FuncName:    fn,
+		})
+
+		return
+	}
+
+	if !accessIsAllowed {
+		w.WriteHeader(401)
+		sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprintf("access for the user with ip address %v is prohibited, the ip address %v is not in the list of allowed addresses", remoteIP, remoteIP),
 			FuncName:    fn,
 		})
 
