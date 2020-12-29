@@ -52,7 +52,6 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 
 	if (len(stringToken) == 0) || (stringToken != ss.Token) {
 		w.Header().Set("Content-Length", strconv.Itoa(utf8.RuneCount(bodyHTTPResponseError)))
-
 		w.WriteHeader(400)
 		w.Write(bodyHTTPResponseError)
 
@@ -65,8 +64,8 @@ func (ss *serverSetting) HandlerRequest(w http.ResponseWriter, req *http.Request
 	}
 
 	//если токен валидный добавляем клиента в список и разрешаем ему дальнейшее соединение
-	clientID := createClientID(req.RemoteAddr + ":" + ss.Token)
-	ss.StoreMemoryApplication.SetClientSetting(clientID, configure.ClientSettings{
+	//ss.StoreMemoryApplication.SetClientSetting(createClientID(req.RemoteAddr+":"+ss.Token), configure.ClientSettings{
+	ss.StoreMemoryApplication.SetClientSetting(createClientID(remoteIP+":"+ss.Token), configure.ClientSettings{
 		IP:              remoteIP,
 		Port:            remotePort,
 		AccessIsAllowed: true,
@@ -115,6 +114,11 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 	}
 
 	if req.Header.Get("Connection") != "Upgrade" {
+		sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprintf("access for the user with ip address %v is prohibited, the header 'Connection' is not equal to 'Upgrade'", remoteIP),
+			FuncName:    fn,
+		})
+
 		return
 	}
 
@@ -125,7 +129,7 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 		EnableCompression: false,
 		//ReadBufferSize:    1024,
 		//WriteBufferSize:   100000000,
-		HandshakeTimeout: (time.Duration(1) * time.Second),
+		HandshakeTimeout: (time.Duration(3) * time.Second),
 	}
 
 	c, err := upgrader.Upgrade(w, req, nil)
@@ -140,8 +144,6 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 		})
 	}
 	defer connClose(c, sws.StoreMemoryApplication, clientID, remoteIP, "server", sws.SaveMessageApp)
-
-	fmt.Printf("connection success established, client ID %v, client IP %v\n", clientID, remoteIP)
 
 	sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 		TypeMessage: "info",
@@ -168,6 +170,9 @@ func (sws serverWebsocketSetting) ServerWss(w http.ResponseWriter, req *http.Req
 
 		_, message, err := c.ReadMessage()
 		if err != nil {
+
+			fmt.Printf("func11 '%v', err: '%v'\n", fn, err)
+
 			sws.SaveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
 				Description: fmt.Sprint(err),
 				FuncName:    fn,

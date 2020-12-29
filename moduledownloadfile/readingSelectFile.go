@@ -94,7 +94,6 @@ DONE:
 				ClientID: rfp.ClientID,
 				Data:     &bytesTransmitted,
 			}
-
 		}
 	}
 }

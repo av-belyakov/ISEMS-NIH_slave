@@ -9,6 +9,8 @@ import (
 func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSettingsTask) chanResSettingsTask {
 	funcName := "(func 'managemetRecordClientSettings')"
 
+	crst := chanResSettingsTask{}
+
 	switch msg.ActionType {
 	case "set":
 		settings, ok := msg.Parameters.(ClientSettings)
@@ -27,8 +29,6 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 			}
 		}
 
-		return chanResSettingsTask{}
-
 	case "get":
 		if err := sma.checkExistClientSetting(msg.ClientID); err != nil {
 			return chanResSettingsTask{Error: err}
@@ -36,7 +36,7 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 
 		csi, _ := sma.clientSettings[msg.ClientID]
 
-		return chanResSettingsTask{Parameters: csi}
+		crst = chanResSettingsTask{Parameters: csi}
 
 	case "get all":
 		for id, cs := range sma.clientSettings {
@@ -64,17 +64,14 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 	case "del":
 		delete(sma.clientSettings, msg.ClientID)
 
-		return chanResSettingsTask{}
-
 	case "change connection":
 		if err := sma.checkExistClientSetting(msg.ClientID); err != nil {
-			return chanResSettingsTask{Error: err}
+			crst = chanResSettingsTask{Error: err}
 		}
 
 		status, ok := msg.Parameters.(bool)
-
 		if !ok {
-			return chanResSettingsTask{Error: fmt.Errorf("format conversion error")}
+			crst = chanResSettingsTask{Error: fmt.Errorf("format conversion error")}
 		}
 
 		cs := sma.clientSettings[msg.ClientID]
@@ -87,11 +84,9 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 		}
 
 		sma.clientSettings[msg.ClientID] = cs
-
-		return chanResSettingsTask{}
 	}
 
-	return chanResSettingsTask{}
+	return crst
 }
 
 //managemetRecordTaskFiltration управление учетом задач по фильтрации

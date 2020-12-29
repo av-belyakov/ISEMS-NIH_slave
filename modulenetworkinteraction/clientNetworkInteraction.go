@@ -22,6 +22,8 @@ import (
 func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request) error {
 	fn := "redirectPolicyFunc"
 
+	fmt.Println("func 'redirectPolicyFunc', START...")
+
 	go func() {
 		header := http.Header{}
 		header.Add("Content-Type", "text/plain;charset=utf-8")
@@ -29,7 +31,7 @@ func (cs clientSetting) redirectPolicyFunc(req *http.Request, rl []*http.Request
 		header.Add("User-Agent", "Mozilla/5.0 (ISEMS-NIH_slave)")
 
 		d := websocket.Dialer{
-			HandshakeTimeout:  (time.Duration(1) * time.Second),
+			HandshakeTimeout:  (time.Duration(3) * time.Second),
 			EnableCompression: false,
 			TLSClientConfig:   cs.TLSConf, /*&tls.Config{
 				InsecureSkipVerify: true,

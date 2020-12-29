@@ -78,83 +78,71 @@ func HandlerMessageTypePing(
 		Data:     &resJSON,
 	}
 
-	chanCheckTask := checkingExecuteTaskFiltration(cwtResText, sma, clientID)
-
-	for r := range chanCheckTask {
-		if r.isComplete {
-			fmt.Printf("func '%v', filtration task was found, task status '%v', information about it was sent\n", fn, r.isComplete)
-
-			break
-		}
-
-		if r.err != nil {
-			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-				Description: fmt.Sprint(r.err),
-				FuncName:    fn,
-			})
-		}
-	}
+	go checkingExecuteTaskFiltration(cwtResText, sma, clientID, saveMessageApp)
 }
 
 //checkingExecuteTaskFiltration проверка наличие выполняемых задач и отправка информации по ним
 func checkingExecuteTaskFiltration(
 	cwtResText chan<- configure.MsgWsTransmission,
 	sma *configure.StoreMemoryApplication,
-	clientID string) chan checkingTaskResult {
+	clientID string,
+	saveMessageApp *savemessageapp.PathDirLocationLogFiles) {
+	funcName := "checkingExecuteTaskFiltration"
 
-	c := make(chan checkingTaskResult)
+	//получаем все выполняемые данным пользователем задачи
+	taskList, ok := sma.GetListTasksFiltration(clientID)
+	if !ok {
 
-	go func() {
-		//получаем все выполняемые данным пользователем задачи
-		taskList, ok := sma.GetListTasksFiltration(clientID)
-		if !ok {
+		fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed not found, client id not found")
 
-			fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed not found, client id not found")
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint("func 'checkingExecuteTaskFiltration', filtration task processed not found, client id not found"),
+			FuncName:    funcName,
+		})
 
-			c <- checkingTaskResult{
-				isComplete: true,
+		return
+	}
+
+	if len(taskList) == 0 {
+
+		fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed not found, task list is empty")
+
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			Description: fmt.Sprint("func 'checkingExecuteTaskFiltration', filtration task processed not found, task list is empty"),
+			FuncName:    funcName,
+		})
+
+		return
+	}
+
+	for taskID, info := range taskList {
+
+		fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed FOUND")
+
+		if info.Status == "stop" || info.Status == "complete" {
+
+			fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed FOUND and not 'stop' or 'complete', SEND message to CLIENT (ISEMS-NIH_master)")
+
+			//отправляем сообщение о завершении фильтрации и передаем СПИСОК ВСЕХ найденных в результате фильтрации файлов
+			if err := modulefiltrationfile.SendMessageFiltrationComplete(cwtResText, sma, clientID, taskID); err != nil {
+				saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+					Description: fmt.Sprint(err),
+					FuncName:    funcName,
+				})
+
+				continue
 			}
+
+			ib, _ := sma.GetListTasksFiltration(clientID)
+
+			fmt.Printf("func 'checkingExecuteTaskFiltration', list task filtration BEFORE delete: '%v'\n", ib)
+
+			//удаляем задачу
+			sma.DelTaskFiltration(clientID, taskID)
+
+			ia, _ := sma.GetListTasksFiltration(clientID)
+
+			fmt.Printf("func 'checkingExecuteTaskFiltration', list task filtration AFTER delete: '%v'\n", ia)
 		}
-
-		if len(taskList) == 0 {
-
-			fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed not found, task list is empty")
-
-			c <- checkingTaskResult{
-				isComplete: true,
-			}
-		}
-
-		for taskID, info := range taskList {
-
-			fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed FOUND")
-
-			if info.Status == "stop" || info.Status == "complete" {
-
-				fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed FOUND and not 'stop' or 'complete', SEND message to CLIENT (ISEMS-NIH_master)")
-
-				//отправляем сообщение о завершении фильтрации и передаем СПИСОК ВСЕХ найденных в результате фильтрации файлов
-				if err := modulefiltrationfile.SendMessageFiltrationComplete(cwtResText, sma, clientID, taskID); err != nil {
-					c <- checkingTaskResult{
-						err: err,
-					}
-				}
-
-				ib, _ := sma.GetListTasksFiltration(clientID)
-				fmt.Printf("func 'checkingExecuteTaskFiltration', list task filtration BEFORE delete: '%v'\n", ib)
-
-				//удаляем задачу
-				sma.DelTaskFiltration(clientID, taskID)
-
-				ia, _ := sma.GetListTasksFiltration(clientID)
-				fmt.Printf("func 'checkingExecuteTaskFiltration', list task filtration AFTER delete: '%v'\n", ia)
-			}
-		}
-
-		c <- checkingTaskResult{
-			isComplete: true,
-		}
-	}()
-
-	return c
+	}
 }
