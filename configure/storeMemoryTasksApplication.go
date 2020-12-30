@@ -402,17 +402,37 @@ func (sma *StoreMemoryApplication) GetLinkUnixSocketConnect(clientID string) (*U
 
 //AddTaskFiltration добавить задачу
 func (sma *StoreMemoryApplication) AddTaskFiltration(clientID, taskID string, ft *FiltrationTasks) {
-	sma.clientTasks[clientID].filtrationTasks[taskID] = ft
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:   clientID,
+		TaskID:     taskID,
+		TaskType:   "filtration",
+		ActionType: "add task filtration",
+		Parameters: ft,
+	}
+
+	<-sma.chanResSettingsTask
 }
 
 //GetListTasksFiltration получить список задач по фильтрации выполняемых данным пользователем
 func (sma *StoreMemoryApplication) GetListTasksFiltration(clientID string) (map[string]*FiltrationTasks, bool) {
-	tasks, ok := sma.clientTasks[clientID]
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:   clientID,
+		TaskType:   "filtration",
+		ActionType: "get list tasks filtration",
+	}
+
+	res := <-sma.chanResSettingsTask
+
+	if res.Error != nil {
+		return nil, false
+	}
+
+	lt, ok := res.Parameters.(map[string]*FiltrationTasks)
 	if !ok {
 		return nil, false
 	}
 
-	return tasks.filtrationTasks, true
+	return lt, true
 }
 
 //GetInfoTaskFiltration получить всю информацию о задаче выполняемой пользователем
@@ -561,7 +581,15 @@ func (sma *StoreMemoryApplication) DelTaskFiltration(clientID, taskID string) er
 
 //AddTaskDownload добавить задачу
 func (sma *StoreMemoryApplication) AddTaskDownload(clientID, taskID string, dt *DownloadTasks) {
-	sma.clientTasks[clientID].downloadTasks[taskID] = dt
+	sma.chanReqSettingsTask <- chanReqSettingsTask{
+		ClientID:   clientID,
+		TaskID:     taskID,
+		TaskType:   "download",
+		ActionType: "add task download",
+		Parameters: dt,
+	}
+
+	<-sma.chanResSettingsTask
 }
 
 //AddChanStopReadFileTaskDownload добавляет канал для останова чтения и передачи файла

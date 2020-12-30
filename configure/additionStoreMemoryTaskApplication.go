@@ -92,6 +92,20 @@ func managemetRecordClientSettings(sma *StoreMemoryApplication, msg chanReqSetti
 //managemetRecordTaskFiltration управление учетом задач по фильтрации
 func managemetRecordTaskFiltration(sma *StoreMemoryApplication, msg chanReqSettingsTask) chanResSettingsTask {
 	switch msg.ActionType {
+	case "add task filtration":
+		if _, ok := sma.clientTasks[msg.ClientID]; !ok {
+			sma.clientTasks[msg.ClientID] = TasksList{
+				filtrationTasks: map[string]*FiltrationTasks{},
+				downloadTasks:   map[string]*DownloadTasks{},
+			}
+		}
+
+		if ft, ok := msg.Parameters.(*FiltrationTasks); ok {
+			sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID] = ft
+		}
+
+		return chanResSettingsTask{}
+
 	case "get task information":
 		if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
 			return chanResSettingsTask{Error: err}
@@ -100,6 +114,14 @@ func managemetRecordTaskFiltration(sma *StoreMemoryApplication, msg chanReqSetti
 		return chanResSettingsTask{
 			Parameters: sma.clientTasks[msg.ClientID].filtrationTasks[msg.TaskID],
 		}
+
+	case "get list tasks filtration":
+		lt, ok := sma.clientTasks[msg.ClientID]
+		if !ok {
+			return chanResSettingsTask{Error: fmt.Errorf("a client with the specified ID '%v' was not found", msg.ClientID)}
+		}
+
+		return chanResSettingsTask{Parameters: lt.filtrationTasks}
 
 	case "inc num proc files":
 		if err := sma.checkForFilteringTask(msg.ClientID, msg.TaskID); err != nil {
@@ -213,6 +235,20 @@ func managemetRecordTaskFiltration(sma *StoreMemoryApplication, msg chanReqSetti
 //managemetRecordTaskDownload управление учетом задач по скачиванию файлов
 func managemetRecordTaskDownload(sma *StoreMemoryApplication, msg chanReqSettingsTask) chanResSettingsTask {
 	switch msg.ActionType {
+	case "add task download":
+		if _, ok := sma.clientTasks[msg.ClientID]; !ok {
+			sma.clientTasks[msg.ClientID] = TasksList{
+				filtrationTasks: map[string]*FiltrationTasks{},
+				downloadTasks:   map[string]*DownloadTasks{},
+			}
+		}
+
+		if dt, ok := msg.Parameters.(*DownloadTasks); ok {
+			sma.clientTasks[msg.ClientID].downloadTasks[msg.TaskID] = dt
+		}
+
+		return chanResSettingsTask{}
+
 	case "add chan stop read file":
 		if err := sma.checkForDownloadingTask(msg.ClientID, msg.TaskID); err != nil {
 			return chanResSettingsTask{Error: err}

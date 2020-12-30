@@ -78,6 +78,13 @@ func HandlerMessageTypePing(
 		Data:     &resJSON,
 	}
 
+	/*
+						!!!!!!!!!
+		   Почему то после разрыва и востановления соединения во время фильтрации
+		   список задач в StoreMemoryTask остаются пустыми, надо посмотреть
+
+	*/
+
 	go checkingExecuteTaskFiltration(cwtResText, sma, clientID, saveMessageApp)
 }
 
@@ -122,6 +129,11 @@ func checkingExecuteTaskFiltration(
 		if info.Status == "stop" || info.Status == "complete" {
 
 			fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed FOUND and not 'stop' or 'complete', SEND message to CLIENT (ISEMS-NIH_master)")
+
+			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+				Description: fmt.Sprintf("filtration task processed is 'stop' or 'complete', send message about 'complete' to isems-nih_master with ID '%v'", clientID),
+				FuncName:    funcName,
+			})
 
 			//отправляем сообщение о завершении фильтрации и передаем СПИСОК ВСЕХ найденных в результате фильтрации файлов
 			if err := modulefiltrationfile.SendMessageFiltrationComplete(cwtResText, sma, clientID, taskID); err != nil {

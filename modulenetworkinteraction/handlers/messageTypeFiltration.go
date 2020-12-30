@@ -78,8 +78,11 @@ func HandlerMessageTypeFiltration(
 
 	//при получении подтверждения о завершении фильтрации удаляем задачу
 	if mtfcJSON.Info.Command == "confirm complete" {
-
-		fmt.Printf("func '%v', Command: '%v'\n", fn, mtfcJSON.Info.Command)
+		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			TypeMessage: "info",
+			Description: fmt.Sprintf("deleting a filter task with ID '%v' because the task was completed", mtfcJSON.Info.TaskID),
+			FuncName:    fn,
+		})
 
 		if err := sma.DelTaskFiltration(clientID, mtfcJSON.Info.TaskID); err != nil {
 			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{

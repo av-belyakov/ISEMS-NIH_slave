@@ -36,6 +36,9 @@ type configPath struct {
 }
 
 //TypeLogMessage описание типа для записи логов
+// TypeMessage - тип "error", "info", если пусто значит "error"
+// Description - описание
+// FuncName - имя функции
 type TypeLogMessage struct {
 	TypeMessage, Description, FuncName string
 }
