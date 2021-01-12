@@ -160,7 +160,7 @@ func (sysInfo *SysInfo) CreateRandomAccessMemory() error {
 
 	sysInfo.Info.RandomAccessMemory.Total, _ = strconv.Atoi(arrayString[1])
 	sysInfo.Info.RandomAccessMemory.Used, _ = strconv.Atoi(arrayString[2])
-	sysInfo.Info.RandomAccessMemory.Free, _ = strconv.Atoi(arrayString[3])
+	sysInfo.Info.RandomAccessMemory.Free, _ = strconv.Atoi(arrayString[6])
 
 	return nil
 }
