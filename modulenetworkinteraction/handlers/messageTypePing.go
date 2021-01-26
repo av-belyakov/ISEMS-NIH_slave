@@ -36,20 +36,22 @@ func HandlerMessageTypePing(
 		return
 	}
 
+	fmt.Println("func 'HandlerMessageTypePing', START...")
+	fmt.Printf("func 'HandlerMessageTypePing', request parameters type 'ping': '%v'\n", reqJSON)
+
 	typeAreaNetwork := "ip"
 	if strings.ToLower(reqJSON.Info.TypeAreaNetwork) == "pppoe" {
 		typeAreaNetwork = "pppoe"
 	}
 
-	//проверяем были ли ранее установлены параметры приложения
-	as := sma.GetApplicationSetting()
+	sma.SetApplicationSetting(configure.ApplicationSettings{
+		TypeAreaNetwork: typeAreaNetwork,
+		StorageFolders:  reqJSON.Info.StorageFolders,
+	})
 
-	if len(as.StorageFolders) == 0 {
-		sma.SetApplicationSetting(configure.ApplicationSettings{
-			TypeAreaNetwork: typeAreaNetwork,
-			StorageFolders:  reqJSON.Info.StorageFolders,
-		})
-	}
+	//проверяем были ли ранее установлены параметры приложения
+	//	as := sma.GetApplicationSetting()
+	//	fmt.Printf("func 'HandlerMessageTypePing', application settings: '%v'\n", as)
 
 	cs, err := sma.GetClientSetting(clientID)
 	if err != nil {
@@ -77,13 +79,6 @@ func HandlerMessageTypePing(
 		ClientID: clientID,
 		Data:     &resJSON,
 	}
-
-	/*
-						!!!!!!!!!
-		   Почему то после разрыва и востановления соединения во время фильтрации
-		   список задач в StoreMemoryTask остаются пустыми, надо посмотреть
-
-	*/
 
 	go checkingExecuteTaskFiltration(cwtResText, sma, clientID, saveMessageApp)
 }
