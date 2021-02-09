@@ -36,9 +36,6 @@ func HandlerMessageTypePing(
 		return
 	}
 
-	fmt.Println("func 'HandlerMessageTypePing', START...")
-	fmt.Printf("func 'HandlerMessageTypePing', request parameters type 'ping': '%v'\n", reqJSON)
-
 	typeAreaNetwork := "ip"
 	if strings.ToLower(reqJSON.Info.TypeAreaNetwork) == "pppoe" {
 		typeAreaNetwork = "pppoe"
@@ -48,10 +45,6 @@ func HandlerMessageTypePing(
 		TypeAreaNetwork: typeAreaNetwork,
 		StorageFolders:  reqJSON.Info.StorageFolders,
 	})
-
-	//проверяем были ли ранее установлены параметры приложения
-	//	as := sma.GetApplicationSetting()
-	//	fmt.Printf("func 'HandlerMessageTypePing', application settings: '%v'\n", as)
 
 	cs, err := sma.GetClientSetting(clientID)
 	if err != nil {
@@ -94,10 +87,8 @@ func checkingExecuteTaskFiltration(
 	//получаем все выполняемые данным пользователем задачи
 	taskList, ok := sma.GetListTasksFiltration(clientID)
 	if !ok {
-
-		fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed not found, client id not found")
-
 		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			TypeMessage: "info",
 			Description: fmt.Sprint("func 'checkingExecuteTaskFiltration', filtration task processed not found, client id not found"),
 			FuncName:    funcName,
 		})
@@ -106,10 +97,8 @@ func checkingExecuteTaskFiltration(
 	}
 
 	if len(taskList) == 0 {
-
-		fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed not found, task list is empty")
-
 		saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
+			TypeMessage: "info",
 			Description: fmt.Sprint("func 'checkingExecuteTaskFiltration', filtration task processed not found, task list is empty"),
 			FuncName:    funcName,
 		})
@@ -118,15 +107,10 @@ func checkingExecuteTaskFiltration(
 	}
 
 	for taskID, info := range taskList {
-
-		fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed FOUND")
-
 		if info.Status == "stop" || info.Status == "complete" {
-
-			fmt.Println("func 'checkingExecuteTaskFiltration', filtration task processed FOUND and not 'stop' or 'complete', SEND message to CLIENT (ISEMS-NIH_master)")
-
 			saveMessageApp.LogMessage(savemessageapp.TypeLogMessage{
-				Description: fmt.Sprintf("filtration task processed is 'stop' or 'complete', send message about 'complete' to isems-nih_master with ID '%v'", clientID),
+				TypeMessage: "info",
+				Description: fmt.Sprintf("filtration task processed is 'stop' or 'complete', send message about 'complete' to isems-nih_master with id '%v'", clientID),
 				FuncName:    funcName,
 			})
 
@@ -140,16 +124,8 @@ func checkingExecuteTaskFiltration(
 				continue
 			}
 
-			ib, _ := sma.GetListTasksFiltration(clientID)
-
-			fmt.Printf("func 'checkingExecuteTaskFiltration', list task filtration BEFORE delete: '%v'\n", ib)
-
 			//удаляем задачу
 			sma.DelTaskFiltration(clientID, taskID)
-
-			ia, _ := sma.GetListTasksFiltration(clientID)
-
-			fmt.Printf("func 'checkingExecuteTaskFiltration', list task filtration AFTER delete: '%v'\n", ia)
 		}
 	}
 }

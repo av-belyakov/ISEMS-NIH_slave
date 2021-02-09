@@ -36,7 +36,7 @@ func RouteWssConnect(
 			})
 		}
 
-		fmt.Printf("func 'RouteWssConnect', received messge '%v'\n", mtJSON)
+		//fmt.Printf("func 'RouteWssConnect', received messge '%v'\n", mtJSON)
 
 		switch mtJSON.MsgType {
 		case "ping":

@@ -17,7 +17,7 @@ func startDownloadFile(
 	mtfcJSON configure.MsgTypeDownloadControl,
 	clientID string,
 	maxSizeChunkFile int,
-	cwtResText chan<- configure.MsgWsTransmission) (err error) {
+	cwtResText chan<- configure.MsgWsTransmission) error {
 
 	taskID := mtfcJSON.Info.TaskID
 
@@ -27,43 +27,43 @@ func startDownloadFile(
 	}
 
 	//проверяем, выполняется ли задача по выгрузке файла для данного клиента
-	if _, err = sma.GetInfoTaskDownload(clientID, taskID); err == nil {
+	if _, err := sma.GetInfoTaskDownload(clientID, taskID); err == nil {
 		msgErr := "источник сообщает - невозможно начать выгрузку файла, задача по скачиванию файла для данного клиента уже выполняется"
-		err = np.SendMsgNotify("danger", "download files", msgErr, "stop")
+		_ = np.SendMsgNotify("danger", "download files", msgErr, "stop")
 
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
 			Data:     rejectTaskMsgJSON,
 		}
 
-		return err
+		return fmt.Errorf("unable to start uploading the file, the file download task (id '%v') for this client is already running", taskID)
 	}
 
 	//проверяем параметры запроса
 	msgErr, ok := common.CheckParametersDownloadFile(mtfcJSON.Info)
 	if !ok {
-		err = np.SendMsgNotify("danger", "download files", msgErr, "stop")
+		_ = np.SendMsgNotify("danger", "download files", msgErr, "stop")
 
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
 			Data:     rejectTaskMsgJSON,
 		}
 
-		return err
+		return fmt.Errorf("invalid request parameters were received for the issue with id '%v'", taskID)
 	}
 
 	//проверяем наличие файла, его размер и хеш-сумму
 	fileSize, fileHex, err := common.GetFileParameters(path.Join(mtfcJSON.Info.PathDirStorage, mtfcJSON.Info.FileOptions.Name))
 	if (err != nil) || (fileSize != mtfcJSON.Info.FileOptions.Size) || (fileHex != mtfcJSON.Info.FileOptions.Hex) {
 		errMsgHuman := "источник сообщает - невозможно начать выгрузку файла, требуемый файл не найден или его размер и контрольная сумма не совпадают с принятыми в запросе"
-		err = np.SendMsgNotify("danger", "download files", errMsgHuman, "stop")
+		_ = np.SendMsgNotify("danger", "download files", errMsgHuman, "stop")
 
 		cwtResText <- configure.MsgWsTransmission{
 			ClientID: clientID,
 			Data:     rejectTaskMsgJSON,
 		}
 
-		return err
+		return fmt.Errorf("you cannot start uploading the file, the required file is not found, or its size and checksum do not match the ones accepted in the request (task id '%v')", taskID)
 	}
 
 	strHex := fmt.Sprintf("1:%v:%v", taskID, fileHex)
@@ -107,7 +107,7 @@ func startDownloadFile(
 		Data:     &responseMsgJSON,
 	}
 
-	return err
+	return nil
 }
 
 func readyDownloadFile(
